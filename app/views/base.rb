@@ -6,4 +6,5 @@ class Views::Base < Components::Base
   # By default, it inherits from `Components::Base`, but you
   # can change that to `Phlex::HTML` if you want to keep views and
   # components independent.
+
 end
