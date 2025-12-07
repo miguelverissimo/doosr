@@ -10,9 +10,40 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_03_112334) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_07_070545) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "days", force: :cascade do |t|
+    t.datetime "closed_at"
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.datetime "imported_at"
+    t.bigint "imported_from_day_id"
+    t.bigint "imported_to_day_id"
+    t.datetime "reopened_at"
+    t.integer "state", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["date"], name: "index_days_on_date"
+    t.index ["imported_from_day_id"], name: "index_days_on_imported_from_day_id"
+    t.index ["imported_to_day_id"], name: "index_days_on_imported_to_day_id"
+    t.index ["state"], name: "index_days_on_state"
+    t.index ["user_id", "date"], name: "index_days_on_user_and_date", unique: true
+    t.index ["user_id"], name: "index_days_on_user_id"
+  end
+
+  create_table "descendants", force: :cascade do |t|
+    t.jsonb "active_items", default: [], null: false
+    t.datetime "created_at", null: false
+    t.bigint "descendable_id", null: false
+    t.string "descendable_type", null: false
+    t.jsonb "inactive_items", default: [], null: false
+    t.datetime "updated_at", null: false
+    t.index ["active_items"], name: "index_descendants_on_active_items", using: :gin
+    t.index ["descendable_type", "descendable_id"], name: "index_descendants_on_descendable", unique: true
+    t.index ["inactive_items"], name: "index_descendants_on_inactive_items", using: :gin
+  end
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -28,4 +59,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_03_112334) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
+  add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
+  add_foreign_key "days", "users"
 end

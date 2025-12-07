@@ -16,10 +16,14 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  # Authenticated users see the protected home, unauthenticated users see sign in
+  # Days - core feature
+  get 'day', to: 'days#show', as: :day
+  post 'days', to: 'days#create'
+
+  # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do
-      root to: 'home#index', as: :authenticated_root
+      root to: 'days#show', as: :authenticated_root
     end
 
     unauthenticated do

@@ -3,8 +3,9 @@
 class Views::Layouts::AppLayout < Views::Base
   include Phlex::Rails::Layout
 
-  def initialize(pathname:)
+  def initialize(pathname:, selected_date: nil)
     @pathname = pathname
+    @selected_date = selected_date
   end
 
   private
@@ -114,7 +115,7 @@ class Views::Layouts::AppLayout < Views::Base
         render Components::Toast.new
 
         SidebarWrapper do
-          render Components::AppSidebar.new(pathname: @pathname)
+          render Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
           SidebarInset do
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
