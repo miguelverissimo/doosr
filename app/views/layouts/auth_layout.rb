@@ -104,10 +104,6 @@ class Views::Layouts::AuthLayout < Views::Base
       end
 
       body do
-        render Components::Toast.new
-
-        render_flash_toasts
-
         yield
       end
     end
