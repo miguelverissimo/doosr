@@ -95,19 +95,22 @@ class Views::Layouts::AppLayout < Views::Base
         title { yield(:title).presence || "Doosr" }
         meta(name: "viewport", content: "width=device-width,initial-scale=1")
         meta(name: "apple-mobile-web-app-capable", content: "yes")
+        meta(name: "apple-mobile-web-app-status-bar-style", content: "default")
         meta(name: "application-name", content: "Doosr")
         meta(name: "mobile-web-app-capable", content: "yes")
+        meta(name: "theme-color", content: "#ffffff")
         raw(view_context.csrf_meta_tags)
         raw(view_context.csp_meta_tag)
         yield(:head)
         link(rel: "icon", href: "/icon.png", type: "image/png")
         link(rel: "icon", href: "/icon.svg", type: "image/svg+xml")
         link(rel: "apple-touch-icon", href: "/icon.png")
+        link(rel: "manifest", href: pwa_manifest_path)
         raw(view_context.stylesheet_link_tag("tailwind", "data-turbo-track": "reload"))
         raw(view_context.javascript_importmap_tags)
       end
 
-      body do
+      body(data: { controller: "pwa" }) do
         render Components::Toast.new
 
         SidebarWrapper do
