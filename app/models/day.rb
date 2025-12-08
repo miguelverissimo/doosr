@@ -121,7 +121,8 @@ class Day < ApplicationRecord
   private
 
   def create_descendant
-    self.descendant || build_descendant.save!
+    return if descendant.present?
+    build_descendant.save!
   end
 
   def track_state_changes

@@ -122,9 +122,11 @@ class Views::Layouts::AppLayout < Views::Base
               SidebarTrigger(class: "-ml-1")
 
               div(class: "flex items-center gap-3") do
-                div do
-                  h1(class: "font-bold text-lg") { "Doosr" }
-                  p(class: "text-xs") { "Welcome" }
+                if @selected_date
+                  div do
+                    h1(class: "font-semibold text-base") { @selected_date.strftime("%B %-d, %Y") }
+                    p(class: "text-xs text-muted-foreground") { @selected_date.strftime("%A") }
+                  end
                 end
               end
 

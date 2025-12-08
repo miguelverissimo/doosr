@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_07_070545) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_08_060345) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -45,6 +45,31 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_070545) do
     t.index ["inactive_items"], name: "index_descendants_on_inactive_items", using: :gin
   end
 
+  create_table "items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "deferred_at"
+    t.datetime "deferred_to"
+    t.bigint "descendant_id"
+    t.datetime "done_at"
+    t.datetime "dropped_at"
+    t.jsonb "extra_data", default: {}, null: false
+    t.integer "item_type", default: 0, null: false
+    t.string "recurrence_rule"
+    t.bigint "recurring_next_item_id"
+    t.bigint "source_item_id"
+    t.integer "state", default: 0, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["descendant_id"], name: "index_items_on_descendant_id"
+    t.index ["extra_data"], name: "index_items_on_extra_data", using: :gin
+    t.index ["item_type"], name: "index_items_on_item_type"
+    t.index ["recurring_next_item_id"], name: "index_items_on_recurring_next_item_id"
+    t.index ["source_item_id"], name: "index_items_on_source_item_id"
+    t.index ["state"], name: "index_items_on_state"
+    t.index ["user_id"], name: "index_items_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
@@ -63,4 +88,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_070545) do
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
   add_foreign_key "days", "users"
+  add_foreign_key "items", "descendants"
+  add_foreign_key "items", "items", column: "recurring_next_item_id", on_delete: :nullify
+  add_foreign_key "items", "items", column: "source_item_id", on_delete: :nullify
+  add_foreign_key "items", "users"
 end

@@ -20,6 +20,16 @@ Rails.application.routes.draw do
   get 'day', to: 'days#show', as: :day
   post 'days', to: 'days#create'
 
+  # Items - core todo/task items
+  resources :items, only: [:create, :update, :destroy] do
+    member do
+      get 'actions', to: 'items#actions_sheet', as: 'actions_sheet'
+      patch 'toggle_state', to: 'items#toggle_state', as: 'toggle_state'
+      patch 'move', to: 'items#move', as: 'move'
+      get 'debug', to: 'items#debug', as: 'debug'
+    end
+  end
+
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do

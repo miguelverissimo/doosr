@@ -83,6 +83,17 @@ class Components::AppSidebar < Components::Base
         selected_date: @selected_date,
         class: "!p-2 !space-y-2 rounded-md border shadow-sm text-sm"
       )
+
+      # Today button below calendar
+      div(class: "mt-2") do
+        a(
+          href: day_path(date: Date.today.to_s),
+          class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+        ) do
+          render_icon(:calendar)
+          span { "Today" }
+        end
+      end
     end
   end
 
