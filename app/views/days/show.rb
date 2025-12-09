@@ -92,15 +92,24 @@ module Views
             end
           end
 
+          # Root target for moving items (hidden by default) - BELOW input, ABOVE items
+          div(
+            data: { day_move_target: "rootTarget", action: "click->day-move#selectRootTarget" },
+            class: "hidden rounded-lg border-2 border-dashed border-primary bg-primary/5 p-4 text-center cursor-pointer hover:bg-primary/10 transition-colors"
+          ) do
+            p(class: "text-sm font-medium") { "Drop here" }
+          end
+
           # Items list
           div(id: "items_list", class: "space-y-2 mt-3") do
             # Render existing items if any
             if @day&.descendant
               item_ids = @day.descendant.active_items
-              items = Item.where(id: item_ids).index_by(&:id)
+              items = Item.where(id: item_ids).includes(:descendant).index_by(&:id)
               item_ids.each do |item_id|
                 item = items[item_id]
-                render Views::Items::Item.new(item: item, day: @day) if item
+                # Use nested rendering to show items with their children
+                render Views::Items::ItemWithChildren.new(item: item, day: @day) if item
               end
             end
           end

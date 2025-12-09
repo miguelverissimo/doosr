@@ -3,9 +3,10 @@
 class Views::Layouts::AppLayout < Views::Base
   include Phlex::Rails::Layout
 
-  def initialize(pathname:, selected_date: nil)
+  def initialize(pathname:, selected_date: nil, day: nil)
     @pathname = pathname
     @selected_date = selected_date
+    @day = day
   end
 
   private
@@ -117,7 +118,12 @@ class Views::Layouts::AppLayout < Views::Base
         SidebarWrapper do
           render Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
-          SidebarInset do
+          SidebarInset(
+            data: {
+              controller: "day-move",
+              day_move_day_id_value: @day&.id
+            }
+          ) do
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
               SidebarTrigger(class: "-ml-1")
 
@@ -131,6 +137,16 @@ class Views::Layouts::AppLayout < Views::Base
               end
 
               div(class: "flex-1")
+
+              # Cancel button for moving mode (hidden by default)
+              div(
+                data: { day_move_target: "cancelButton" },
+                class: "hidden"
+              ) do
+                Button(variant: :outline, size: :sm, data: { action: "click->day-move#cancelMoving" }) do
+                  "Cancel Move"
+                end
+              end
 
               div(class: "flex items-center gap-2") do
                 ThemeToggle do |toggle|

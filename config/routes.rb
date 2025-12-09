@@ -26,6 +26,7 @@ Rails.application.routes.draw do
       get 'actions', to: 'items#actions_sheet', as: 'actions_sheet'
       patch 'toggle_state', to: 'items#toggle_state', as: 'toggle_state'
       patch 'move', to: 'items#move', as: 'move'
+      patch 'reparent', to: 'items#reparent', as: 'reparent'
       get 'debug', to: 'items#debug', as: 'debug'
     end
   end

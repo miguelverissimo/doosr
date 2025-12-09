@@ -13,6 +13,11 @@ export default class extends Controller {
       return
     }
 
+    // Don't open sheet if we're in moving mode
+    if (sessionStorage.getItem('movingItemId')) {
+      return
+    }
+
     console.log("Opening sheet for item:", this.idValue)
 
     // Fetch the actions sheet via Turbo

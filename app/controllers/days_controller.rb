@@ -1,6 +1,6 @@
 class DaysController < ApplicationController
   before_action :authenticate_user!
-  layout -> { Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date) }
+  layout -> { Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day) }
 
   def show
     @date = parse_date

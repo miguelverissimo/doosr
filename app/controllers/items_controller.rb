@@ -81,9 +81,25 @@ class ItemsController < ApplicationController
     @item = current_user.items.find(params[:id])
     @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
 
+    # Calculate position for disabling move buttons
+    item_index = nil
+    total_items = nil
+    if @day&.descendant
+      active_items = @day.descendant.active_items
+      item_index = active_items.index(@item.id)
+      total_items = active_items.length
+    end
+
     respond_to do |format|
       format.turbo_stream do
-        component_html = render_to_string(Views::Items::ActionsSheet.new(item: @item, day: @day))
+        component_html = render_to_string(
+          Views::Items::ActionsSheet.new(
+            item: @item,
+            day: @day,
+            item_index: item_index,
+            total_items: total_items
+          )
+        )
         Rails.logger.debug "Component HTML length: #{component_html.length}"
         render turbo_stream: turbo_stream.append("body", component_html)
       end
@@ -135,15 +151,108 @@ class ItemsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
-        # Re-render the entire items list to show new order
-        items = Item.where(id: @day.descendant.active_items).index_by(&:id)
-        render turbo_stream: turbo_stream.update("items_list") do
-          @day.descendant.active_items.map do |item_id|
-            Views::Items::Item.new(item: items[item_id], day: @day).call if items[item_id]
-          end.join.html_safe
+        if @day&.descendant
+          # Re-render the entire items list to show new order with nesting
+          item_ids = @day.descendant.active_items
+          items = Item.where(id: item_ids).includes(:descendant).index_by(&:id)
+
+          rendered_items = item_ids.map do |item_id|
+            next unless items[item_id]
+            render_to_string(Views::Items::ItemWithChildren.new(item: items[item_id], day: @day))
+          end.compact.join
+
+          # Calculate new position for updating buttons
+          item_index = item_ids.index(@item.id)
+          total_items = item_ids.length
+
+          # Create a component just for the buttons
+          buttons_component = Views::Items::ActionsSheetButtons.new(
+            item: @item,
+            day: @day,
+            item_index: item_index,
+            total_items: total_items
+          )
+
+          render turbo_stream: [
+            turbo_stream.update("items_list", rendered_items),
+            turbo_stream.replace("action_sheet_buttons_#{@item.id}", buttons_component)
+          ]
+        else
+          # If no day/descendant, do nothing
+          head :ok
         end
       end
       format.html { redirect_back(fallback_location: root_path) }
+    end
+  end
+
+  def reparent
+    @item = current_user.items.find(params[:id])
+    target_item_id = params[:target_item_id]
+
+    # Get the day from params (should always be present now)
+    @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
+
+    # Find and remove item from its current descendant
+    current_descendant = Descendant.where("active_items @> ? OR inactive_items @> ?", [@item.id].to_json, [@item.id].to_json).first
+    if current_descendant
+      current_descendant.active_items = current_descendant.active_items.reject { |id| id == @item.id }
+      current_descendant.inactive_items = current_descendant.inactive_items.reject { |id| id == @item.id }
+      current_descendant.save!
+    end
+
+    # Add item to target descendant
+    if target_item_id.present?
+      # Moving to a specific item's descendant
+      target_item = current_user.items.find(target_item_id)
+      target_descendant = target_item.descendant || Descendant.create!(
+        descendable: target_item,
+        active_items: [],
+        inactive_items: []
+      )
+
+      if @item.done? || @item.dropped?
+        target_descendant.inactive_items = (target_descendant.inactive_items + [@item.id]).uniq
+      else
+        target_descendant.active_items = (target_descendant.active_items + [@item.id]).uniq
+      end
+      target_descendant.save!
+    else
+      # Moving to root level (day's descendant)
+      if @day&.descendant
+        if @item.done? || @item.dropped?
+          @day.descendant.inactive_items = (@day.descendant.inactive_items + [@item.id]).uniq
+        else
+          @day.descendant.active_items = (@day.descendant.active_items + [@item.id]).uniq
+        end
+        @day.descendant.save!
+      end
+    end
+
+    respond_to do |format|
+      format.turbo_stream do
+        if @day&.descendant
+          # Reload to get fresh data
+          @day.reload
+          @day.descendant.reload
+
+          # Render all root-level items with their nested children
+          item_ids = @day.descendant.active_items
+          items = Item.includes(:descendant).where(id: item_ids).index_by(&:id)
+
+          rendered_items = item_ids.map do |item_id|
+            item = items[item_id]
+            next unless item
+            item.reload
+            render_to_string(Views::Items::ItemWithChildren.new(item: item, day: @day))
+          end.compact.join
+
+          render turbo_stream: turbo_stream.update("items_list", rendered_items)
+        else
+          head :ok
+        end
+      end
+      format.html { redirect_back(fallback_location: root_path, notice: "Item moved successfully") }
     end
   end
 

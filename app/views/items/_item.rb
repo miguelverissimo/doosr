@@ -11,13 +11,14 @@ module Views
       def view_template
         div(
           id: "item_#{@item.id}",
-          class: "group flex items-center gap-2 rounded-lg border bg-card p-2.5 hover:bg-accent/50 transition-colors cursor-pointer",
+          class: item_classes,
           data: {
             controller: "item",
             item_id_value: @item.id,
             item_day_id_value: @day&.id,
             item_type_value: @item.item_type,
-            action: "click->item#openSheet"
+            action: "click->item#openSheet",
+            day_move_target: "item"
           }
         ) do
           # Checkbox for completable items
@@ -46,6 +47,17 @@ module Views
       end
 
       private
+
+      def item_classes
+        case @item.item_type.to_sym
+        when :completable
+          "group flex items-center gap-2 rounded-lg border bg-card p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+        when :section
+          "flex w-full cursor-pointer items-center gap-2 rounded-md bg-muted p-3 text-left transition-colors hover:bg-muted/85"
+        else
+          "flex w-full cursor-pointer items-center gap-2 rounded-md border bg-card p-3 text-left transition-colors hover:bg-muted/50"
+        end
+      end
 
       def render_checkbox
         form(
