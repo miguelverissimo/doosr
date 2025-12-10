@@ -36,6 +36,14 @@ Rails.application.routes.draw do
     end
   end
 
+  # Settings - user preferences and configuration
+  resource :settings, only: [:show, :update] do
+    post 'sections', to: 'settings#add_section', as: 'add_section'
+    patch 'sections/edit', to: 'settings#edit_section', as: 'edit_section'
+    delete 'sections/:section_name', to: 'settings#remove_section', as: 'remove_section'
+    patch 'sections/:section_name/move', to: 'settings#move_section', as: 'move_section'
+  end
+
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do
