@@ -8,6 +8,7 @@ module Views
         @day = day
         @item_index = item_index
         @total_items = total_items
+        @day_is_closed = @day&.closed? || false
       end
 
       def view_template
@@ -42,11 +43,11 @@ module Views
           method: "patch",
           params: { "state" => @item.done? ? "todo" : "done" },
           variant: :primary,
-          disabled: @item.deferred?
+          disabled: @item.deferred? || @day_is_closed
         )
 
         # Defer - open defer options sheet
-        if @item.deferred?
+        if @item.deferred? || @day_is_closed
           render_icon_button(
             icon: :clock,
             disabled: true
@@ -68,14 +69,14 @@ module Views
           method: "patch",
           params: { "state" => @item.dropped? ? "todo" : "dropped" },
           variant: :destructive,
-          disabled: @item.deferred?
+          disabled: @item.deferred? || @day_is_closed
         )
 
         # Edit
         render_icon_button(
           icon: :edit,
           action: "#",
-          disabled: @item.deferred?
+          disabled: @item.deferred? || @day_is_closed
         )
 
         # Reparent (placeholder)
@@ -86,8 +87,8 @@ module Views
       end
 
       def render_completable_utility_actions
-        # Reparent/Move - disabled for deferred items
-        if @item.deferred?
+        # Reparent/Move - disabled for deferred items or closed days
+        if @item.deferred? || @day_is_closed
           button(
             type: "button",
             disabled: true,
@@ -110,8 +111,8 @@ module Views
           end
         end
 
-        # Move Up - disabled if at index 0 or if item is deferred
-        can_move_up = @item_index && @item_index > 0 && !@item.deferred?
+        # Move Up - disabled if at index 0 or if item is deferred or day is closed
+        can_move_up = @item_index && @item_index > 0 && !@item.deferred? && !@day_is_closed
         render_icon_button(
           icon: :arrow_up,
           action: move_item_path(@item),
@@ -120,8 +121,8 @@ module Views
           disabled: !can_move_up
         )
 
-        # Move Down - disabled if at last position or if item is deferred
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@item.deferred?
+        # Move Down - disabled if at last position or if item is deferred or day is closed
+        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@item.deferred? && !@day_is_closed
         render_icon_button(
           icon: :arrow_down,
           action: move_item_path(@item),
@@ -130,7 +131,7 @@ module Views
           disabled: !can_move_down
         )
 
-        # Debug
+        # Debug - ALWAYS ACTIVE
         button(
           type: "button",
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
@@ -148,7 +149,8 @@ module Views
         # Edit
         render_icon_button(
           icon: :edit,
-          action: "#"
+          action: "#",
+          disabled: @day_is_closed
         )
 
         # Drop (placeholder)
@@ -166,22 +168,32 @@ module Views
       end
 
       def render_section_utility_actions
-        # Reparent/Move
-        button(
-          type: "button",
-          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-          data: {
-            controller: "item-move",
-            item_move_item_id_value: @item.id,
-            item_move_day_id_value: @day&.id,
-            action: "click->item-move#startMoving"
-          }
-        ) do
-          render_icon(:move, size: "20")
+        # Reparent/Move - disabled for closed days
+        if @day_is_closed
+          button(
+            type: "button",
+            disabled: true,
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
+          ) do
+            render_icon(:move, size: "20")
+          end
+        else
+          button(
+            type: "button",
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
+            data: {
+              controller: "item-move",
+              item_move_item_id_value: @item.id,
+              item_move_day_id_value: @day&.id,
+              action: "click->item-move#startMoving"
+            }
+          ) do
+            render_icon(:move, size: "20")
+          end
         end
 
-        # Move Up - disabled if at index 0
-        can_move_up = @item_index && @item_index > 0
+        # Move Up - disabled if at index 0 or day is closed
+        can_move_up = @item_index && @item_index > 0 && !@day_is_closed
         render_icon_button(
           icon: :arrow_up,
           action: move_item_path(@item),
@@ -190,8 +202,8 @@ module Views
           disabled: !can_move_up
         )
 
-        # Move Down - disabled if at last position
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1)
+        # Move Down - disabled if at last position or day is closed
+        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
         render_icon_button(
           icon: :arrow_down,
           action: move_item_path(@item),
@@ -200,7 +212,7 @@ module Views
           disabled: !can_move_down
         )
 
-        # Debug
+        # Debug - ALWAYS ACTIVE
         button(
           type: "button",
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",

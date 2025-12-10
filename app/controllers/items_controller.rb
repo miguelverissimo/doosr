@@ -12,6 +12,15 @@ class ItemsController < ApplicationController
         @day = current_user.days.find(params[:day_id])
         @day.descendant.add_active_item(@item.id)
         @day.descendant.save!
+      elsif params[:date].present?
+        # Create day if it doesn't exist (when adding first item)
+        date = Date.parse(params[:date])
+        @day = current_user.days.find_by(date: date)
+        unless @day
+          @day = Days::OpenDayService.new(user: current_user, date: date).call
+        end
+        @day.descendant.add_active_item(@item.id)
+        @day.descendant.save!
       end
 
       respond_to do |format|

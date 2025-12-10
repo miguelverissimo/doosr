@@ -12,20 +12,17 @@ class Components::Toast < Components::Base
   def view_template
     div(
       data: {
-        controller: "toast",
-        toast_position_value: @position,
-        toast_layout_value: @layout,
-        toast_gap_value: @gap,
-        toast_auto_dismiss_duration_value: @auto_dismiss_duration,
-        toast_limit_value: @limit,
-        action: {
-          mouseenter: "toast#handleMouseEnter",
-          mouseleave: "toast#handleMouseLeave"
-        }
+        controller: "ruby-ui--toast",
+        ruby_ui__toast_position_value: @position,
+        ruby_ui__toast_layout_value: @layout,
+        ruby_ui__toast_gap_value: @gap,
+        ruby_ui__toast_auto_dismiss_duration_value: @auto_dismiss_duration,
+        ruby_ui__toast_limit_value: @limit,
+        action: "mouseenter->ruby-ui--toast#handleMouseEnter mouseleave->ruby-ui--toast#handleMouseLeave"
       }
     ) do
       ul(
-        data: { toast_target: "container" },
+        data: { ruby_ui__toast_target: "container" },
         class: "fixed block w-full z-[100] flex flex-col gap-0 list-none p-0 m-0 pointer-events-none max-w-[300px] sm:max-w-xs"
       )
     end

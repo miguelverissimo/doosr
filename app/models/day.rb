@@ -41,6 +41,8 @@ class Day < ApplicationRecord
   scope :for_date, ->(date) { where(date: date) }
   scope :for_user, ->(user) { where(user: user) }
   scope :ordered_by_date, -> { order(date: :desc) }
+  scope :latest_importable, -> { where(state: :closed, imported_to_day_id: nil).order(date: :desc) }
+  scope :importable_before, ->(date) { where("date < ?", date).where(imported_to_day_id: nil).order(date: :desc) }
 
   # Callbacks
   after_create :create_descendant
@@ -106,6 +108,11 @@ class Day < ApplicationRecord
   # Check if this Day has been used as a source for import
   def has_been_imported?
     imported_to_day.present?
+  end
+
+  # Check if this Day is importable (closed and not yet imported to another day)
+  def importable?
+    closed? && imported_to_day_id.nil?
   end
 
   # Human-readable date format

@@ -3,10 +3,11 @@
 class Views::Layouts::AppLayout < Views::Base
   include Phlex::Rails::Layout
 
-  def initialize(pathname:, selected_date: nil, day: nil)
+  def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil)
     @pathname = pathname
     @selected_date = selected_date
     @day = day
+    @latest_importable_day = latest_importable_day
   end
 
   private
@@ -43,8 +44,12 @@ class Views::Layouts::AppLayout < Views::Base
         description = toast_data[:description] || toast_data["description"] || ""
         type = toast_data[:type] || toast_data["type"] || "default"
         position = toast_data[:position] || toast_data["position"] || "top-center"
-        
-        script_content += "window.toast(#{message.to_json}, { type: #{type.to_json}, description: #{description.to_json}, position: #{position.to_json} }); "
+        icon = toast_data[:icon] || toast_data["icon"] || nil
+
+        toast_options = { type: type, description: description, position: position }
+        toast_options[:icon] = icon if icon
+
+        script_content += "window.toast(#{message.to_json}, #{toast_options.to_json}); "
       else
         script_content += "window.toast(#{toast_data.to_json}); "
       end
@@ -127,44 +132,41 @@ class Views::Layouts::AppLayout < Views::Base
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
               SidebarTrigger(class: "-ml-1")
 
-              div(class: "flex items-center gap-3") do
-                if @selected_date
-                  div do
-                    h1(class: "font-semibold text-base") { @selected_date.strftime("%B %-d, %Y") }
-                    p(class: "text-xs text-muted-foreground") { @selected_date.strftime("%A") }
-                  end
+              if @selected_date
+                render Views::Days::Header.new(
+                  date: @selected_date,
+                  day: @day,
+                  latest_importable_day: @latest_importable_day
+                )
 
-                  # Ephemeries button
-                  Button(
-                    variant: :ghost,
-                    icon: true,
-                    size: :sm,
-                    class: "ml-2",
-                    data: {
-                      controller: "ephemeries",
-                      ephemeries_date_value: @selected_date.to_s,
-                      action: "click->ephemeries#open"
-                    },
-                    title: "View ephemeries"
-                  ) do
-                    # Star/sparkles icon for astrological aspects
-                    svg(
-                      xmlns: "http://www.w3.org/2000/svg",
-                      class: "h-4 w-4",
-                      viewBox: "0 0 24 24",
-                      fill: "none",
-                      stroke: "currentColor",
-                      stroke_width: "2",
-                      stroke_linecap: "round",
-                      stroke_linejoin: "round"
-                    ) do |s|
-                      s.path(d: "M12 3l2.598 7.026L22 12l-7.402 1.974L12 21l-2.598-7.026L2 12l7.402-1.974L12 3z")
-                    end
+                # Ephemeries button
+                Button(
+                  variant: :ghost,
+                  icon: true,
+                  size: :sm,
+                  class: "ml-2",
+                  data: {
+                    controller: "ephemeries",
+                    ephemeries_date_value: @selected_date.to_s,
+                    action: "click->ephemeries#open"
+                  },
+                  title: "View ephemeries"
+                ) do
+                  # Star/sparkles icon for astrological aspects
+                  svg(
+                    xmlns: "http://www.w3.org/2000/svg",
+                    class: "h-4 w-4",
+                    viewBox: "0 0 24 24",
+                    fill: "none",
+                    stroke: "currentColor",
+                    stroke_width: "2",
+                    stroke_linecap: "round",
+                    stroke_linejoin: "round"
+                  ) do |s|
+                    s.path(d: "M12 3l2.598 7.026L22 12l-7.402 1.974L12 21l-2.598-7.026L2 12l7.402-1.974L12 3z")
                   end
                 end
               end
-
-              div(class: "flex-1")
 
               # Cancel button for moving mode (hidden by default)
               div(

@@ -19,6 +19,15 @@ Rails.application.routes.draw do
   # Days - core feature
   get 'day', to: 'days#show', as: :day
   post 'days', to: 'days#create'
+  resources :days, only: [] do
+    member do
+      patch 'close', to: 'days#close'
+      patch 'reopen', to: 'days#reopen'
+    end
+    collection do
+      post 'import', to: 'days#import'
+    end
+  end
 
   # Ephemeries - astrological aspects
   get 'ephemeries', to: 'ephemeries#index', as: :ephemeries
