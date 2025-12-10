@@ -64,10 +64,26 @@ export default class extends Controller {
   }
 
   submit(e) {
+    // Show loading toast based on item type
+    if (window.toast) {
+      const itemType = this.currentTypeValue === "section" ? "section" : "item"
+      const message = this.currentTypeValue === "section" ? "Creating section..." : "Creating item..."
+
+      this.loadingToastId = window.toast(message, {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
     // Allow form submission, Turbo will handle it
   }
 
   clearForm() {
+    // Dismiss loading toast if it exists
+    if (window.toast && window.toast.dismiss && this.loadingToastId) {
+      window.toast.dismiss(this.loadingToastId)
+      this.loadingToastId = null
+    }
+
     // Clear the input after successful submission
     this.titleInputTarget.value = ""
     this.currentTypeValue = "completable"

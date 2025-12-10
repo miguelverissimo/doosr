@@ -185,6 +185,15 @@ export default class extends Controller {
   moveItemToTarget(itemId, targetItemId) {
     console.log(`Moving item ${itemId} to target ${targetItemId}`)
 
+    // Show loading toast
+    let loadingToastId = null
+    if (window.toast) {
+      loadingToastId = window.toast("Reparenting item...", {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
+
     // Exit moving mode first
     this.exitMovingMode()
 
@@ -209,6 +218,11 @@ export default class extends Controller {
     .then(html => {
       console.log("Received turbo stream response for moveToTarget, length:", html.length)
 
+      // Dismiss loading toast
+      if (loadingToastId && window.toast && window.toast.dismiss) {
+        window.toast.dismiss(loadingToastId)
+      }
+
       // Process turbo stream response
       Turbo.renderStreamMessage(html)
 
@@ -225,12 +239,33 @@ export default class extends Controller {
     })
     .catch(error => {
       console.error('Error moving item:', error)
-      alert('Failed to move item')
+
+      // Dismiss loading toast on error
+      if (loadingToastId && window.toast && window.toast.dismiss) {
+        window.toast.dismiss(loadingToastId)
+      }
+
+      // Show error toast
+      if (window.toast) {
+        window.toast("Failed to move item", {
+          type: "error",
+          description: error.message
+        })
+      }
     })
   }
 
   moveItemToRoot(itemId) {
     console.log(`Moving item ${itemId} to root`)
+
+    // Show loading toast
+    let loadingToastId = null
+    if (window.toast) {
+      loadingToastId = window.toast("Reparenting item...", {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
 
     // Exit moving mode first
     this.exitMovingMode()
@@ -256,6 +291,11 @@ export default class extends Controller {
     .then(html => {
       console.log("Received turbo stream response for moveToRoot, length:", html.length)
 
+      // Dismiss loading toast
+      if (loadingToastId && window.toast && window.toast.dismiss) {
+        window.toast.dismiss(loadingToastId)
+      }
+
       // Process turbo stream response
       Turbo.renderStreamMessage(html)
 
@@ -272,7 +312,19 @@ export default class extends Controller {
     })
     .catch(error => {
       console.error('Error moving item to root:', error)
-      alert('Failed to move item')
+
+      // Dismiss loading toast on error
+      if (loadingToastId && window.toast && window.toast.dismiss) {
+        window.toast.dismiss(loadingToastId)
+      }
+
+      // Show error toast
+      if (window.toast) {
+        window.toast("Failed to move item", {
+          type: "error",
+          description: error.message
+        })
+      }
     })
   }
 }

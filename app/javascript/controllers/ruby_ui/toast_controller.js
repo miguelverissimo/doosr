@@ -13,6 +13,7 @@ export default class extends Controller {
   connect() {
     // Make toast function available globally
     window.toast = this.show.bind(this)
+    window.toast.dismiss = this.dismiss.bind(this)
     console.log("✅ Toast controller connected, window.toast is now available")
     this.updatePosition()
   }
