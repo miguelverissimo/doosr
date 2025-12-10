@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_08_060345) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_10_064215) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,6 +43,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_08_060345) do
     t.index ["active_items"], name: "index_descendants_on_active_items", using: :gin
     t.index ["descendable_type", "descendable_id"], name: "index_descendants_on_descendable", unique: true
     t.index ["inactive_items"], name: "index_descendants_on_inactive_items", using: :gin
+  end
+
+  create_table "ephemeries", force: :cascade do |t|
+    t.string "aspect", null: false
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.datetime "end", null: false
+    t.datetime "start", null: false
+    t.datetime "strongest"
+    t.datetime "updated_at", null: false
+    t.index ["start", "end"], name: "index_ephemeries_on_start_and_end"
   end
 
   create_table "items", force: :cascade do |t|

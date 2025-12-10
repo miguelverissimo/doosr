@@ -20,6 +20,9 @@ Rails.application.routes.draw do
   get 'day', to: 'days#show', as: :day
   post 'days', to: 'days#create'
 
+  # Ephemeries - astrological aspects
+  get 'ephemeries', to: 'ephemeries#index', as: :ephemeries
+
   # Items - core todo/task items
   resources :items, only: [:create, :update, :destroy] do
     member do

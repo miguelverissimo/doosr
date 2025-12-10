@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  start: 2025-12-10 06:42:15
+  end: 2025-12-10 06:42:15
+  strongest: 2025-12-10 06:42:15
+  aspect: MyString
+  description: MyText
+
+two:
+  start: 2025-12-10 06:42:15
+  end: 2025-12-10 06:42:15
+  strongest: 2025-12-10 06:42:15
+  aspect: MyString
+  description: MyText

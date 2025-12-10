@@ -133,6 +133,34 @@ class Views::Layouts::AppLayout < Views::Base
                     h1(class: "font-semibold text-base") { @selected_date.strftime("%B %-d, %Y") }
                     p(class: "text-xs text-muted-foreground") { @selected_date.strftime("%A") }
                   end
+
+                  # Ephemeries button
+                  Button(
+                    variant: :ghost,
+                    icon: true,
+                    size: :sm,
+                    class: "ml-2",
+                    data: {
+                      controller: "ephemeries",
+                      ephemeries_date_value: @selected_date.to_s,
+                      action: "click->ephemeries#open"
+                    },
+                    title: "View ephemeries"
+                  ) do
+                    # Star/sparkles icon for astrological aspects
+                    svg(
+                      xmlns: "http://www.w3.org/2000/svg",
+                      class: "h-4 w-4",
+                      viewBox: "0 0 24 24",
+                      fill: "none",
+                      stroke: "currentColor",
+                      stroke_width: "2",
+                      stroke_linecap: "round",
+                      stroke_linejoin: "round"
+                    ) do |s|
+                      s.path(d: "M12 3l2.598 7.026L22 12l-7.402 1.974L12 21l-2.598-7.026L2 12l7.402-1.974L12 3z")
+                    end
+                  end
                 end
               end
 
