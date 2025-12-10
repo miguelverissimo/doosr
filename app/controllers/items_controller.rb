@@ -106,6 +106,20 @@ class ItemsController < ApplicationController
     end
   end
 
+  def defer_options
+    @item = current_user.items.find(params[:id])
+    @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "sheet_content_area",
+          Views::Items::DeferOptions.new(item: @item, day: @day)
+        )
+      end
+    end
+  end
+
   def toggle_state
     @item = current_user.items.find(params[:id])
     new_state = params[:state]
@@ -153,17 +167,19 @@ class ItemsController < ApplicationController
       format.turbo_stream do
         if @day&.descendant
           # Re-render the entire items list to show new order with nesting
-          item_ids = @day.descendant.active_items
-          items = Item.where(id: item_ids).includes(:descendant).index_by(&:id)
+          active_item_ids = @day.descendant.active_items || []
+          inactive_item_ids = @day.descendant.inactive_items || []
+          all_item_ids = active_item_ids + inactive_item_ids
+          items = Item.where(id: all_item_ids).includes(:descendant).index_by(&:id)
 
-          rendered_items = item_ids.map do |item_id|
+          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
             next unless items[item_id]
             render_to_string(Views::Items::ItemWithChildren.new(item: items[item_id], day: @day))
           end.compact.join
 
-          # Calculate new position for updating buttons
-          item_index = item_ids.index(@item.id)
-          total_items = item_ids.length
+          # Calculate new position for updating buttons (only count active items for positioning)
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
 
           # Create a component just for the buttons
           buttons_component = Views::Items::ActionsSheetButtons.new(
@@ -236,11 +252,13 @@ class ItemsController < ApplicationController
           @day.reload
           @day.descendant.reload
 
-          # Render all root-level items with their nested children
-          item_ids = @day.descendant.active_items
-          items = Item.includes(:descendant).where(id: item_ids).index_by(&:id)
+          # Render all root-level items (active + inactive) with their nested children
+          active_item_ids = @day.descendant.active_items || []
+          inactive_item_ids = @day.descendant.inactive_items || []
+          all_item_ids = active_item_ids + inactive_item_ids
+          items = Item.includes(:descendant).where(id: all_item_ids).index_by(&:id)
 
-          rendered_items = item_ids.map do |item_id|
+          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
             item = items[item_id]
             next unless item
             item.reload
@@ -253,6 +271,108 @@ class ItemsController < ApplicationController
         end
       end
       format.html { redirect_back(fallback_location: root_path, notice: "Item moved successfully") }
+    end
+  end
+
+  def defer
+    @item = current_user.items.find(params[:id])
+    target_date_param = params[:target_date]
+
+    # Parse target date
+    target_date = case target_date_param
+    when 'tomorrow'
+      Item.get_tomorrow_date
+    when 'next_monday'
+      Item.get_next_monday_date
+    when 'next_month'
+      Item.get_next_month_first_date
+    else
+      Date.parse(target_date_param)
+    end
+
+    # Check if confirmation is needed (if item has nested items)
+    if @item.has_nested_items? && params[:confirmed] != 'true'
+      @day = find_day
+      # Return a response indicating confirmation is needed
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "sheet_content_area",
+            Views::Items::DeferConfirmation.new(
+              item: @item,
+              target_date: target_date,
+              target_date_param: target_date_param,
+              day: @day
+            )
+          )
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: "Confirmation required") }
+      end
+      return
+    end
+
+    # Defer the item using the service
+    service = ::Items::DeferService.new(
+      source_item: @item,
+      target_date: target_date,
+      user: current_user
+    )
+
+    deferred_count = service.call
+
+    # Find the day to refresh the UI
+    @day = find_day
+
+    respond_to do |format|
+      format.turbo_stream do
+        if @day&.descendant
+          # Reload to get fresh data
+          @day.reload
+          @day.descendant.reload
+
+          # Render all root-level items (active + inactive) with their nested children
+          active_item_ids = @day.descendant.active_items || []
+          inactive_item_ids = @day.descendant.inactive_items || []
+          all_item_ids = active_item_ids + inactive_item_ids
+          items = Item.includes(:descendant).where(id: all_item_ids).index_by(&:id)
+
+          # Render active items first, then inactive items
+          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
+            item = items[item_id]
+            next unless item
+            item.reload
+            render_to_string(Views::Items::ItemWithChildren.new(item: item, day: @day))
+          end.compact.join
+
+          # Reload the item to get fresh state
+          @item.reload
+
+          # Calculate position for the actions sheet
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
+
+          # Show toast and reload the actions sheet
+          toast_message = "#{deferred_count} item#{deferred_count > 1 ? 's' : ''} deferred to #{target_date.strftime('%b %-d, %Y')}"
+
+          render turbo_stream: [
+            turbo_stream.update("items_list", rendered_items),
+            turbo_stream.replace(
+              "sheet_content_area",
+              Views::Items::ActionsSheetContent.new(
+                item: @item,
+                day: @day,
+                item_index: item_index,
+                total_items: total_items
+              )
+            ),
+            turbo_stream.append("body", "<script>window.toast && window.toast(#{toast_message.to_json}, { type: 'success' })</script>")
+          ]
+        else
+          flash[:alert] = "Failed to defer item"
+          head :ok
+        end
+      end
+      format.html { redirect_back(fallback_location: root_path, notice: "Item deferred successfully") }
     end
   end
 

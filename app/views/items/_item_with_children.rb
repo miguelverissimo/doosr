@@ -23,15 +23,32 @@ module Views
 
       def render_children
         descendant = @item.descendant
-        item_ids = descendant.active_items
-        return if item_ids.empty?
+        active_item_ids = descendant.active_items || []
+        inactive_item_ids = descendant.inactive_items || []
+        all_item_ids = active_item_ids + inactive_item_ids
+
+        return if all_item_ids.empty?
 
         # Load all child items with their descendants (use :: to reference top-level Item model)
-        items = ::Item.includes(:descendant).where(id: item_ids).index_by(&:id)
+        items = ::Item.includes(:descendant).where(id: all_item_ids).index_by(&:id)
 
         # Render children in a nested container with left margin
         div(class: "ml-6 mt-2 space-y-2 border-l-2 border-border/50 pl-3") do
-          item_ids.each do |item_id|
+          # Render active items first
+          active_item_ids.each do |item_id|
+            item = items[item_id]
+            next unless item
+
+            # Recursively render child with increased depth
+            render Views::Items::ItemWithChildren.new(
+              item: item,
+              day: @day,
+              depth: @depth + 1
+            )
+          end
+
+          # Render inactive items after (done, dropped, deferred)
+          inactive_item_ids.each do |item_id|
             item = items[item_id]
             next unless item
 

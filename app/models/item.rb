@@ -151,6 +151,23 @@ class Item < ApplicationRecord
     next_item
   end
 
+  # Date calculation utilities for deferring
+  # All dates normalized to midnight UTC (matches day dateKey format)
+  def self.get_tomorrow_date
+    (Date.today + 1.day).beginning_of_day
+  end
+
+  def self.get_next_monday_date
+    today = Date.today
+    days_until_monday = (8 - today.wday) % 7
+    days_until_monday = 7 if days_until_monday == 0 # If today is Monday, go to next Monday
+    (today + days_until_monday.days).beginning_of_day
+  end
+
+  def self.get_next_month_first_date
+    (Date.today.next_month.beginning_of_month).beginning_of_day
+  end
+
   private
 
   def create_descendant_if_needed
@@ -186,8 +203,8 @@ class Item < ApplicationRecord
   end
 
   def deferred_to_must_be_future
-    if deferred? && deferred_to.present? && deferred_to < Time.current
-      errors.add(:deferred_to, "must be in the future")
+    if deferred? && deferred_to.present? && deferred_to.to_date < Date.today
+      errors.add(:deferred_to, "must be today or in the future")
     end
   end
 end

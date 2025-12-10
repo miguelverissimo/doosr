@@ -31,9 +31,18 @@ module Views
           # Item title
           div(class: "flex-1 min-w-0") do
             if @item.section?
-              h3(class: "font-semibold text-xs truncate") { @item.title }
+              h3(class: "font-semibold text-sm truncate") { @item.title }
             else
-              p(class: "text-xs truncate #{@item.done? ? 'line-through text-muted-foreground' : ''}") { @item.title }
+              title_classes = ["text-sm truncate"]
+              title_classes << "line-through text-muted-foreground" if @item.done?
+              p(class: title_classes.join(" ")) { @item.title }
+            end
+          end
+
+          # State badge for deferred or dropped items
+          if @item.deferred? || @item.dropped?
+            span(class: "shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground") do
+              @item.state.to_s
             end
           end
 
@@ -49,13 +58,20 @@ module Views
       private
 
       def item_classes
-        case @item.item_type.to_sym
+        base_classes = case @item.item_type.to_sym
         when :completable
           "group flex items-center gap-2 rounded-lg border bg-card p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
         when :section
           "flex w-full cursor-pointer items-center gap-2 rounded-md bg-muted p-3 text-left transition-colors hover:bg-muted/85"
         else
           "flex w-full cursor-pointer items-center gap-2 rounded-md border bg-card p-3 text-left transition-colors hover:bg-muted/50"
+        end
+
+        # Add opacity for deferred, done, or dropped items
+        if @item.deferred? || @item.done? || @item.dropped?
+          "#{base_classes} opacity-60"
+        else
+          base_classes
         end
       end
 
@@ -76,7 +92,8 @@ module Views
           input(
             type: "checkbox",
             checked: @item.done?,
-            class: "h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer",
+            disabled: @item.deferred?,
+            class: "h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 #{@item.deferred? ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}",
             data: { action: "change->item#toggle" }
           )
         end

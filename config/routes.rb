@@ -24,9 +24,11 @@ Rails.application.routes.draw do
   resources :items, only: [:create, :update, :destroy] do
     member do
       get 'actions', to: 'items#actions_sheet', as: 'actions_sheet'
+      get 'defer_options', to: 'items#defer_options', as: 'defer_options'
       patch 'toggle_state', to: 'items#toggle_state', as: 'toggle_state'
       patch 'move', to: 'items#move', as: 'move'
       patch 'reparent', to: 'items#reparent', as: 'reparent'
+      patch 'defer', to: 'items#defer', as: 'defer'
       get 'debug', to: 'items#debug', as: 'debug'
     end
   end

@@ -41,14 +41,25 @@ module Views
           action: toggle_state_item_path(@item),
           method: "patch",
           params: { "state" => @item.done? ? "todo" : "done" },
-          variant: :primary
+          variant: :primary,
+          disabled: @item.deferred?
         )
 
-        # Defer (placeholder)
-        render_icon_button(
-          icon: :clock,
-          disabled: true
-        )
+        # Defer - open defer options sheet
+        if @item.deferred?
+          render_icon_button(
+            icon: :clock,
+            disabled: true
+          )
+        else
+          a(
+            href: defer_options_item_path(@item, day_id: @day&.id),
+            data: { turbo_stream: true },
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
+          ) do
+            render_icon(:clock, size: "20")
+          end
+        end
 
         # Drop/Undrop
         render_icon_button(
@@ -56,13 +67,15 @@ module Views
           action: toggle_state_item_path(@item),
           method: "patch",
           params: { "state" => @item.dropped? ? "todo" : "dropped" },
-          variant: :destructive
+          variant: :destructive,
+          disabled: @item.deferred?
         )
 
         # Edit
         render_icon_button(
           icon: :edit,
-          action: "#"
+          action: "#",
+          disabled: @item.deferred?
         )
 
         # Reparent (placeholder)
@@ -73,22 +86,32 @@ module Views
       end
 
       def render_completable_utility_actions
-        # Reparent/Move
-        button(
-          type: "button",
-          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-          data: {
-            controller: "item-move",
-            item_move_item_id_value: @item.id,
-            item_move_day_id_value: @day&.id,
-            action: "click->item-move#startMoving"
-          }
-        ) do
-          render_icon(:move, size: "20")
+        # Reparent/Move - disabled for deferred items
+        if @item.deferred?
+          button(
+            type: "button",
+            disabled: true,
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
+          ) do
+            render_icon(:move, size: "20")
+          end
+        else
+          button(
+            type: "button",
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
+            data: {
+              controller: "item-move",
+              item_move_item_id_value: @item.id,
+              item_move_day_id_value: @day&.id,
+              action: "click->item-move#startMoving"
+            }
+          ) do
+            render_icon(:move, size: "20")
+          end
         end
 
-        # Move Up - disabled if at index 0
-        can_move_up = @item_index && @item_index > 0
+        # Move Up - disabled if at index 0 or if item is deferred
+        can_move_up = @item_index && @item_index > 0 && !@item.deferred?
         render_icon_button(
           icon: :arrow_up,
           action: move_item_path(@item),
@@ -97,8 +120,8 @@ module Views
           disabled: !can_move_up
         )
 
-        # Move Down - disabled if at last position
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1)
+        # Move Down - disabled if at last position or if item is deferred
+        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@item.deferred?
         render_icon_button(
           icon: :arrow_down,
           action: move_item_path(@item),

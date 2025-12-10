@@ -104,9 +104,20 @@ module Views
           div(id: "items_list", class: "space-y-2 mt-3") do
             # Render existing items if any
             if @day&.descendant
-              item_ids = @day.descendant.active_items
-              items = Item.where(id: item_ids).includes(:descendant).index_by(&:id)
-              item_ids.each do |item_id|
+              active_item_ids = @day.descendant.active_items || []
+              inactive_item_ids = @day.descendant.inactive_items || []
+              all_item_ids = active_item_ids + inactive_item_ids
+              items = Item.where(id: all_item_ids).includes(:descendant).index_by(&:id)
+
+              # Render active items first
+              active_item_ids.each do |item_id|
+                item = items[item_id]
+                # Use nested rendering to show items with their children
+                render Views::Items::ItemWithChildren.new(item: item, day: @day) if item
+              end
+
+              # Render inactive items after (done, dropped, deferred)
+              inactive_item_ids.each do |item_id|
                 item = items[item_id]
                 # Use nested rendering to show items with their children
                 render Views::Items::ItemWithChildren.new(item: item, day: @day) if item
