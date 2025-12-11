@@ -80,6 +80,8 @@ module Views
           action: item_path(@item),
           method: "post",
           data: {
+            controller: "form-loading",
+            form_loading_message_value: @item.done? ? "Marking as todo..." : "Marking as done...",
             turbo: "true",
             action: "change->item#toggle"
           },

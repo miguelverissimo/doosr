@@ -32,23 +32,12 @@ module Views
             data_state: "open",
             class: "fixed pointer-events-auto z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[85vh]"
           ) do
-            div(id: "sheet_content_area") do
-              SheetHeader do
-                SheetTitle(class: "text-left") { @item.title }
-                SheetDescription(class: "text-left text-xs text-muted-foreground") do
-                  "#{@item.item_type.titleize} • #{@item.state.titleize}"
-                end
-              end
-
-              SheetMiddle(class: "py-4") do
-                render Views::Items::ActionsSheetButtons.new(
-                  item: @item,
-                  day: @day,
-                  item_index: @item_index,
-                  total_items: @total_items
-                )
-              end
-            end
+            render Views::Items::ActionsSheetContent.new(
+              item: @item,
+              day: @day,
+              item_index: @item_index,
+              total_items: @total_items
+            )
 
             # Close button
             button(

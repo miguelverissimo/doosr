@@ -10,12 +10,15 @@ module Views
       end
 
       def view_template
-        # Render the item itself
-        render Views::Items::Item.new(item: @item, day: @day)
+        # Wrap in a container div so we can replace the entire item+children structure
+        div(id: "item_with_children_#{@item.id}") do
+          # Render the item itself
+          render Views::Items::Item.new(item: @item, day: @day)
 
-        # Render nested children if item has a descendant
-        if @item.descendant
-          render_children
+          # Render nested children if item has a descendant
+          if @item.descendant
+            render_children
+          end
         end
       end
 

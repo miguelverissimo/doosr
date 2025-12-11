@@ -7,11 +7,88 @@ class ItemsController < ApplicationController
     @item = current_user.items.build(item_params)
 
     if @item.save
+      # Add item to parent item's descendant if parent_item_id provided
+      if params[:parent_item_id].present?
+        @parent_item = current_user.items.find(params[:parent_item_id])
+        @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
+
+        # Create descendant for parent if it doesn't exist
+        parent_descendant = @parent_item.descendant || Descendant.create!(
+          descendable: @parent_item,
+          active_items: [],
+          inactive_items: []
+        )
+
+        parent_descendant.add_active_item(@item.id)
+        parent_descendant.save!
+
+        respond_to do |format|
+          format.turbo_stream do
+            # Reload parent and its descendant to get fresh data
+            @parent_item.reload
+            @parent_item.descendant.reload
+
+            # Check if this is the first child
+            is_first_child = @parent_item.descendant.active_items.count == 1
+
+            # Calculate position of new item
+            active_item_ids = @parent_item.descendant.active_items
+            item_index = active_item_ids.index(@item.id)
+
+            streams = [
+              # Update the nested items in the drawer
+              turbo_stream.append(
+                "nested_items_#{@parent_item.id}",
+                render_to_string(Views::Items::DrawerChildItem.new(
+                  item: @item,
+                  parent_item: @parent_item,
+                  day: @day,
+                  item_index: item_index,
+                  total_items: active_item_ids.length
+                ))
+              ),
+              turbo_stream.update("child_item_form_errors_#{@parent_item.id}", "")
+            ]
+
+            # If this is the first child, show the "Nested items" title
+            if is_first_child
+              streams << turbo_stream.update(
+                "nested_items_title_#{@parent_item.id}",
+                "<div class='text-sm font-medium text-muted-foreground'>Nested items</div>"
+              )
+            end
+
+            # Also update the parent item in the day view to show the new child
+            if @day
+              # Replace the entire item+children wrapper
+              streams << turbo_stream.replace(
+                "item_with_children_#{@parent_item.id}",
+                render_to_string(Views::Items::ItemWithChildren.new(item: @parent_item, day: @day))
+              )
+            end
+
+            render turbo_stream: streams
+          end
+          format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
+        end
       # Add item to day's descendant active_items array if day_id provided
-      if params[:day_id].present?
+      elsif params[:day_id].present?
         @day = current_user.days.find(params[:day_id])
         @day.descendant.add_active_item(@item.id)
         @day.descendant.save!
+
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: [
+              turbo_stream.append(
+                "items_list",
+                Views::Items::Item.new(item: @item)
+              ),
+              turbo_stream.update("item_form_errors", "")
+            ]
+          end
+          format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
+        end
       elsif params[:date].present?
         # Create day if it doesn't exist (when adding first item)
         date = Date.parse(params[:date])
@@ -21,25 +98,44 @@ class ItemsController < ApplicationController
         end
         @day.descendant.add_active_item(@item.id)
         @day.descendant.save!
-      end
 
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: [
-            turbo_stream.append(
-              "items_list",
-              Views::Items::Item.new(item: @item)
-            ),
-            turbo_stream.update("item_form_errors", "")
-          ]
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: [
+              turbo_stream.append(
+                "items_list",
+                Views::Items::Item.new(item: @item)
+              ),
+              turbo_stream.update("item_form_errors", "")
+            ]
+          end
+          format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
         end
-        format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
+      else
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: [
+              turbo_stream.append(
+                "items_list",
+                Views::Items::Item.new(item: @item)
+              ),
+              turbo_stream.update("item_form_errors", "")
+            ]
+          end
+          format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
+        end
       end
     else
       respond_to do |format|
         format.turbo_stream do
+          error_target = if params[:parent_item_id].present?
+            "child_item_form_errors_#{params[:parent_item_id]}"
+          else
+            "item_form_errors"
+          end
+
           render turbo_stream: turbo_stream.update(
-            "item_form_errors",
+            error_target,
             Views::Items::Errors.new(item: @item)
           )
         end
@@ -91,10 +187,15 @@ class ItemsController < ApplicationController
     @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
 
     # Calculate position for disabling move buttons
+    # Find which descendant (Day or Item) contains this item in its active_items
     item_index = nil
     total_items = nil
-    if @day&.descendant
-      active_items = @day.descendant.active_items
+
+    # Find the containing descendant by checking which one has this item in active_items
+    containing_descendant = Descendant.where("active_items @> ?", [@item.id].to_json).first
+
+    if containing_descendant
+      active_items = containing_descendant.active_items
       item_index = active_items.index(@item.id)
       total_items = active_items.length
     end
@@ -155,9 +256,11 @@ class ItemsController < ApplicationController
     @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
     direction = params[:direction]
 
-    if @day&.descendant
-      descendant = @day.descendant
-      active_items = descendant.active_items
+    # Find which descendant contains this item
+    containing_descendant = Descendant.where("active_items @> ?", [@item.id].to_json).first
+
+    if containing_descendant
+      active_items = containing_descendant.active_items
       current_index = active_items.index(@item.id)
 
       if current_index
@@ -166,16 +269,22 @@ class ItemsController < ApplicationController
         # Only move if within bounds
         if new_index >= 0 && new_index < active_items.length
           active_items[current_index], active_items[new_index] = active_items[new_index], active_items[current_index]
-          descendant.active_items = active_items
-          descendant.save!
+          containing_descendant.active_items = active_items
+          containing_descendant.save!
         end
       end
+
+      # Determine if this is a day or item descendant
+      is_day_descendant = containing_descendant.descendable_type == 'Day'
+      parent_item = containing_descendant.descendable if containing_descendant.descendable_type == 'Item'
     end
 
     respond_to do |format|
       format.turbo_stream do
-        if @day&.descendant
-          # Re-render the entire items list to show new order with nesting
+        streams = []
+
+        if is_day_descendant && @day&.descendant
+          # Re-render the entire day's items list
           active_item_ids = @day.descendant.active_items || []
           inactive_item_ids = @day.descendant.inactive_items || []
           all_item_ids = active_item_ids + inactive_item_ids
@@ -186,24 +295,69 @@ class ItemsController < ApplicationController
             render_to_string(Views::Items::ItemWithChildren.new(item: items[item_id], day: @day))
           end.compact.join
 
-          # Calculate new position for updating buttons (only count active items for positioning)
+          streams << turbo_stream.update("items_list", rendered_items)
+
+          # Update action sheet buttons if it's open
           item_index = active_item_ids.index(@item.id)
           total_items = active_item_ids.length
 
-          # Create a component just for the buttons
-          buttons_component = Views::Items::ActionsSheetButtons.new(
-            item: @item,
-            day: @day,
-            item_index: item_index,
-            total_items: total_items
+          streams << turbo_stream.replace(
+            "action_sheet_buttons_#{@item.id}",
+            Views::Items::ActionsSheetButtons.new(
+              item: @item,
+              day: @day,
+              item_index: item_index,
+              total_items: total_items
+            )
+          )
+        elsif parent_item
+          # Re-render the nested items in the drawer
+          parent_item.reload
+          parent_item.descendant.reload
+
+          active_item_ids = parent_item.descendant.active_items || []
+          items = Item.where(id: active_item_ids).index_by(&:id)
+
+          rendered_items = active_item_ids.map.with_index do |item_id, index|
+            item = items[item_id]
+            next unless item
+            render_to_string(Views::Items::DrawerChildItem.new(
+              item: item,
+              parent_item: parent_item,
+              day: @day,
+              item_index: index,
+              total_items: active_item_ids.length
+            ))
+          end.compact.join
+
+          streams << turbo_stream.update("nested_items_#{parent_item.id}", rendered_items)
+
+          # Update action sheet buttons if it's open
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
+
+          streams << turbo_stream.replace(
+            "action_sheet_buttons_#{@item.id}",
+            Views::Items::ActionsSheetButtons.new(
+              item: @item,
+              day: @day,
+              item_index: item_index,
+              total_items: total_items
+            )
           )
 
-          render turbo_stream: [
-            turbo_stream.update("items_list", rendered_items),
-            turbo_stream.replace("action_sheet_buttons_#{@item.id}", buttons_component)
-          ]
+          # Also update the parent in the day view
+          if @day
+            streams << turbo_stream.replace(
+              "item_with_children_#{parent_item.id}",
+              render_to_string(Views::Items::ItemWithChildren.new(item: parent_item, day: @day))
+            )
+          end
+        end
+
+        if streams.any?
+          render turbo_stream: streams
         else
-          # If no day/descendant, do nothing
           head :ok
         end
       end

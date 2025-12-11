@@ -43,7 +43,8 @@ module Views
           method: "patch",
           params: { "state" => @item.done? ? "todo" : "done" },
           variant: :primary,
-          disabled: @item.deferred? || @day_is_closed
+          disabled: @item.deferred? || @day_is_closed,
+          loading_message: @item.done? ? "Marking as todo..." : "Marking as done..."
         )
 
         # Defer - open defer options sheet
@@ -69,14 +70,16 @@ module Views
           method: "patch",
           params: { "state" => @item.dropped? ? "todo" : "dropped" },
           variant: :destructive,
-          disabled: @item.deferred? || @day_is_closed
+          disabled: @item.deferred? || @day_is_closed,
+          loading_message: @item.dropped? ? "Restoring item..." : "Dropping item..."
         )
 
         # Edit
         render_icon_button(
           icon: :edit,
           action: "#",
-          disabled: @item.deferred? || @day_is_closed
+          disabled: @item.deferred? || @day_is_closed,
+          loading_message: "Opening editor..."
         )
 
         # Reparent (placeholder)
@@ -111,24 +114,26 @@ module Views
           end
         end
 
-        # Move Up - disabled if at index 0 or if item is deferred or day is closed
-        can_move_up = @item_index && @item_index > 0 && !@item.deferred? && !@day_is_closed
+        # Move Up - can move if: day is open AND not at index 0
+        can_move_up = @item_index && @item_index > 0 && !@day_is_closed
         render_icon_button(
           icon: :arrow_up,
           action: move_item_path(@item),
           method: "patch",
           params: { "direction" => "up", "day_id" => @day&.id },
-          disabled: !can_move_up
+          disabled: !can_move_up,
+          loading_message: "Moving item up..."
         )
 
-        # Move Down - disabled if at last position or if item is deferred or day is closed
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@item.deferred? && !@day_is_closed
+        # Move Down - can move if: day is open AND not at last position
+        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
         render_icon_button(
           icon: :arrow_down,
           action: move_item_path(@item),
           method: "patch",
           params: { "direction" => "down", "day_id" => @day&.id },
-          disabled: !can_move_down
+          disabled: !can_move_down,
+          loading_message: "Moving item down..."
         )
 
         # Debug - ALWAYS ACTIVE
@@ -150,7 +155,8 @@ module Views
         render_icon_button(
           icon: :edit,
           action: "#",
-          disabled: @day_is_closed
+          disabled: @day_is_closed,
+          loading_message: "Opening editor..."
         )
 
         # Drop (placeholder)
@@ -192,24 +198,26 @@ module Views
           end
         end
 
-        # Move Up - disabled if at index 0 or day is closed
+        # Move Up - can move if: day is open AND not at index 0
         can_move_up = @item_index && @item_index > 0 && !@day_is_closed
         render_icon_button(
           icon: :arrow_up,
           action: move_item_path(@item),
           method: "patch",
           params: { "direction" => "up", "day_id" => @day&.id },
-          disabled: !can_move_up
+          disabled: !can_move_up,
+          loading_message: "Moving item up..."
         )
 
-        # Move Down - disabled if at last position or day is closed
+        # Move Down - can move if: day is open AND not at last position
         can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
         render_icon_button(
           icon: :arrow_down,
           action: move_item_path(@item),
           method: "patch",
           params: { "direction" => "down", "day_id" => @day&.id },
-          disabled: !can_move_down
+          disabled: !can_move_down,
+          loading_message: "Moving item down..."
         )
 
         # Debug - ALWAYS ACTIVE
@@ -226,7 +234,7 @@ module Views
         end
       end
 
-      def render_icon_button(icon:, action: nil, method: "post", params: {}, disabled: false, variant: :default)
+      def render_icon_button(icon:, action: nil, method: "post", params: {}, disabled: false, variant: :default, loading_message: "Processing...")
         button_classes = case variant
         when :primary
           "flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -248,7 +256,11 @@ module Views
           form(
             action: action,
             method: "post",
-            data: { turbo: "true" },
+            data: {
+              controller: "form-loading",
+              form_loading_message_value: loading_message,
+              turbo: "true"
+            },
             class: "inline-block"
           ) do
             csrf_token_field

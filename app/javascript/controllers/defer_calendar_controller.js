@@ -64,6 +64,14 @@ export default class extends Controller {
     this.confirmButtonTarget.disabled = true
     this.buttonTextTarget.textContent = 'Deferring...'
 
+    // Show loading toast
+    if (window.toast) {
+      this.loadingToastId = window.toast("Deferring item...", {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
+
     // Submit the defer request
     this.submitDefer(this.selectedDate)
   }
@@ -107,9 +115,22 @@ export default class extends Controller {
       console.log('HTML response length:', html.length)
       console.log('HTML preview:', html.substring(0, 200))
       Turbo.renderStreamMessage(html)
+
+      // Dismiss loading toast
+      if (window.toast && window.toast.dismiss && this.loadingToastId) {
+        window.toast.dismiss(this.loadingToastId)
+        this.loadingToastId = null
+      }
     })
     .catch(error => {
       console.error('Error deferring item:', error)
+
+      // Dismiss loading toast
+      if (window.toast && window.toast.dismiss && this.loadingToastId) {
+        window.toast.dismiss(this.loadingToastId)
+        this.loadingToastId = null
+      }
+
       // Re-enable button on error
       const date = new Date(this.selectedDate)
       const formattedDate = date.toLocaleDateString('en-US', {

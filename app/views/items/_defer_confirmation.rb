@@ -44,7 +44,11 @@ module Views
             form(
               action: defer_item_path(@item),
               method: "post",
-              data: { turbo: "true" },
+              data: {
+                controller: "form-loading",
+                form_loading_message_value: "Deferring item...",
+                turbo: "true"
+              },
               class: "flex-1"
             ) do
               csrf_token_field
