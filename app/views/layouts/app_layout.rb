@@ -114,20 +114,21 @@ class Views::Layouts::AppLayout < Views::Base
         link(rel: "apple-touch-icon", href: "/icon.png")
         link(rel: "manifest", href: pwa_manifest_path)
         raw(view_context.stylesheet_link_tag("tailwind", "data-turbo-track": "reload"))
+        raw(view_context.stylesheet_link_tag("checkbox_fix", "data-turbo-track": "reload"))
         raw(view_context.javascript_importmap_tags)
       end
 
-      body(data: { controller: "pwa" }) do
+      body(data: { controller: "pwa" }, class: "dark") do
         render Components::Toast.new
 
         SidebarWrapper do
           render Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
           SidebarInset(
-            data: {
+            data: @day ? {
               controller: "day-move",
-              day_move_day_id_value: @day&.id
-            }
+              day_move_day_id_value: @day.id
+            } : {}
           ) do
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
               SidebarTrigger(class: "-ml-1")

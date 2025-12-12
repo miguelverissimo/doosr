@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_10_114311) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_11_152329) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -81,6 +81,21 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_10_114311) do
     t.index ["user_id"], name: "index_items_on_user_id"
   end
 
+  create_table "lists", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "descendant_id"
+    t.integer "list_type", default: 0, null: false
+    t.string "slug", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "visibility", default: 0, null: false
+    t.index ["descendant_id"], name: "index_lists_on_descendant_id"
+    t.index ["list_type"], name: "index_lists_on_list_type"
+    t.index ["slug"], name: "index_lists_on_slug", unique: true
+    t.index ["user_id"], name: "index_lists_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
@@ -104,4 +119,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_10_114311) do
   add_foreign_key "items", "items", column: "recurring_next_item_id", on_delete: :nullify
   add_foreign_key "items", "items", column: "source_item_id", on_delete: :nullify
   add_foreign_key "items", "users"
+  add_foreign_key "lists", "descendants"
+  add_foreign_key "lists", "users"
 end

@@ -84,6 +84,12 @@ export default class extends Controller {
       this.loadingToastId = null
     }
 
+    // Dispatch event with the title that was just added (before clearing)
+    const addedTitle = this.titleInputTarget.value
+    if (addedTitle) {
+      this.dispatch("itemAdded", { detail: { title: addedTitle } })
+    }
+
     // Clear the input after successful submission
     this.titleInputTarget.value = ""
     this.currentTypeValue = "completable"

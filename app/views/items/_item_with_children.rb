@@ -3,17 +3,25 @@
 module Views
   module Items
     class ItemWithChildren < Views::Base
-      def initialize(item:, day: nil, depth: 0)
+      def initialize(item:, day: nil, context: nil, depth: 0, public_view: false, is_editable: false)
         @item = item
         @day = day
+        @list = context.is_a?(List) ? context : nil
         @depth = depth
+        @public_view = public_view
+        @is_editable = is_editable
       end
 
       def view_template
         # Wrap in a container div so we can replace the entire item+children structure
         div(id: "item_with_children_#{@item.id}") do
           # Render the item itself
-          render Views::Items::Item.new(item: @item, day: @day)
+          render Views::Items::Item.new(
+            item: @item,
+            day: @day,
+            list: @list,
+            is_public_list: @public_view
+          )
 
           # Render nested children if item has a descendant
           if @item.descendant
@@ -46,7 +54,10 @@ module Views
             render Views::Items::ItemWithChildren.new(
               item: item,
               day: @day,
-              depth: @depth + 1
+              context: @list,
+              depth: @depth + 1,
+              public_view: @public_view,
+              is_editable: @is_editable
             )
           end
 
@@ -59,7 +70,10 @@ module Views
             render Views::Items::ItemWithChildren.new(
               item: item,
               day: @day,
-              depth: @depth + 1
+              context: @list,
+              depth: @depth + 1,
+              public_view: @public_view,
+              is_editable: @is_editable
             )
           end
         end

@@ -12,6 +12,7 @@ class User < ApplicationRecord
   # Associations
   has_many :days, dependent: :destroy
   has_many :items, dependent: :destroy
+  has_many :lists, dependent: :destroy
 
   # Settings defaults
   SETTINGS_DEFAULTS = {

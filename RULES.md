@@ -50,6 +50,22 @@ The ONLY checks for move button disable logic are:
 
 ## UI Layout Rules
 
+**Button variations**
+- Primary action: `Button(variant: :primary)`
+- Secondary action: `Button(variant: :secondary)`
+- Destructive action: `Button(variant: :destructive)`
+- Buttons for options (e.g. theme selection): `Button(variant: :outline)`
+- Icon buttons:
+  - Primary action: `Button(variant: :primary, icon: true)`
+  - Secondary action: `Button(variant: :secondary, icon: true)`
+  - Destructive action: `Button(variant: :destructive, icon: true)`
+  - Buttons for options: `Button(variant: :outline, icon: true)`
+- Submit buttons:
+  - Primary action: `Button(variant: :primary, type: :submit)`
+  - Secondary action: `Button(variant: :secondary, type: :submit)`
+  - Destructive action: `Button(variant: :destructive, type: :submit)`
+  - Buttons for options: `Button(variant: :outline, type: :submit)`
+
 **Follow mockups and designs EXACTLY as shown**
 
 - If the user provides a mockup or image showing layout, implement it EXACTLY as shown

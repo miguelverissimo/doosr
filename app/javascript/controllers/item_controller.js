@@ -4,6 +4,8 @@ export default class extends Controller {
   static values = {
     id: Number,
     dayId: Number,
+    listId: Number,
+    isPublicList: Boolean,
     type: String
   }
 
@@ -22,8 +24,22 @@ export default class extends Controller {
 
     // Fetch the actions sheet via Turbo
     let url = `/items/${this.idValue}/actions`
+    const params = []
+
     if (this.hasDayIdValue && this.dayIdValue) {
-      url += `?day_id=${this.dayIdValue}`
+      params.push(`day_id=${this.dayIdValue}`)
+    }
+
+    if (this.hasListIdValue && this.listIdValue) {
+      params.push(`list_id=${this.listIdValue}`)
+    }
+
+    if (this.hasIsPublicListValue && this.isPublicListValue) {
+      params.push(`is_public_list=true`)
+    }
+
+    if (params.length > 0) {
+      url += `?${params.join('&')}`
     }
 
     console.log("Fetching:", url)
@@ -95,6 +111,17 @@ export default class extends Controller {
   toggle(e) {
     // The form will handle submission via Turbo
     // We just need to make sure the form submits
+    const form = e.target.closest("form")
+    if (form) {
+      form.requestSubmit()
+    }
+  }
+
+  stopPropagation(e) {
+    e.stopPropagation()
+  }
+
+  submitForm(e) {
     const form = e.target.closest("form")
     if (form) {
       form.requestSubmit()

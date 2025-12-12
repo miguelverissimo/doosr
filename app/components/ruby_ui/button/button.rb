@@ -18,7 +18,11 @@ module RubyUI
     end
 
     def view_template(&)
-      button(**attrs, &)
+      if attrs[:href]
+        a(**attrs.except(:type), &)
+      else
+        button(**attrs, &)
+      end
     end
 
     private

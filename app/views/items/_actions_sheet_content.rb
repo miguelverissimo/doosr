@@ -3,11 +3,14 @@
 module Views
   module Items
     class ActionsSheetContent < Views::Base
-      def initialize(item:, day: nil, item_index: nil, total_items: nil)
+      def initialize(item:, day: nil, list: nil, item_index: nil, total_items: nil, is_public_list: false, is_editable: false)
         @item = item
         @day = day
+        @list = list
         @item_index = item_index
         @total_items = total_items
+        @is_public_list = is_public_list
+        @is_editable = is_editable
       end
 
       def view_template
@@ -21,13 +24,8 @@ module Views
           end
 
           SheetMiddle(class: "py-4 space-y-4") do
-            # Action buttons - FIRST
-            render Views::Items::ActionsSheetButtons.new(
-              item: @item,
-              day: @day,
-              item_index: @item_index,
-              total_items: @total_items
-            )
+            # Action buttons - FIRST - render appropriate version based on context
+            render_action_buttons
 
             # Add child item form - SECOND
             render_child_item_form
@@ -39,6 +37,39 @@ module Views
       end
 
       private
+
+      def render_action_buttons
+        # Determine which buttons component to render based on context
+        if @list
+          # List context - use list-specific buttons
+          if @is_public_list
+            # Public list view - limited actions
+            render Views::Items::ActionsSheetButtonsListPublic.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items,
+              is_editable: @is_editable
+            )
+          else
+            # Owner view - full actions
+            render Views::Items::ActionsSheetButtonsListOwner.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items
+            )
+          end
+        else
+          # Day context - use original day buttons
+          render Views::Items::ActionsSheetButtons.new(
+            item: @item,
+            day: @day,
+            item_index: @item_index,
+            total_items: @total_items
+          )
+        end
+      end
 
       def render_child_item_form
         div(class: "space-y-2") do

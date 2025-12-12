@@ -13,7 +13,11 @@ class Components::AppSidebar < Components::Base
       SidebarHeader(class: "h-16 border-sidebar-border border-b") do
         SidebarMenu do
           SidebarMenuItem do
-            render_user_menu
+            if view_context.user_signed_in?
+              render_user_menu
+            else
+              render_sign_in_button
+            end
           end
         end
       end
@@ -47,7 +51,7 @@ class Components::AppSidebar < Components::Base
             end
           end
           SidebarMenuItem do
-            SidebarMenuButton(as: :a, href: "#") do
+            SidebarMenuButton(as: :a, href: view_context.lists_path) do
               render_icon(:list)
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
@@ -64,6 +68,9 @@ class Components::AppSidebar < Components::Base
 
   def render_user_menu
     user = view_context.current_user
+
+    # Don't render user menu if not authenticated
+    return unless user
 
     # Wrap everything in a dialog controller
     render RubyUI::Dialog.new do
@@ -181,6 +188,17 @@ class Components::AppSidebar < Components::Base
           render_icon(:calendar)
           span { "Today" }
         end
+      end
+    end
+  end
+
+  def render_sign_in_button
+    SidebarMenuButton(as: :a, href: view_context.new_user_session_path, size: :lg) do
+      div(class: "flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0") do
+        span(class: "text-sm font-semibold") { "?" }
+      end
+      div(class: "grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden") do
+        span(class: "truncate font-semibold") { "Sign In" }
       end
     end
   end

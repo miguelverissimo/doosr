@@ -103,11 +103,17 @@ class Views::Layouts::AuthLayout < Views::Base
         link(rel: "apple-touch-icon", href: "/icon.png")
         link(rel: "manifest", href: pwa_manifest_path)
         raw(view_context.stylesheet_link_tag("tailwind", "data-turbo-track": "reload"))
+        raw(view_context.stylesheet_link_tag("checkbox_fix", "data-turbo-track": "reload"))
         raw(view_context.javascript_importmap_tags)
       end
 
-      body(data: { controller: "pwa" }) do
-        yield
+      body(data: { controller: "pwa" }, class: "dark") do
+        render Components::Toast.new
+
+        # Main content area with padding
+        div(class: "mx-auto max-w-4xl px-4 py-8") do
+          yield
+        end
       end
     end
   end

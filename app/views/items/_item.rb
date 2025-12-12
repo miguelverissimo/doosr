@@ -3,9 +3,11 @@
 module Views
   module Items
     class Item < Views::Base
-      def initialize(item:, day: nil)
+      def initialize(item:, day: nil, list: nil, is_public_list: false)
         @item = item
         @day = day
+        @list = list
+        @is_public_list = is_public_list
       end
 
       def view_template
@@ -16,13 +18,15 @@ module Views
             controller: "item",
             item_id_value: @item.id,
             item_day_id_value: @day&.id,
+            item_list_id_value: @list&.id,
+            item_is_public_list_value: @is_public_list,
             item_type_value: @item.item_type,
             action: "click->item#openSheet",
             day_move_target: "item"
           }
         ) do
-          # Checkbox for completable items
-          if @item.completable?
+          # Checkbox for completable and reusable items
+          if @item.can_be_completed?
             render_checkbox
           elsif @item.section?
             render_section_icon
@@ -80,24 +84,47 @@ module Views
           action: item_path(@item),
           method: "post",
           data: {
-            controller: "form-loading",
+            controller: "form-loading item",
             form_loading_message_value: @item.done? ? "Marking as todo..." : "Marking as done...",
-            turbo: "true",
-            action: "change->item#toggle"
+            turbo_frame: "_top",
+            action: "click->item#stopPropagation change->item#submitForm"
           },
           class: "shrink-0"
         ) do
           csrf_token_field
           input(type: "hidden", name: "_method", value: "patch")
           input(type: "hidden", name: "item[state]", value: @item.done? ? "todo" : "done")
+          # Include list_id if we're in a list context
+          input(type: "hidden", name: "list_id", value: @list.id) if @list
 
-          input(
-            type: "checkbox",
-            checked: @item.done?,
-            disabled: @item.deferred?,
-            class: "h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-2 #{@item.deferred? ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}",
-            data: { action: "change->item#toggle" }
-          )
+          # Custom styled checkbox wrapper
+          label(class: "relative inline-flex items-center cursor-pointer shrink-0") do
+            input(
+              type: "checkbox",
+              checked: @item.done?,
+              disabled: @item.deferred?,
+              class: "sr-only peer"
+            )
+
+            # Custom checkbox visual
+            div(class: "h-4 w-4 rounded-sm border border-primary bg-background peer-checked:bg-primary peer-checked:border-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 flex items-center justify-center transition-colors") do
+              # Checkmark SVG (conditionally rendered when checked)
+              if @item.done?
+                svg(
+                  xmlns: "http://www.w3.org/2000/svg",
+                  viewBox: "0 0 24 24",
+                  fill: "none",
+                  stroke: "currentColor",
+                  stroke_width: "3",
+                  stroke_linecap: "round",
+                  stroke_linejoin: "round",
+                  class: "h-3 w-3 text-primary-foreground"
+                ) do |s|
+                  s.polyline(points: "20 6 9 17 4 12")
+                end
+              end
+            end
+          end
         end
       end
 

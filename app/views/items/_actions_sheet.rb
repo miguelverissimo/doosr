@@ -3,11 +3,14 @@
 module Views
   module Items
     class ActionsSheet < Views::Base
-      def initialize(item:, day: nil, item_index: nil, total_items: nil)
+      def initialize(item:, day: nil, list: nil, item_index: nil, total_items: nil, is_public_list: false, is_editable: false)
         @item = item
         @day = day
+        @list = list
         @item_index = item_index
         @total_items = total_items
+        @is_public_list = is_public_list
+        @is_editable = is_editable
       end
 
       def view_template
@@ -17,7 +20,8 @@ module Views
           data: {
             controller: "ruby-ui--sheet-content item-move",
             item_move_item_id_value: @item.id,
-            item_move_day_id_value: @day&.id
+            item_move_day_id_value: @day&.id,
+            item_move_list_id_value: @list&.id
           }
         ) do
           # Backdrop
@@ -35,8 +39,11 @@ module Views
             render Views::Items::ActionsSheetContent.new(
               item: @item,
               day: @day,
+              list: @list,
               item_index: @item_index,
-              total_items: @total_items
+              total_items: @total_items,
+              is_public_list: @is_public_list,
+              is_editable: @is_editable
             )
 
             # Close button

@@ -70,17 +70,17 @@ class Item < ApplicationRecord
 
   # State transition methods
   def mark_done!
-    return false unless completable?
+    return false unless can_be_completed?
     update!(state: :done, done_at: Time.current)
   end
 
   def mark_dropped!
-    return false unless completable?
+    return false unless can_be_completed?
     update!(state: :dropped, dropped_at: Time.current)
   end
 
   def mark_deferred!(deferred_to_date)
-    return false unless completable?
+    return false unless can_be_completed?
     update!(
       state: :deferred,
       deferred_at: Time.current,
@@ -89,7 +89,7 @@ class Item < ApplicationRecord
   end
 
   def mark_todo!
-    return false unless completable?
+    return false unless can_be_completed?
     update!(
       state: :todo,
       done_at: nil,
@@ -109,7 +109,7 @@ class Item < ApplicationRecord
   end
 
   def can_be_completed?
-    completable?
+    completable? || reusable?
   end
 
   # Nesting support
@@ -197,8 +197,9 @@ class Item < ApplicationRecord
   end
 
   def section_cannot_have_completion_state
-    if section? && !todo?
-      errors.add(:state, "sections can only be in 'todo' state")
+    # Only sections and trackables cannot have completion states
+    if (section? || trackable?) && !todo?
+      errors.add(:state, "#{item_type} items can only be in 'todo' state")
     end
   end
 
