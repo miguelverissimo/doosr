@@ -68,35 +68,146 @@ class Item < ApplicationRecord
   scope :completed, -> { where(state: :done) }
   scope :ordered_by_creation, -> { order(created_at: :asc) }
 
-  # State transition methods
-  def mark_done!
+  # State transition methods with descendant management
+  def set_todo!
     return false unless can_be_completed?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+
+    if containing_descendant
+      # If already in active items, just update state
+      if containing_descendant.active_items.include?(id)
+        update!(state: :todo, done_at: nil, dropped_at: nil, deferred_at: nil, deferred_to: nil)
+        return true
+      end
+
+      # If in inactive items, move to active items FIRST, then update state
+      if containing_descendant.inactive_items.include?(id)
+        containing_descendant.remove_inactive_item(id)
+        containing_descendant.add_active_item(id)
+        containing_descendant.save!
+        update!(state: :todo, done_at: nil, dropped_at: nil, deferred_at: nil, deferred_to: nil)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
+    update!(state: :todo, done_at: nil, dropped_at: nil, deferred_at: nil, deferred_to: nil)
+    true
+  end
+
+  def set_done!
+    Rails.logger.debug "=== SET DONE ==="
+    Rails.logger.debug "Item: #{id}:#{title}"
+    Rails.logger.debug "Can be completed: #{can_be_completed?}"
+    Rails.logger.debug "=== END SET DONE ==="
+    return false unless can_be_completed?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+    Rails.logger.debug "Containing descendant: #{containing_descendant.id}"
+    Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
+    Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
+    if containing_descendant
+      # If already in inactive items, just update state
+      if containing_descendant.inactive_items.include?(id)
+        Rails.logger.debug "=== ALREADY IN INACTIVE ITEMS ==="
+        update!(state: :done, done_at: Time.current)
+        return true
+      end
+
+      # If in active items, move to inactive items FIRST, then update state
+      if containing_descendant.active_items.include?(id)
+        Rails.logger.debug "=== IN ACTIVE ITEMS ==="
+        containing_descendant.remove_active_item(id)
+        containing_descendant.add_inactive_item(id)
+        containing_descendant.save!
+
+        Rails.logger.debug "Descendant state after move:" 
+        Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
+        Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
+        update!(state: :done, done_at: Time.current)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
     update!(state: :done, done_at: Time.current)
+    true
+  end
+
+  def set_dropped!
+    return false unless can_be_completed?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+
+    if containing_descendant
+      # If already in inactive items, just update state
+      if containing_descendant.inactive_items.include?(id)
+        update!(state: :dropped, dropped_at: Time.current)
+        return true
+      end
+
+      # If in active items, move to inactive items FIRST, then update state
+      if containing_descendant.active_items.include?(id)
+        containing_descendant.remove_active_item(id)
+        containing_descendant.add_inactive_item(id)
+        containing_descendant.save!
+        update!(state: :dropped, dropped_at: Time.current)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
+    update!(state: :dropped, dropped_at: Time.current)
+    true
+  end
+
+  def set_deferred!(deferred_to_date)
+    return false unless can_be_completed?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+
+    if containing_descendant
+      # If already in inactive items, just update state
+      if containing_descendant.inactive_items.include?(id)
+        update!(state: :deferred, deferred_at: Time.current, deferred_to: deferred_to_date)
+        return true
+      end
+
+      # If in active items, move to inactive items FIRST, then update state
+      if containing_descendant.active_items.include?(id)
+        containing_descendant.remove_active_item(id)
+        containing_descendant.add_inactive_item(id)
+        containing_descendant.save!
+        update!(state: :deferred, deferred_at: Time.current, deferred_to: deferred_to_date)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
+    update!(state: :deferred, deferred_at: Time.current, deferred_to: deferred_to_date)
+    true
+  end
+
+  # Legacy methods - keep for backwards compatibility but use new methods
+  def mark_todo!
+    set_todo!
+  end
+
+  def mark_done!
+    set_done!
   end
 
   def mark_dropped!
-    return false unless can_be_completed?
-    update!(state: :dropped, dropped_at: Time.current)
+    set_dropped!
   end
 
   def mark_deferred!(deferred_to_date)
-    return false unless can_be_completed?
-    update!(
-      state: :deferred,
-      deferred_at: Time.current,
-      deferred_to: deferred_to_date
-    )
-  end
-
-  def mark_todo!
-    return false unless can_be_completed?
-    update!(
-      state: :todo,
-      done_at: nil,
-      dropped_at: nil,
-      deferred_at: nil,
-      deferred_to: nil
-    )
+    set_deferred!(deferred_to_date)
   end
 
   # Check state

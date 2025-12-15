@@ -7,6 +7,9 @@ class ItemsController < ApplicationController
   def create
     @item = @acting_user.items.build(item_params)
 
+    # Note: Lists now use ReusableItemsController for item creation with duplicate detection
+    # This controller is only for days and nested items
+
     if @item.save
       # Add item to parent item's descendant if parent_item_id provided
       if params[:parent_item_id].present?
@@ -76,67 +79,35 @@ class ItemsController < ApplicationController
       elsif params[:list_id].present?
         @list ||= List.find(params[:list_id])
 
-        # For reusable items in lists, check if an item with the same title already exists
-        existing_item = nil
-        if @item.reusable?
-          all_item_ids = @list.descendant.active_items + @list.descendant.inactive_items
-          all_items = @acting_user.items.where(id: all_item_ids)
-          existing_item = all_items.find { |item| item.title.downcase == @item.title.downcase }
-        end
+        # New item - add to list (duplicate check already done before save)
+        @list.descendant.add_active_item(@item.id)
+        @list.descendant.save!
 
-        if existing_item
-          # Item with same title already exists
-          if @list.descendant.active_items.include?(existing_item.id)
-            # Already in active items and uncomplete - don't create, just return existing
-            @item = existing_item
-          else
-            # In inactive items (complete) - uncomplete it and move to active
-            existing_item.mark_todo!
-            @list.descendant.remove_inactive_item(existing_item.id)
-            @list.descendant.add_active_item(existing_item.id)
-            @list.descendant.save!
-            @item = existing_item
+        respond_to do |format|
+          format.turbo_stream do
+            # Reload to get fresh data
+            @list.reload
+            @list.descendant.reload
+
+            # Build tree ONCE using ItemTree::Build
+            tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+            # Render tree nodes from the pre-built tree
+            rendered_items = tree.children.map do |node|
+              render_to_string(Views::Items::TreeNode.new(node: node, context: @list, public_view: !user_signed_in?, is_editable: @list.visibility_editable?))
+            end.join
+
+            streams = [
+              turbo_stream.update("items_list", rendered_items),
+              turbo_stream.update("item_form_errors", "")
+            ]
+
+            # Broadcast to Action Cable for real-time updates
+            broadcast_list_update(@list, streams)
+
+            render turbo_stream: streams
           end
-
-          respond_to do |format|
-            format.turbo_stream do
-              streams = [
-                turbo_stream.replace(
-                  "item_with_children_#{@item.id}",
-                  Views::Items::ItemWithChildren.new(item: @item, context: @list, public_view: !user_signed_in?, is_editable: @list.visibility_editable?)
-                ),
-                turbo_stream.update("item_form_errors", "")
-              ]
-
-              # Broadcast to Action Cable for real-time updates
-              broadcast_list_update(@list, streams)
-
-              render turbo_stream: streams
-            end
-            format.html { redirect_back(fallback_location: root_path, notice: "Item updated") }
-          end
-        else
-          # New item - add to list
-          @list.descendant.add_active_item(@item.id)
-          @list.descendant.save!
-
-          respond_to do |format|
-            format.turbo_stream do
-              streams = [
-                turbo_stream.append(
-                  "items_list",
-                  Views::Items::ItemWithChildren.new(item: @item, context: @list, public_view: !user_signed_in?, is_editable: @list.visibility_editable?)
-                ),
-                turbo_stream.update("item_form_errors", "")
-              ]
-
-              # Broadcast to Action Cable for real-time updates
-              broadcast_list_update(@list, streams)
-
-              render turbo_stream: streams
-            end
-            format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
-          end
+          format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
         end
       # Add item to day's descendant active_items array if day_id provided
       elsif params[:day_id].present?
@@ -216,32 +187,31 @@ class ItemsController < ApplicationController
     # @list may already be set by set_acting_user for public lists
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
+    # Validate item type for lists - lists should ONLY have completable, reusable or section items
+    if params[:list_id].present? && params.dig(:item, :item_type).present?
+      new_item_type = params.dig(:item, :item_type)
+      if new_item_type != "completable" && new_item_type != "reusable" && new_item_type != "section"
+        @item.errors.add(:item_type, "Lists can only contain 'completable', 'reusable' or 'section' items")
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.update(
+              "item_#{@item.id}_errors",
+              Views::Items::Errors.new(item: @item)
+            )
+          end
+          format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
+        end
+        return
+      end
+    end
+
     # Store old state and new state params before update
     old_state = @item.state
     new_state_param = params.dig(:item, :state)
 
     if @item.update(item_params)
-      # Handle state change for reusable items in lists - move between active/inactive arrays
-      if @list && @item.reusable? && new_state_param.present? && old_state != @item.state
-        descendant = @list.descendant
-
-        case @item.state
-        when "done", "dropped"
-          # Move from active to inactive
-          if descendant.active_items.include?(@item.id)
-            descendant.remove_active_item(@item.id)
-            descendant.add_inactive_item(@item.id)
-            descendant.save!
-          end
-        when "todo"
-          # Move from inactive to active
-          if descendant.inactive_items.include?(@item.id)
-            descendant.remove_inactive_item(@item.id)
-            descendant.add_active_item(@item.id)
-            descendant.save!
-          end
-        end
-      end
+      # State changes are now handled by the set_* methods on the Item model
+      # No manual descendant management needed here
 
       respond_to do |format|
         format.turbo_stream do
@@ -280,47 +250,55 @@ class ItemsController < ApplicationController
 
             # Stream 2: Update the item in the list/day view
             if @list
-              streams << turbo_stream.replace(
-                "item_with_children_#{@item.id}",
-                Views::Items::ItemWithChildren.new(
-                  item: @item,
-                  context: @list,
-                  public_view: @is_public_list || false,
-                  is_editable: @list.visibility_editable?
-                )
-              )
+              # Reload to get fresh data
+              @list.reload
+              @list.descendant.reload
+
+              # Build tree ONCE using ItemTree::Build
+              tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+              # Render tree nodes from the pre-built tree
+              rendered_items = tree.children.map do |node|
+                render_to_string(Views::Items::TreeNode.new(node: node, context: @list, public_view: @is_public_list || false, is_editable: @list.visibility_editable?))
+              end.join
+
+              streams << turbo_stream.update("items_list", rendered_items)
+
+              # Broadcast item update to list
+              broadcast_list_update(@list, [streams.last])
             else
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
                 Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
               )
             end
-
-            # Broadcast item update to list if this is a list item
-            broadcast_list_update(@list, [streams.last]) if @list
 
             render turbo_stream: streams
           else
             # Replace the entire item+children wrapper for list items
             if @list
-              stream = turbo_stream.replace(
-                "item_with_children_#{@item.id}",
-                Views::Items::ItemWithChildren.new(
-                  item: @item,
-                  context: @list,
-                  public_view: @is_public_list || false,
-                  is_editable: @list.visibility_editable?
-                )
-              )
+              # Reload to get fresh data
+              @list.reload
+              @list.descendant.reload
+
+              # Build tree ONCE using ItemTree::Build
+              tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+              # Render tree nodes from the pre-built tree
+              rendered_items = tree.children.map do |node|
+                render_to_string(Views::Items::TreeNode.new(node: node, context: @list, public_view: @is_public_list || false, is_editable: @list.visibility_editable?))
+              end.join
+
+              stream = turbo_stream.update("items_list", rendered_items)
+
+              # Broadcast to list
+              broadcast_list_update(@list, [stream])
             else
               stream = turbo_stream.replace(
                 "item_#{@item.id}",
                 Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
               )
             end
-
-            # Broadcast to list if this is a list item
-            broadcast_list_update(@list, [stream]) if @list
 
             render turbo_stream: stream
           end
@@ -342,26 +320,76 @@ class ItemsController < ApplicationController
 
   def destroy
     @item = @acting_user.items.find(params[:id])
+    @day = find_day
     # @list may already be set by set_acting_user for public lists
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
-    # Remove item from list's descendant if in a list context
-    if @list && @list.descendant
-      @list.descendant.remove_active_item(@item.id)
-      @list.descendant.remove_inactive_item(@item.id)
-      @list.descendant.save!
+    # Check if confirmation is needed (if item has nested items)
+    if @item.has_nested_items? && params[:confirmed] != 'true'
+      # Return a response indicating confirmation is needed
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "sheet_content_area",
+            Views::Items::DeleteConfirmation.new(
+              item: @item,
+              day: @day,
+              list: @list
+            )
+          )
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: "Confirmation required") }
+      end
+      return
     end
 
-    @item.destroy!
+    # Delete the item and all its descendants recursively
+    delete_item_with_descendants(@item)
 
     respond_to do |format|
       format.turbo_stream do
-        stream = turbo_stream.remove("item_#{@item.id}")
+        streams = []
+
+        # Remove the item from the UI
+        if @list
+          # Re-render the entire list
+          @list.reload
+          @list.descendant.reload
+
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, context: @list))
+          end.join
+
+          streams << turbo_stream.update("items_list", rendered_items)
+        elsif @day
+          # Re-render the day's items
+          @day.reload
+          @day.descendant.reload
+
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
+
+          streams << turbo_stream.update("items_list", rendered_items)
+        else
+          streams << turbo_stream.remove("item_with_children_#{@item.id}")
+        end
+
+        # Close the drawer
+        streams << turbo_stream.remove("item_actions_sheet")
 
         # Broadcast to list if this is a list item
-        broadcast_list_update(@list, [stream]) if @list
+        broadcast_list_update(@list, streams) if @list
 
-        render turbo_stream: stream
+        render turbo_stream: streams
       end
       format.html do
         redirect_location = @list ? list_path(@list) : root_path
@@ -465,43 +493,14 @@ class ItemsController < ApplicationController
     # @list may already be set by set_acting_user for public lists
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
-    # For reusable items in lists, we need to move them between active/inactive arrays
-    if @list && @item.reusable?
-      descendant = @list.descendant
-
-      case new_state
-      when "done", "dropped"
-        # Mark item as done/dropped and move to inactive_items
-        @item.mark_done! if new_state == "done"
-        @item.mark_dropped! if new_state == "dropped"
-
-        # Move from active to inactive
-        if descendant.active_items.include?(@item.id)
-          descendant.remove_active_item(@item.id)
-          descendant.add_inactive_item(@item.id)
-          descendant.save!
-        end
-      when "todo"
-        # Mark item as todo and move to active_items
-        @item.mark_todo!
-
-        # Move from inactive to active
-        if descendant.inactive_items.include?(@item.id)
-          descendant.remove_inactive_item(@item.id)
-          descendant.add_active_item(@item.id)
-          descendant.save!
-        end
-      end
-    else
-      # For non-list items or non-reusable items, just update state
-      case new_state
-      when "done"
-        @item.mark_done!
-      when "dropped"
-        @item.mark_dropped!
-      when "todo"
-        @item.mark_todo!
-      end
+    # Use centralized state change methods - they handle descendant management
+    case new_state
+    when "done"
+      @item.set_done!
+    when "dropped"
+      @item.set_dropped!
+    when "todo"
+      @item.set_todo!
     end
 
     respond_to do |format|
@@ -553,20 +552,22 @@ class ItemsController < ApplicationController
         streams = []
 
         if is_list_descendant && @list&.descendant
-          # Re-render the entire list's items list
-          active_item_ids = @list.descendant.active_items || []
-          inactive_item_ids = @list.descendant.inactive_items || []
-          all_item_ids = active_item_ids + inactive_item_ids
-          items = Item.where(id: all_item_ids).includes(:descendant).index_by(&:id)
+          # Reload to get fresh data
+          @list.reload
+          @list.descendant.reload
 
-          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
-            next unless items[item_id]
-            render_to_string(Views::Items::ItemWithChildren.new(item: items[item_id], context: @list))
-          end.compact.join
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, context: @list))
+          end.join
 
           streams << turbo_stream.update("items_list", rendered_items)
 
           # Update action sheet buttons if it's open
+          active_item_ids = @list.descendant.active_items
           item_index = active_item_ids.index(@item.id)
           total_items = active_item_ids.length
 
@@ -583,20 +584,22 @@ class ItemsController < ApplicationController
           # Broadcast to list subscribers
           broadcast_list_update(@list, streams)
         elsif is_day_descendant && @day&.descendant
-          # Re-render the entire day's items list
-          active_item_ids = @day.descendant.active_items || []
-          inactive_item_ids = @day.descendant.inactive_items || []
-          all_item_ids = active_item_ids + inactive_item_ids
-          items = Item.where(id: all_item_ids).includes(:descendant).index_by(&:id)
+          # Reload to get fresh data
+          @day.reload
+          @day.descendant.reload
 
-          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
-            next unless items[item_id]
-            render_to_string(Views::Items::ItemWithChildren.new(item: items[item_id], day: @day))
-          end.compact.join
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
 
           streams << turbo_stream.update("items_list", rendered_items)
 
           # Update action sheet buttons if it's open
+          active_item_ids = @day.descendant.active_items
           item_index = active_item_ids.index(@item.id)
           total_items = active_item_ids.length
 
@@ -668,44 +671,41 @@ class ItemsController < ApplicationController
     @item = @acting_user.items.find(params[:id])
     target_item_id = params[:target_item_id]
 
-    # Get the day from params (should always be present now)
+    # Get the day or list from params
     @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+    @list = @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
-    # Find and remove item from its current descendant
-    current_descendant = Descendant.where("active_items @> ? OR inactive_items @> ?", [@item.id].to_json, [@item.id].to_json).first
-    if current_descendant
-      current_descendant.active_items = current_descendant.active_items.reject { |id| id == @item.id }
-      current_descendant.inactive_items = current_descendant.inactive_items.reject { |id| id == @item.id }
-      current_descendant.save!
+    # Validate item type for lists - lists should ONLY have completable, reusable or section items
+    if @list.present? && !@item.completable? && !@item.reusable? && !@item.section?
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append(
+            "body",
+            "<script>window.toast && window.toast('Cannot move this item type to a list. Lists can only contain completable, reusable or section items.', { type: 'danger' })</script>"
+          )
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
+      end
+      return
     end
 
-    # Add item to target descendant
-    if target_item_id.present?
+    # Determine target descendant
+    target_descendant = if target_item_id.present?
       # Moving to a specific item's descendant
       target_item = @acting_user.items.find(target_item_id)
-      target_descendant = target_item.descendant || Descendant.create!(
+      target_item.descendant || Descendant.create!(
         descendable: target_item,
         active_items: [],
         inactive_items: []
       )
-
-      if @item.done? || @item.dropped?
-        target_descendant.inactive_items = (target_descendant.inactive_items + [@item.id]).uniq
-      else
-        target_descendant.active_items = (target_descendant.active_items + [@item.id]).uniq
-      end
-      target_descendant.save!
-    else
-      # Moving to root level (day's descendant)
-      if @day&.descendant
-        if @item.done? || @item.dropped?
-          @day.descendant.inactive_items = (@day.descendant.inactive_items + [@item.id]).uniq
-        else
-          @day.descendant.active_items = (@day.descendant.active_items + [@item.id]).uniq
-        end
-        @day.descendant.save!
-      end
+    elsif @day&.descendant
+      @day.descendant
+    elsif @list&.descendant
+      @list.descendant
     end
+
+    # Use service to reparent
+    Items::ReparentService.new(item: @item, target_descendant: target_descendant).call
 
     respond_to do |format|
       format.turbo_stream do
@@ -714,20 +714,34 @@ class ItemsController < ApplicationController
           @day.reload
           @day.descendant.reload
 
-          # Render all root-level items (active + inactive) with their nested children
-          active_item_ids = @day.descendant.active_items || []
-          inactive_item_ids = @day.descendant.inactive_items || []
-          all_item_ids = active_item_ids + inactive_item_ids
-          items = Item.includes(:descendant).where(id: all_item_ids).index_by(&:id)
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
 
-          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
-            item = items[item_id]
-            next unless item
-            item.reload
-            render_to_string(Views::Items::ItemWithChildren.new(item: item, day: @day))
-          end.compact.join
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
 
           render turbo_stream: turbo_stream.update("items_list", rendered_items)
+        elsif @list&.descendant
+          # Reload to get fresh data
+          @list.reload
+          @list.descendant.reload
+
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@list.descendant, root_label: "list")
+
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, context: @list))
+          end.join
+
+          stream = turbo_stream.update("items_list", rendered_items)
+
+          # Broadcast to list subscribers
+          broadcast_list_update(@list, [stream])
+
+          render turbo_stream: stream
         else
           head :ok
         end
@@ -792,19 +806,13 @@ class ItemsController < ApplicationController
           @day.reload
           @day.descendant.reload
 
-          # Render all root-level items (active + inactive) with their nested children
-          active_item_ids = @day.descendant.active_items || []
-          inactive_item_ids = @day.descendant.inactive_items || []
-          all_item_ids = active_item_ids + inactive_item_ids
-          items = Item.includes(:descendant).where(id: all_item_ids).index_by(&:id)
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
 
-          # Render active items first, then inactive items
-          rendered_items = (active_item_ids + inactive_item_ids).map do |item_id|
-            item = items[item_id]
-            next unless item
-            item.reload
-            render_to_string(Views::Items::ItemWithChildren.new(item: item, day: @day))
-          end.compact.join
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
 
           # Reload the item to get fresh state
           @item.reload
@@ -841,8 +849,8 @@ class ItemsController < ApplicationController
   def debug
     @item = @acting_user.items.find(params[:id])
 
-    # Find which descendant contains this item (fix JSONB query)
-    @containing_descendant = Descendant.where("active_items @> ? OR inactive_items @> ?", [@item.id].to_json, [@item.id].to_json).first
+    # Find which descendant contains this item
+    @containing_descendant = Descendant.containing_item(@item.id)
     @owner = @containing_descendant&.descendable
 
     respond_to do |format|
@@ -898,5 +906,87 @@ class ItemsController < ApplicationController
     ActionCable.server.broadcast("list_channel:#{list.id}", { html: html })
 
     Rails.logger.debug "=== Broadcast complete ==="
+  end
+
+  # Recursively find all item IDs in a list, including nested items
+  def find_all_list_item_ids_recursively(list)
+    return [] unless list.descendant
+
+    item_ids = []
+    descendant = list.descendant
+
+    # Get direct items
+    direct_item_ids = descendant.active_items + descendant.inactive_items
+    item_ids.concat(direct_item_ids)
+
+    # Get all items to check for nested descendants
+    items = Item.where(id: direct_item_ids).includes(:descendant)
+
+    # Recursively get nested items
+    items.each do |item|
+      if item.descendant
+        nested_ids = find_all_item_ids_recursively_from_item(item)
+        item_ids.concat(nested_ids)
+      end
+    end
+
+    item_ids.uniq
+  end
+
+  # Helper to recursively find item IDs from an item's descendant
+  def find_all_item_ids_recursively_from_item(item)
+    return [] unless item.descendant
+
+    item_ids = []
+    descendant = item.descendant
+
+    # Get direct nested items
+    nested_item_ids = descendant.active_items + descendant.inactive_items
+    item_ids.concat(nested_item_ids)
+
+    # Get all nested items to check for further nesting
+    nested_items = Item.where(id: nested_item_ids).includes(:descendant)
+
+    # Recursively get nested items
+    nested_items.each do |nested_item|
+      if nested_item.descendant
+        deeper_ids = find_all_item_ids_recursively_from_item(nested_item)
+        item_ids.concat(deeper_ids)
+      end
+    end
+
+    item_ids.uniq
+  end
+
+  # Recursively delete an item and all its descendants
+  def delete_item_with_descendants(item)
+    return unless item
+
+    # If item has descendants, delete them first
+    if item.descendant
+      descendant = item.descendant
+      all_child_ids = descendant.active_items + descendant.inactive_items
+      child_items = Item.where(id: all_child_ids).includes(:descendant)
+
+      # Recursively delete each child
+      child_items.each do |child_item|
+        delete_item_with_descendants(child_item)
+      end
+
+      # Delete the descendant record
+      descendant.destroy!
+    end
+
+    # Find and remove item from any parent descendant
+    parent_descendant = Descendant.containing_item(item.id)
+
+    if parent_descendant
+      parent_descendant.remove_active_item(item.id)
+      parent_descendant.remove_inactive_item(item.id)
+      parent_descendant.save!
+    end
+
+    # Finally, delete the item itself
+    item.destroy!
   end
 end

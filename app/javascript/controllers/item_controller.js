@@ -23,7 +23,14 @@ export default class extends Controller {
     console.log("Opening sheet for item:", this.idValue)
 
     // Fetch the actions sheet via Turbo
-    let url = `/items/${this.idValue}/actions`
+    // Use reusable_items path if we have a list_id, otherwise use items path
+    let url
+    if (this.hasListIdValue) {
+      url = `/reusable_items/${this.idValue}/actions`
+    } else {
+      url = `/items/${this.idValue}/actions`
+    }
+
     const params = []
 
     if (this.hasDayIdValue && this.dayIdValue) {
@@ -79,7 +86,14 @@ export default class extends Controller {
 
   openDebug(e) {
     const itemId = e.currentTarget.dataset.itemIdValue || this.idValue
-    const url = `/items/${itemId}/debug`
+
+    // Use reusable_items path if we have a list_id, otherwise use items path
+    let url
+    if (this.hasListIdValue) {
+      url = `/reusable_items/${itemId}/debug`
+    } else {
+      url = `/items/${itemId}/debug`
+    }
 
     console.log("Opening debug for item:", itemId)
 

@@ -80,8 +80,19 @@ module Views
       end
 
       def render_checkbox
+        # Use appropriate path based on context (list vs day)
+        toggle_path = if @list
+          toggle_state_reusable_item_path(@item)
+        else
+          item_path(@item)
+        end
+
+        # Build params for list context
+        form_params = {}
+        form_params["list_id"] = @list.id if @list
+
         form(
-          action: item_path(@item),
+          action: toggle_path,
           method: "post",
           data: {
             controller: "form-loading item",
@@ -93,9 +104,14 @@ module Views
         ) do
           csrf_token_field
           input(type: "hidden", name: "_method", value: "patch")
-          input(type: "hidden", name: "item[state]", value: @item.done? ? "todo" : "done")
-          # Include list_id if we're in a list context
-          input(type: "hidden", name: "list_id", value: @list.id) if @list
+
+          # For lists, use state param; for days, use item[state]
+          if @list
+            input(type: "hidden", name: "state", value: @item.done? ? "todo" : "done")
+            input(type: "hidden", name: "list_id", value: @list.id)
+          else
+            input(type: "hidden", name: "item[state]", value: @item.done? ? "todo" : "done")
+          end
 
           # Custom styled checkbox wrapper
           label(class: "relative inline-flex items-center cursor-pointer shrink-0") do

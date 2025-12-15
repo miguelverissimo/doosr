@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["item", "cancelButton", "rootTarget"]
-  static values = { dayId: Number }
+  static values = { dayId: Number, listId: Number }
 
   connect() {
     console.log("Day move controller connected")
@@ -61,7 +61,12 @@ export default class extends Controller {
 
     // Store in sessionStorage for persistence
     sessionStorage.setItem('movingItemId', itemId)
-    sessionStorage.setItem('movingDayId', this.dayIdValue)
+    if (this.hasDayIdValue) {
+      sessionStorage.setItem('movingDayId', this.dayIdValue)
+    }
+    if (this.hasListIdValue) {
+      sessionStorage.setItem('movingListId', this.listIdValue)
+    }
 
     // Show cancel button
     if (this.hasCancelButtonTarget) {
@@ -128,6 +133,7 @@ export default class extends Controller {
     // Clear session storage
     sessionStorage.removeItem('movingItemId')
     sessionStorage.removeItem('movingDayId')
+    sessionStorage.removeItem('movingListId')
 
     this.movingItemId = null
   }
@@ -200,19 +206,29 @@ export default class extends Controller {
     // Clear session storage
     sessionStorage.removeItem('movingItemId')
     sessionStorage.removeItem('movingDayId')
+    sessionStorage.removeItem('movingListId')
+
+    // Build request body based on context (day or list)
+    const requestBody = {
+      target_item_id: targetItemId
+    }
+    if (this.hasDayIdValue) {
+      requestBody.day_id = this.dayIdValue
+    } else if (this.hasListIdValue) {
+      requestBody.list_id = this.listIdValue
+    }
 
     // Make the reparent request
-    fetch(`/items/${itemId}/reparent`, {
+    // Use reusable_items path if we have a list_id, otherwise use items path
+    const reparentUrl = this.hasListIdValue ? `/reusable_items/${itemId}/reparent` : `/items/${itemId}/reparent`
+    fetch(reparentUrl, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/vnd.turbo-stream.html',
         'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
       },
-      body: JSON.stringify({
-        target_item_id: targetItemId,
-        day_id: this.dayIdValue
-      })
+      body: JSON.stringify(requestBody)
     })
     .then(response => response.text())
     .then(html => {
@@ -273,19 +289,29 @@ export default class extends Controller {
     // Clear session storage
     sessionStorage.removeItem('movingItemId')
     sessionStorage.removeItem('movingDayId')
+    sessionStorage.removeItem('movingListId')
+
+    // Build request body based on context (day or list)
+    const requestBody = {
+      target_item_id: null
+    }
+    if (this.hasDayIdValue) {
+      requestBody.day_id = this.dayIdValue
+    } else if (this.hasListIdValue) {
+      requestBody.list_id = this.listIdValue
+    }
 
     // Make the reparent request
-    fetch(`/items/${itemId}/reparent`, {
+    // Use reusable_items path if we have a list_id, otherwise use items path
+    const reparentUrl = this.hasListIdValue ? `/reusable_items/${itemId}/reparent` : `/items/${itemId}/reparent`
+    fetch(reparentUrl, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/vnd.turbo-stream.html',
         'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
       },
-      body: JSON.stringify({
-        target_item_id: null,
-        day_id: this.dayIdValue
-      })
+      body: JSON.stringify(requestBody)
     })
     .then(response => response.text())
     .then(html => {

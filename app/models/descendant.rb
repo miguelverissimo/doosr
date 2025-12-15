@@ -27,34 +27,38 @@ class Descendant < ApplicationRecord
 
   # Add an item ID to active_items (at the end)
   def add_active_item(item_id)
-    active_items << item_id unless active_items.include?(item_id)
+    return if active_items.include?(item_id)
+    self.active_items = active_items + [item_id]
   end
 
   # Add an item ID to inactive_items (at the end)
   def add_inactive_item(item_id)
-    inactive_items << item_id unless inactive_items.include?(item_id)
+    return if inactive_items.include?(item_id)
+    self.inactive_items = inactive_items + [item_id]
   end
 
   # Remove an item ID from active_items
   def remove_active_item(item_id)
-    active_items.delete(item_id)
+    self.active_items = active_items.reject { |id| id == item_id }
   end
 
   # Remove an item ID from inactive_items
   def remove_inactive_item(item_id)
-    inactive_items.delete(item_id)
+    self.inactive_items = inactive_items.reject { |id| id == item_id }
   end
 
   # Move item from active to inactive
   def deactivate_item(item_id)
-    if active_items.delete(item_id)
+    if active_items.include?(item_id)
+      remove_active_item(item_id)
       add_inactive_item(item_id)
     end
   end
 
   # Move item from inactive to active
   def activate_item(item_id)
-    if inactive_items.delete(item_id)
+    if inactive_items.include?(item_id)
+      remove_inactive_item(item_id)
       add_active_item(item_id)
     end
   end
@@ -82,6 +86,11 @@ class Descendant < ApplicationRecord
   # Get all items (active + inactive) preserving order
   def all_items
     active_items + inactive_items
+  end
+
+  # Class method to find the descendant containing a specific item ID
+  def self.containing_item(item_id)
+    where("active_items @> ? OR inactive_items @> ?", [item_id].to_json, [item_id].to_json).first
   end
 
   private

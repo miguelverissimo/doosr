@@ -3,11 +3,12 @@
 class Views::Layouts::AppLayout < Views::Base
   include Phlex::Rails::Layout
 
-  def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil)
+  def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil, list: nil)
     @pathname = pathname
     @selected_date = selected_date
     @day = day
     @latest_importable_day = latest_importable_day
+    @list = list
   end
 
   private
@@ -125,10 +126,15 @@ class Views::Layouts::AppLayout < Views::Base
           render Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
           SidebarInset(
-            data: @day ? {
-              controller: "day-move",
-              day_move_day_id_value: @day.id
-            } : {}
+            data: begin
+              if @day
+                { controller: "day-move", day_move_day_id_value: @day.id }
+              elsif @list
+                { controller: "day-move", day_move_list_id_value: @list.id }
+              else
+                {}
+              end
+            end
           ) do
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
               SidebarTrigger(class: "-ml-1")

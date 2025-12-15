@@ -14,16 +14,23 @@ module Views
         div(id: "action_sheet_buttons_#{@item.id}", class: "flex items-center justify-between gap-2") do
           # Left side - primary actions
           div(class: "flex items-center gap-2") do
-            if @item.reusable?
+            if @item.completable?
+              render_completable_primary_actions
+            elsif @item.reusable?
               render_reusable_primary_actions
             elsif @item.section?
               render_section_primary_actions
+            else
+              # This should never happen - lists should only have completable, reusable or section items
+              p(class: "text-xs text-destructive") { "ERROR: Invalid item type '#{@item.item_type}' in list" }
             end
           end
 
           # Right side - utility actions
           div(class: "flex items-center gap-2") do
-            if @item.reusable?
+            if @item.completable?
+              render_completable_utility_actions
+            elsif @item.reusable?
               render_reusable_utility_actions
             elsif @item.section?
               render_section_utility_actions
@@ -34,11 +41,11 @@ module Views
 
       private
 
-      def render_reusable_primary_actions
+      def render_completable_primary_actions
         # Complete/Uncomplete
         render_icon_button(
           icon: @item.done? ? :circle : :check_circle,
-          action: toggle_state_item_path(@item),
+          action: toggle_state_reusable_item_path(@item),
           method: "patch",
           params: { "state" => @item.done? ? "todo" : "done", "list_id" => @list&.id },
           variant: :primary,
@@ -47,7 +54,7 @@ module Views
 
         # Edit
         a(
-          href: edit_form_item_path(@item, list_id: @list&.id),
+          href: edit_form_reusable_item_path(@item, list_id: @list&.id),
           data: { turbo_stream: true },
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
         ) do
@@ -57,7 +64,89 @@ module Views
         # Delete (not drop - permanently delete)
         render_icon_button(
           icon: :trash,
-          action: item_path(@item),
+          action: reusable_item_path(@item),
+          method: "delete",
+          params: { "list_id" => @list&.id },
+          variant: :destructive,
+          loading_message: "Deleting item..."
+        )
+      end
+
+      def render_completable_utility_actions
+        # Reparent/Move
+        button(
+          type: "button",
+          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
+          data: {
+            controller: "item-move",
+            item_move_item_id_value: @item.id,
+            item_move_list_id_value: @list&.id,
+            action: "click->item-move#startMoving"
+          }
+        ) do
+          render_icon(:move, size: "20")
+        end
+
+        # Move Up
+        can_move_up = @item_index && @item_index > 0
+        render_icon_button(
+          icon: :arrow_up,
+          action: move_reusable_item_path(@item),
+          method: "patch",
+          params: { "direction" => "up", "list_id" => @list&.id },
+          disabled: !can_move_up,
+          loading_message: "Moving item up..."
+        )
+
+        # Move Down
+        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1)
+        render_icon_button(
+          icon: :arrow_down,
+          action: move_reusable_item_path(@item),
+          method: "patch",
+          params: { "direction" => "down", "list_id" => @list&.id },
+          disabled: !can_move_down,
+          loading_message: "Moving item down..."
+        )
+
+        # Debug
+        button(
+          type: "button",
+          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
+          data: {
+            controller: "item",
+            item_id_value: @item.id,
+            action: "click->item#openDebug"
+          }
+        ) do
+          render_icon(:bug, size: "20")
+        end
+      end
+
+      def render_reusable_primary_actions
+        # Complete/Uncomplete
+        render_icon_button(
+          icon: @item.done? ? :circle : :check_circle,
+          action: toggle_state_reusable_item_path(@item),
+          method: "patch",
+          params: { "state" => @item.done? ? "todo" : "done", "list_id" => @list&.id },
+          variant: :primary,
+          loading_message: @item.done? ? "Marking as todo..." : "Marking as done..."
+        )
+
+        # Edit
+        a(
+          href: edit_form_reusable_item_path(@item, list_id: @list&.id),
+          data: { turbo_stream: true },
+          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
+        ) do
+          render_icon(:edit, size: "20")
+        end
+
+        # Delete (not drop - permanently delete)
+        render_icon_button(
+          icon: :trash,
+          action: reusable_item_path(@item),
           method: "delete",
           params: { "list_id" => @list&.id },
           variant: :destructive,
@@ -84,7 +173,7 @@ module Views
         can_move_up = @item_index && @item_index > 0
         render_icon_button(
           icon: :arrow_up,
-          action: move_item_path(@item),
+          action: move_reusable_item_path(@item),
           method: "patch",
           params: { "direction" => "up", "list_id" => @list&.id },
           disabled: !can_move_up,
@@ -95,7 +184,7 @@ module Views
         can_move_down = @item_index && @total_items && @item_index < (@total_items - 1)
         render_icon_button(
           icon: :arrow_down,
-          action: move_item_path(@item),
+          action: move_reusable_item_path(@item),
           method: "patch",
           params: { "direction" => "down", "list_id" => @list&.id },
           disabled: !can_move_down,
@@ -119,7 +208,7 @@ module Views
       def render_section_primary_actions
         # Edit
         a(
-          href: edit_form_item_path(@item, list_id: @list&.id),
+          href: edit_form_reusable_item_path(@item, list_id: @list&.id),
           data: { turbo_stream: true },
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
         ) do
@@ -146,7 +235,7 @@ module Views
         can_move_up = @item_index && @item_index > 0
         render_icon_button(
           icon: :arrow_up,
-          action: move_item_path(@item),
+          action: move_reusable_item_path(@item),
           method: "patch",
           params: { "direction" => "up", "list_id" => @list&.id },
           disabled: !can_move_up,
@@ -157,7 +246,7 @@ module Views
         can_move_down = @item_index && @total_items && @item_index < (@total_items - 1)
         render_icon_button(
           icon: :arrow_down,
-          action: move_item_path(@item),
+          action: move_reusable_item_path(@item),
           method: "patch",
           params: { "direction" => "down", "list_id" => @list&.id },
           disabled: !can_move_down,

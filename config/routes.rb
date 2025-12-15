@@ -45,6 +45,19 @@ Rails.application.routes.draw do
   # Public lists - accessible via slug without authentication
   get 'p/lists/:slug', to: 'public_lists#show', as: :public_list
 
+  # Reusable items - items created in lists with duplicate detection
+  # ALL list item actions go through this controller
+  resources :reusable_items, only: [:create, :update, :destroy] do
+    member do
+      get 'actions', to: 'reusable_items#actions_sheet', as: 'actions_sheet'
+      get 'edit_form', to: 'reusable_items#edit_form', as: 'edit_form'
+      patch 'toggle_state', to: 'reusable_items#toggle_state', as: 'toggle_state'
+      patch 'move', to: 'reusable_items#move', as: 'move'
+      patch 'reparent', to: 'reusable_items#reparent', as: 'reparent'
+      get 'debug', to: 'reusable_items#debug', as: 'debug'
+    end
+  end
+
   # Items - core todo/task items
   resources :items, only: [:create, :update, :destroy] do
     member do

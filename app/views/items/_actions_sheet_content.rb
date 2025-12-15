@@ -90,10 +90,14 @@ module Views
             csrf_token_field
             input(type: "hidden", name: "parent_item_id", value: @item.id)
             input(type: "hidden", name: "day_id", value: @day&.id) if @day
+
+            # In lists, nested items should be reusable by default
+            # In days, nested items should be completable by default
+            default_type = @list ? "reusable" : "completable"
             input(
               type: "hidden",
               name: "item[item_type]",
-              value: "completable",
+              value: default_type,
               data: { item_form_target: "itemType" }
             )
 
@@ -106,14 +110,14 @@ module Views
               required: true
             )
 
-            # Type selector button (completable by default)
+            # Type selector button - use appropriate cycle method
             Button(
               type: :button,
               variant: :ghost,
               icon: true,
               size: :sm,
               class: "shrink-0 h-9 w-9",
-              data: { action: "click->item-form#cycleType" }
+              data: { action: @list ? "click->item-form#cycleListType" : "click->item-form#cycleType" }
             ) do
               svg(
                 xmlns: "http://www.w3.org/2000/svg",

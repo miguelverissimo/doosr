@@ -3,11 +3,9 @@
 module Views
   module Lists
     class PublicShow < Views::Base
-      def initialize(list:, all_items: nil, active_items: nil, inactive_items: nil, item_titles: nil, is_owner: false, is_editable: false)
+      def initialize(list:, tree: nil, item_titles: nil, is_owner: false, is_editable: false)
         @list = list
-        @all_items = all_items || []
-        @active_items = active_items || []
-        @inactive_items = inactive_items || []
+        @tree = tree
         @item_titles = item_titles || []
         @is_owner = is_owner
         @is_editable = is_editable
@@ -17,8 +15,9 @@ module Views
         div(
           class: "flex h-full flex-col",
           data: {
-            controller: "list-subscription",
-            list_subscription_list_id_value: @list.id
+            controller: "list-subscription day-move",
+            list_subscription_list_id_value: @list.id,
+            day_move_list_id_value: @list.id
           }
         ) do
           # Header
@@ -98,7 +97,7 @@ module Views
               }
             ) do
               form(
-                action: items_path,
+                action: reusable_items_path,
                 method: "post",
                 data: {
                   controller: "item-form",
@@ -194,28 +193,18 @@ module Views
 
           # Items list
           div(id: "items_list", class: "space-y-2 mt-3") do
-            # Render active items first
-            @active_items.each do |item|
-              render Views::Items::ItemWithChildren.new(
-                item: item,
-                context: @list,
-                public_view: true,
-                is_editable: @is_editable
-              )
-            end
-
-            # Render inactive items after (done, dropped, deferred)
-            @inactive_items.each do |item|
-              render Views::Items::ItemWithChildren.new(
-                item: item,
-                context: @list,
-                public_view: true,
-                is_editable: @is_editable
-              )
-            end
-
-            # Show empty state if no items
-            if @active_items.empty? && @inactive_items.empty?
+            # Render tree nodes from the pre-built tree
+            if @tree && @tree.children.any?
+              @tree.children.each do |node|
+                render Views::Items::TreeNode.new(
+                  node: node,
+                  context: @list,
+                  public_view: true,
+                  is_editable: @is_editable
+                )
+              end
+            else
+              # Show empty state if no items
               div(class: "text-sm text-muted-foreground text-center py-8") do
                 p { "This list is empty." }
               end

@@ -3,10 +3,16 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["titleInput", "itemType", "typeIcon"]
   static values = {
-    currentType: { type: String, default: "completable" } // completable or section
+    currentType: { type: String, default: "completable" }, // completable, section, or reusable
+    defaultType: { type: String, default: "completable" } // The default type to reset to
   }
 
   connect() {
+    // Set default type based on initial value
+    if (this.hasItemTypeTarget) {
+      this.defaultTypeValue = this.itemTypeTarget.value || "completable"
+      this.currentTypeValue = this.defaultTypeValue
+    }
     this.updateTypeIcon()
   }
 
@@ -14,6 +20,14 @@ export default class extends Controller {
     e.preventDefault()
     // Toggle between completable and section
     this.currentTypeValue = this.currentTypeValue === "completable" ? "section" : "completable"
+    this.itemTypeTarget.value = this.currentTypeValue
+    this.updateTypeIcon()
+  }
+
+  cycleListType(e) {
+    e.preventDefault()
+    // Toggle between reusable and section for lists
+    this.currentTypeValue = this.currentTypeValue === "reusable" ? "section" : "reusable"
     this.itemTypeTarget.value = this.currentTypeValue
     this.updateTypeIcon()
   }
@@ -31,6 +45,11 @@ export default class extends Controller {
       circle.setAttribute("cy", "12")
       circle.setAttribute("r", "10")
       icon.appendChild(circle)
+    } else if (this.currentTypeValue === "reusable") {
+      // Reusable: house/home icon
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+      path.setAttribute("d", "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z")
+      icon.appendChild(path)
     } else {
       // Section: hash symbol
       const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line")
@@ -90,10 +109,10 @@ export default class extends Controller {
       this.dispatch("itemAdded", { detail: { title: addedTitle } })
     }
 
-    // Clear the input after successful submission
+    // Clear the input after successful submission and reset to default type
     this.titleInputTarget.value = ""
-    this.currentTypeValue = "completable"
-    this.itemTypeTarget.value = "completable"
+    this.currentTypeValue = this.defaultTypeValue
+    this.itemTypeTarget.value = this.defaultTypeValue
     this.updateTypeIcon()
     this.titleInputTarget.focus()
   }

@@ -1,7 +1,7 @@
 class ListsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_list, only: [:show, :edit, :update, :destroy]
-  layout -> { Views::Layouts::AppLayout.new(pathname: request.path) }
+  layout -> { Views::Layouts::AppLayout.new(pathname: request.path, list: @list) }
 
   def index
     @lists = current_user.lists.order(created_at: :desc)
@@ -9,26 +9,22 @@ class ListsController < ApplicationController
   end
 
   def show
-    # Fetch all items recursively if list has descendant
+    # Build tree using ItemTree::Build
     if @list.descendant
-      items_data = fetch_list_items(@list)
-      @all_items = items_data[:all_items]
-      @active_items = items_data[:active_items]
-      @inactive_items = items_data[:inactive_items]
+      @tree = ItemTree::Build.call(@list.descendant, root_label: "list")
 
-      # Extract titles for autocomplete (only from top-level list items, not nested)
-      list_item_ids = @list.descendant.active_items + @list.descendant.inactive_items
-      list_items = Item.where(id: list_item_ids)
-      @item_titles = list_items.map(&:title).uniq.sort
+      # Extract titles for autocomplete (ALL items in the list, including nested)
+      all_item_ids = find_all_list_item_ids_recursively(@list)
+      all_items = Item.where(id: all_item_ids)
+      @item_titles = all_items.map(&:title).uniq.sort
     else
+      @tree = nil
       @item_titles = []
     end
 
     render Views::Lists::Show.new(
       list: @list,
-      all_items: @all_items,
-      active_items: @active_items,
-      inactive_items: @inactive_items,
+      tree: @tree,
       item_titles: @item_titles,
       is_owner: true
     )
@@ -76,65 +72,53 @@ class ListsController < ApplicationController
     params.require(:list).permit(:title, :list_type, :visibility, :slug)
   end
 
-  def fetch_list_items(list)
-    return { all_items: [], active_items: [], inactive_items: [] } unless list.descendant
+  # Recursively find all item IDs in a list, including nested items
+  def find_all_list_item_ids_recursively(list)
+    return [] unless list.descendant
 
+    item_ids = []
     descendant = list.descendant
-    all_item_ids = descendant.all_items
 
-    # Fetch all items - convert to array
-    all_items = Item.where(id: all_item_ids).includes(:descendant, :user).to_a
+    # Get direct items
+    direct_item_ids = descendant.active_items + descendant.inactive_items
+    item_ids.concat(direct_item_ids)
 
-    # Build item lookup
-    items_by_id = all_items.index_by(&:id)
+    # Get all items to check for nested descendants
+    items = Item.where(id: direct_item_ids).includes(:descendant)
 
-    # Order items by their position in arrays
-    active_items = descendant.active_items.map { |id| items_by_id[id] }.compact
-    inactive_items = descendant.inactive_items.map { |id| items_by_id[id] }.compact
-
-    # Recursively fetch nested items
-    all_items.each do |item|
+    # Recursively get nested items
+    items.each do |item|
       if item.descendant
-        nested_data = fetch_nested_items(item)
-        all_items.concat(nested_data[:all_items])
-        active_items.concat(nested_data[:active_items])
-        inactive_items.concat(nested_data[:inactive_items])
+        nested_ids = find_all_item_ids_recursively_from_item(item)
+        item_ids.concat(nested_ids)
       end
     end
 
-    {
-      all_items: all_items,
-      active_items: active_items,
-      inactive_items: inactive_items
-    }
+    item_ids.uniq
   end
 
-  def fetch_nested_items(parent_item)
-    return { all_items: [], active_items: [], inactive_items: [] } unless parent_item.descendant
+  # Helper to recursively find item IDs from an item's descendant
+  def find_all_item_ids_recursively_from_item(item)
+    return [] unless item.descendant
 
-    descendant = parent_item.descendant
-    all_item_ids = descendant.all_items
+    item_ids = []
+    descendant = item.descendant
 
-    all_items = Item.where(id: all_item_ids).includes(:descendant, :user).to_a
-    items_by_id = all_items.index_by(&:id)
+    # Get direct nested items
+    nested_item_ids = descendant.active_items + descendant.inactive_items
+    item_ids.concat(nested_item_ids)
 
-    active_items = descendant.active_items.map { |id| items_by_id[id] }.compact
-    inactive_items = descendant.inactive_items.map { |id| items_by_id[id] }.compact
+    # Get all nested items to check for further nesting
+    nested_items = Item.where(id: nested_item_ids).includes(:descendant)
 
-    # Recurse for nested items
-    all_items.each do |item|
-      if item.descendant
-        nested_data = fetch_nested_items(item)
-        all_items.concat(nested_data[:all_items])
-        active_items.concat(nested_data[:active_items])
-        inactive_items.concat(nested_data[:inactive_items])
+    # Recursively get nested items
+    nested_items.each do |nested_item|
+      if nested_item.descendant
+        deeper_ids = find_all_item_ids_recursively_from_item(nested_item)
+        item_ids.concat(deeper_ids)
       end
     end
 
-    {
-      all_items: all_items,
-      active_items: active_items,
-      inactive_items: inactive_items
-    }
+    item_ids.uniq
   end
 end
