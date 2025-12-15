@@ -78,6 +78,7 @@ Rails.application.routes.draw do
     patch 'sections/edit', to: 'settings#edit_section', as: 'edit_section'
     delete 'sections/:section_name', to: 'settings#remove_section', as: 'remove_section'
     patch 'sections/:section_name/move', to: 'settings#move_section', as: 'move_section'
+    patch 'migration_settings', to: 'settings#update_migration_settings', as: 'update_migration_settings'
   end
 
   # Authenticated users see the day view, unauthenticated users see sign in

@@ -122,44 +122,60 @@ class Components::AppSidebar < Components::Base
 
     render RubyUI::DialogContent.new(size: :lg) do
       render RubyUI::DialogHeader.new do
-        render RubyUI::DialogTitle.new { "Permanent Sections" }
+        render RubyUI::DialogTitle.new { "Settings" }
         render RubyUI::DialogDescription.new do
-          plain "Configure permanent sections that will automatically appear in every new day."
+          plain "Configure your application settings"
         end
       end
 
       render RubyUI::DialogMiddle.new do
-        # Add New Section form
-        div(class: "space-y-4") do
-          div(id: "add_section_form") do
-            label(class: "text-sm font-medium mb-2 block") { "Add New Section" }
-            form(
-              action: view_context.add_section_settings_path,
-              method: "post",
-              class: "flex gap-2"
-            ) do
-              view_context.hidden_field_tag :authenticity_token, view_context.form_authenticity_token
+        render RubyUI::Tabs.new(default: "permanent_sections") do
+          render RubyUI::TabsList.new do
+            render RubyUI::TabsTrigger.new(value: "permanent_sections") { "Permanent Sections" }
+            render RubyUI::TabsTrigger.new(value: "day_migration") { "Day Migration" }
+          end
 
-              input(
-                type: "text",
-                name: "section_name",
-                placeholder: "Enter section name (e.g., Work, Personal)",
-                class: "flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                required: true
-              )
+          # Permanent Sections Tab
+          render RubyUI::TabsContent.new(value: "permanent_sections") do
+            div(class: "space-y-4 mt-4") do
+              div(id: "add_section_form") do
+                label(class: "text-sm font-medium mb-2 block") { "Add New Section" }
+                form(
+                  action: view_context.add_section_settings_path,
+                  method: "post",
+                  class: "flex gap-2"
+                ) do
+                  view_context.hidden_field_tag :authenticity_token, view_context.form_authenticity_token
 
-              button(
-                type: "submit",
-                class: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0"
-              ) { "Add" }
+                  input(
+                    type: "text",
+                    name: "section_name",
+                    placeholder: "Enter section name (e.g., Work, Personal)",
+                    class: "flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    required: true
+                  )
+
+                  button(
+                    type: "submit",
+                    class: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0"
+                  ) { "Add" }
+                end
+              end
+
+              # Your Sections list
+              div do
+                label(class: "text-sm font-medium mb-2 block") { "Your Sections" }
+                div(id: "permanent_sections_list") do
+                  render Components::Settings::SectionsList.new(sections: user.permanent_sections)
+                end
+              end
             end
           end
 
-          # Your Sections list
-          div do
-            label(class: "text-sm font-medium mb-2 block") { "Your Sections" }
-            div(id: "permanent_sections_list") do
-              render Components::Settings::SectionsList.new(sections: user.permanent_sections)
+          # Day Migration Tab
+          render RubyUI::TabsContent.new(value: "day_migration") do
+            div(class: "mt-4") do
+              render Components::Settings::MigrationSettingsForm.new(settings: user.day_migration_settings)
             end
           end
         end

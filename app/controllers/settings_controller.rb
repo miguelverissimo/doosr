@@ -181,9 +181,42 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_migration_settings
+    settings = parse_migration_settings(params[:day_migration_settings] || {})
+    current_user.day_migration_settings = settings
+
+    if current_user.save
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Migration settings saved successfully', { type: 'success' });</script>")
+        end
+        format.json { render json: { day_migration_settings: current_user.day_migration_settings } }
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to save migration settings', { type: 'error' });</script>")
+        end
+        format.json { render json: { errors: current_user.errors.full_messages }, status: :unprocessable_entity }
+      end
+    end
+  end
+
   private
 
   def settings_params
     params.require(:user).permit(settings: [:theme, permanent_sections: []])
+  end
+
+  def parse_migration_settings(settings_params)
+    {
+      "links" => settings_params[:links] == "true",
+      "active_item_sections" => settings_params[:active_item_sections] == "true",
+      "notes" => settings_params[:notes] == "true",
+      "items" => {
+        "sections" => settings_params.dig(:items, :sections) == "true",
+        "notes" => settings_params.dig(:items, :notes) == "true"
+      }
+    }
   end
 end

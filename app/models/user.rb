@@ -17,7 +17,8 @@ class User < ApplicationRecord
   # Settings defaults
   SETTINGS_DEFAULTS = {
     "theme" => "dark",
-    "permanent_sections" => []
+    "permanent_sections" => [],
+    "day_migration_settings" => MigrationOptions.defaults
   }.freeze
 
   # Settings accessors
@@ -35,6 +36,14 @@ class User < ApplicationRecord
 
   def permanent_sections=(value)
     settings["permanent_sections"] = value
+  end
+
+  def day_migration_settings
+    settings.fetch("day_migration_settings", SETTINGS_DEFAULTS["day_migration_settings"])
+  end
+
+  def day_migration_settings=(value)
+    settings["day_migration_settings"] = value
   end
 
   # Ensure settings has default values
