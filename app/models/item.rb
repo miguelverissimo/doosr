@@ -77,13 +77,13 @@ class Item < ApplicationRecord
 
     if containing_descendant
       # If already in active items, just update state
-      if containing_descendant.active_items.include?(id)
+      if containing_descendant.active_item?(id)
         update!(state: :todo, done_at: nil, dropped_at: nil, deferred_at: nil, deferred_to: nil)
         return true
       end
 
       # If in inactive items, move to active items FIRST, then update state
-      if containing_descendant.inactive_items.include?(id)
+      if containing_descendant.inactive_item?(id)
         containing_descendant.remove_inactive_item(id)
         containing_descendant.add_active_item(id)
         containing_descendant.save!
@@ -111,20 +111,20 @@ class Item < ApplicationRecord
     Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
     if containing_descendant
       # If already in inactive items, just update state
-      if containing_descendant.inactive_items.include?(id)
+      if containing_descendant.inactive_item?(id)
         Rails.logger.debug "=== ALREADY IN INACTIVE ITEMS ==="
         update!(state: :done, done_at: Time.current)
         return true
       end
 
       # If in active items, move to inactive items FIRST, then update state
-      if containing_descendant.active_items.include?(id)
+      if containing_descendant.active_item?(id)
         Rails.logger.debug "=== IN ACTIVE ITEMS ==="
         containing_descendant.remove_active_item(id)
         containing_descendant.add_inactive_item(id)
         containing_descendant.save!
 
-        Rails.logger.debug "Descendant state after move:" 
+        Rails.logger.debug "Descendant state after move:"
         Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
         Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
         update!(state: :done, done_at: Time.current)
@@ -145,13 +145,13 @@ class Item < ApplicationRecord
 
     if containing_descendant
       # If already in inactive items, just update state
-      if containing_descendant.inactive_items.include?(id)
+      if containing_descendant.inactive_item?(id)
         update!(state: :dropped, dropped_at: Time.current)
         return true
       end
 
       # If in active items, move to inactive items FIRST, then update state
-      if containing_descendant.active_items.include?(id)
+      if containing_descendant.active_item?(id)
         containing_descendant.remove_active_item(id)
         containing_descendant.add_inactive_item(id)
         containing_descendant.save!
@@ -173,13 +173,13 @@ class Item < ApplicationRecord
 
     if containing_descendant
       # If already in inactive items, just update state
-      if containing_descendant.inactive_items.include?(id)
+      if containing_descendant.inactive_item?(id)
         update!(state: :deferred, deferred_at: Time.current, deferred_to: deferred_to_date)
         return true
       end
 
       # If in active items, move to inactive items FIRST, then update state
-      if containing_descendant.active_items.include?(id)
+      if containing_descendant.active_item?(id)
         containing_descendant.remove_active_item(id)
         containing_descendant.add_inactive_item(id)
         containing_descendant.save!
@@ -230,7 +230,7 @@ class Item < ApplicationRecord
 
   def nested_item_count
     return 0 unless descendant
-    descendant.active_items.count + descendant.inactive_items.count
+    descendant.extract_active_item_ids.count + descendant.extract_inactive_item_ids.count
   end
 
   # Import from source item

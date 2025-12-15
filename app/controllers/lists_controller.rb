@@ -79,8 +79,8 @@ class ListsController < ApplicationController
     item_ids = []
     descendant = list.descendant
 
-    # Get direct items
-    direct_item_ids = descendant.active_items + descendant.inactive_items
+    # Get direct items (extract IDs from tuples)
+    direct_item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     item_ids.concat(direct_item_ids)
 
     # Get all items to check for nested descendants
@@ -104,8 +104,8 @@ class ListsController < ApplicationController
     item_ids = []
     descendant = item.descendant
 
-    # Get direct nested items
-    nested_item_ids = descendant.active_items + descendant.inactive_items
+    # Get direct nested items (extract IDs from tuples)
+    nested_item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     item_ids.concat(nested_item_ids)
 
     # Get all nested items to check for further nesting

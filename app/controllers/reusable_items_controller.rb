@@ -79,9 +79,9 @@ class ReusableItemsController < ApplicationController
     containing_descendant = Descendant.containing_item(@item.id)
 
     if containing_descendant
-      active_items = containing_descendant.active_items
-      item_index = active_items.index(@item.id)
-      total_items = active_items.length
+      active_item_ids = containing_descendant.extract_active_item_ids
+      item_index = active_item_ids.index(@item.id)
+      total_items = active_item_ids.length
     end
 
     respond_to do |format|
@@ -164,9 +164,9 @@ class ReusableItemsController < ApplicationController
         # Recalculate position for move buttons
         containing_descendant = Descendant.containing_item(@item.id)
         if containing_descendant
-          active_items = containing_descendant.active_items
-          item_index = active_items.index(@item.id)
-          total_items = active_items.length
+          active_item_ids = containing_descendant.extract_active_item_ids
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
 
           # Determine if this is a public list view
           is_public_list = params[:is_public_list] == "true"
@@ -212,13 +212,15 @@ class ReusableItemsController < ApplicationController
 
     if containing_descendant
       active_items = containing_descendant.active_items
-      current_index = active_items.index(@item.id)
+      tuple = { "Item" => @item.id }
+      current_index = active_items.index(tuple)
 
       if current_index
         new_index = direction == "up" ? current_index - 1 : current_index + 1
 
         # Only move if within bounds
         if new_index >= 0 && new_index < active_items.length
+          # Swap tuples (not just IDs)
           active_items[current_index], active_items[new_index] = active_items[new_index], active_items[current_index]
           containing_descendant.active_items = active_items
           containing_descendant.save!
@@ -243,7 +245,7 @@ class ReusableItemsController < ApplicationController
         streams = [turbo_stream.update("items_list", rendered_items)]
 
         # Update action sheet buttons if it's open
-        active_item_ids = @list.descendant.active_items
+        active_item_ids = @list.descendant.extract_active_item_ids
         item_index = active_item_ids.index(@item.id)
         total_items = active_item_ids.length
 
@@ -298,9 +300,9 @@ class ReusableItemsController < ApplicationController
             total_items = nil
             containing_descendant = Descendant.containing_item(@item.id)
             if containing_descendant
-              active_items = containing_descendant.active_items
-              item_index = active_items.index(@item.id)
-              total_items = active_items.length
+              active_item_ids = containing_descendant.extract_active_item_ids
+              item_index = active_item_ids.index(@item.id)
+              total_items = active_item_ids.length
             end
 
             is_public_list = params[:is_public_list] == "true"
@@ -392,6 +394,14 @@ class ReusableItemsController < ApplicationController
         format.html { redirect_back(fallback_location: root_path, alert: "Confirmation required") }
       end
       return
+    end
+
+    # Remove item from its containing descendant first
+    containing_descendant = Descendant.containing_item(@item.id)
+    if containing_descendant
+      containing_descendant.remove_active_item(@item.id)
+      containing_descendant.remove_inactive_item(@item.id)
+      containing_descendant.save!
     end
 
     # Delete the item and all its descendants recursively
@@ -547,7 +557,7 @@ class ReusableItemsController < ApplicationController
     Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
     Rails.logger.debug "=== END HANDLING EXISTING ITEM ==="
 
-    if containing_descendant && containing_descendant.active_items.include?(existing_item.id)
+    if containing_descendant && containing_descendant.active_item?(existing_item.id)
       Rails.logger.debug "=== ALREADY ACTIVE ==="
       # Already active - do nothing
       @item = existing_item
@@ -609,14 +619,19 @@ class ReusableItemsController < ApplicationController
 
     # If item has a descendant, recursively delete all nested items
     if item.descendant
-      all_item_ids = item.descendant.active_items + item.descendant.inactive_items
+      # Extract IDs from tuples
+      all_item_ids = item.descendant.extract_active_item_ids + item.descendant.extract_inactive_item_ids
       nested_items = Item.where(id: all_item_ids)
 
       nested_items.each do |nested_item|
+        # Remove nested item from this item's descendant first
+        item.descendant.remove_active_item(nested_item.id)
+        item.descendant.remove_inactive_item(nested_item.id)
+
+        # Recursively delete the nested item
         delete_item_with_descendants(nested_item)
       end
 
-      # Delete the descendant
       item.descendant.destroy
     end
 
@@ -631,8 +646,8 @@ class ReusableItemsController < ApplicationController
     item_ids = []
     descendant = list.descendant
 
-    # Get direct items
-    direct_item_ids = descendant.active_items + descendant.inactive_items
+    # Get direct items (extract IDs from tuples)
+    direct_item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     item_ids.concat(direct_item_ids)
 
     # Get all items to check for nested descendants
@@ -656,8 +671,8 @@ class ReusableItemsController < ApplicationController
     item_ids = []
     descendant = item.descendant
 
-    # Get direct nested items
-    nested_item_ids = descendant.active_items + descendant.inactive_items
+    # Get direct nested items (extract IDs from tuples)
+    nested_item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     item_ids.concat(nested_item_ids)
 
     # Get all nested items to check for further nesting

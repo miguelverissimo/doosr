@@ -22,9 +22,9 @@ class Days::FetchItemsService
     # Start traversal from day's descendant
     traverse_descendant(day.descendant)
 
-    # Filter top-level items from all_items
-    top_level_active_item_ids = day.descendant.active_items
-    top_level_inactive_item_ids = day.descendant.inactive_items
+    # Filter top-level items from all_items (extract IDs from tuples)
+    top_level_active_item_ids = day.descendant.extract_active_item_ids
+    top_level_inactive_item_ids = day.descendant.extract_inactive_item_ids
 
     active_items = @all_items.select { |item| top_level_active_item_ids.include?(item.id) }
     inactive_items = @all_items.select { |item| top_level_inactive_item_ids.include?(item.id) }
@@ -49,8 +49,8 @@ class Days::FetchItemsService
   end
 
   def traverse_descendant(descendant)
-    # Get all item IDs from this descendant
-    all_item_ids = descendant.active_items + descendant.inactive_items
+    # Get all item IDs from this descendant (extract from tuples)
+    all_item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     return if all_item_ids.empty?
 
     # Fetch all items with their descendants

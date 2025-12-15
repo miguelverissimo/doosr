@@ -46,7 +46,7 @@ module Views
 
           div(class: "text-sm text-muted-foreground") do
             if list.descendant
-              item_count = list.descendant.active_items.length
+              item_count = list.descendant.extract_active_item_ids.length
               plain "#{item_count} item#{item_count == 1 ? '' : 's'}"
             else
               plain "0 items"

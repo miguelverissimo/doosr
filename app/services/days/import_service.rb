@@ -70,7 +70,7 @@ class Days::ImportService
     # Find all permanent sections on source day
     return unless source_day.descendant
 
-    source_section_ids = source_day.descendant.active_items
+    source_section_ids = source_day.descendant.extract_active_item_ids
     source_sections = Item.sections.where(id: source_section_ids).select { |s| s.extra_data&.dig('permanent_section') }
 
     source_sections.each do |source_section|
@@ -87,7 +87,7 @@ class Days::ImportService
   def find_section_on_day(day, section_title)
     return nil unless day.descendant
 
-    section_ids = day.descendant.active_items
+    section_ids = day.descendant.extract_active_item_ids
     sections = Item.sections.where(id: section_ids, title: section_title)
     sections.first
   end
@@ -114,8 +114,8 @@ class Days::ImportService
   def collect_items_to_import(descendant, parent_item_id: nil)
     return unless descendant
 
-    # Only process active_items (not inactive_items)
-    active_item_ids = descendant.active_items || []
+    # Only process active_items (not inactive_items) - extract IDs from tuples
+    active_item_ids = descendant.extract_active_item_ids
     return if active_item_ids.empty?
 
     # Fetch items and create map for lookup
@@ -137,7 +137,7 @@ class Days::ImportService
       @imported_count += 1
 
       # Recursively process children if this item has a descendant with active items
-      if item.descendant&.active_items&.any?
+      if item.descendant && item.descendant.extract_active_item_ids.any?
         collect_items_to_import(item.descendant, parent_item_id: item.id)
       end
     end
@@ -157,7 +157,7 @@ class Days::ImportService
           @item_mapping[original_item.id] = existing_section_id
 
           # Track if this section needs its descendant updated with nested items
-          if original_item.descendant&.active_items&.any?
+          if original_item.descendant && original_item.descendant.extract_active_item_ids.any?
             existing_section = Item.find(existing_section_id)
             @descendants_to_create << {
               original_item: original_item,
@@ -186,7 +186,7 @@ class Days::ImportService
       @item_mapping[original_item.id] = new_item.id
 
       # Track if this item needs a descendant created
-      if original_item.descendant&.active_items&.any?
+      if original_item.descendant && original_item.descendant.extract_active_item_ids.any?
         @descendants_to_create << {
           original_item: original_item,
           new_item: new_item
@@ -199,7 +199,7 @@ class Days::ImportService
         # (descendants created in next step)
       else
         # This is a top-level item - add to day's descendant
-        target_day.descendant.active_items = (target_day.descendant.active_items + [new_item.id]).uniq
+        target_day.descendant.add_active_item(new_item.id)
         target_day.descendant.save!
       end
     end
@@ -210,8 +210,8 @@ class Days::ImportService
       original_item = desc_data[:original_item]
       new_item = desc_data[:new_item]
 
-      # Get original nested item IDs (only active_items)
-      original_nested_ids = original_item.descendant.active_items
+      # Get original nested item IDs (only active_items) - extract from tuples
+      original_nested_ids = original_item.descendant.extract_active_item_ids
 
       # Map to new item IDs, maintaining order from active_items array
       new_nested_ids = original_nested_ids.map { |old_id| @item_mapping[old_id] }.compact
@@ -221,15 +221,17 @@ class Days::ImportService
       descendant = new_item.descendant
       if descendant
         # APPEND to existing active_items (for permanent sections that already have items)
-        # Use array concatenation and uniq to preserve order and avoid duplicates
-        existing_items = descendant.active_items || []
-        descendant.update!(
-          active_items: (existing_items + new_nested_ids).uniq
-        )
+        # Add new items one by one using the add_active_item method
+        new_nested_ids.each do |item_id|
+          descendant.add_active_item(item_id)
+        end
+        descendant.save!
       else
+        # Create new descendant with tuple format
+        new_active_tuples = new_nested_ids.map { |id| { "Item" => id } }
         Descendant.create!(
           descendable: new_item,
-          active_items: new_nested_ids,
+          active_items: new_active_tuples,
           inactive_items: []
         )
       end

@@ -63,7 +63,7 @@ class Days::OpenDayService
       )
 
       # Add section to day's active items
-      day.descendant.active_items = (day.descendant.active_items + [section.id]).uniq
+      day.descendant.add_active_item(section.id)
       day.descendant.save!
     end
   end
@@ -71,7 +71,7 @@ class Days::OpenDayService
   def find_section_on_day(day, section_title)
     return nil unless day.descendant
 
-    section_ids = day.descendant.active_items
+    section_ids = day.descendant.extract_active_item_ids
     sections = Item.sections.where(id: section_ids, title: section_title)
     sections.first
   end

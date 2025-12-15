@@ -35,8 +35,8 @@ class ItemsController < ApplicationController
             # Check if this is the first child
             is_first_child = @parent_item.descendant.active_items.count == 1
 
-            # Calculate position of new item
-            active_item_ids = @parent_item.descendant.active_items
+            # Calculate position of new item (extract IDs from tuples)
+            active_item_ids = @parent_item.descendant.extract_active_item_ids
             item_index = active_item_ids.index(@item.id)
 
             streams = [
@@ -222,11 +222,12 @@ class ItemsController < ApplicationController
             # Calculate position for move buttons
             item_index = nil
             total_items = nil
-            containing_descendant = Descendant.where("active_items @> ?", [@item.id].to_json).first
+            tuple = { "Item" => @item.id }
+            containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
             if containing_descendant
-              active_items = containing_descendant.active_items
-              item_index = active_items.index(@item.id)
-              total_items = active_items.length
+              active_item_ids = containing_descendant.extract_active_item_ids
+              item_index = active_item_ids.index(@item.id)
+              total_items = active_item_ids.length
             end
 
             is_public_list = params[:is_public_list] == "true"
@@ -413,12 +414,13 @@ class ItemsController < ApplicationController
     total_items = nil
 
     # Find the containing descendant by checking which one has this item in active_items
-    containing_descendant = Descendant.where("active_items @> ?", [@item.id].to_json).first
+    tuple = { "Item" => @item.id }
+    containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
 
     if containing_descendant
-      active_items = containing_descendant.active_items
-      item_index = active_items.index(@item.id)
-      total_items = active_items.length
+      active_item_ids = containing_descendant.extract_active_item_ids
+      item_index = active_item_ids.index(@item.id)
+      total_items = active_item_ids.length
     end
 
     respond_to do |format|
@@ -524,17 +526,20 @@ class ItemsController < ApplicationController
     direction = params[:direction]
 
     # Find which descendant contains this item
-    containing_descendant = Descendant.where("active_items @> ?", [@item.id].to_json).first
+    tuple = { "Item" => @item.id }
+    containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
 
     if containing_descendant
       active_items = containing_descendant.active_items
-      current_index = active_items.index(@item.id)
+      # Find index of the tuple (not just the ID)
+      current_index = active_items.index(tuple)
 
       if current_index
         new_index = direction == "up" ? current_index - 1 : current_index + 1
 
         # Only move if within bounds
         if new_index >= 0 && new_index < active_items.length
+          # Swap the tuples (not just IDs)
           active_items[current_index], active_items[new_index] = active_items[new_index], active_items[current_index]
           containing_descendant.active_items = active_items
           containing_descendant.save!

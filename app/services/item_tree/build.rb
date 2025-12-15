@@ -62,7 +62,7 @@ module ItemTree
     end
 
     def ordered_item_ids(descendant)
-      Array(descendant.active_items) + Array(descendant.inactive_items)
+      descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
     end
 
     def fetch_items_indexed(ids)

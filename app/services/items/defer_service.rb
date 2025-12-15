@@ -89,7 +89,8 @@ class Items::DeferService
 
     # Recursively collect nested items (only from TODO items)
     if item.todo? && item.descendant&.active_items&.any?
-      nested_items = Item.where(id: item.descendant.active_items).includes(:descendant)
+      nested_item_ids = item.descendant.extract_active_item_ids
+      nested_items = Item.where(id: nested_item_ids).includes(:descendant)
       nested_items.each do |nested_item|
         collect_items_to_defer(nested_item, parent_section: current_section)
       end
@@ -119,7 +120,7 @@ class Items::DeferService
         )
 
         # Add section to day's active items
-        target_day.descendant.active_items = (target_day.descendant.active_items + [new_section.id]).uniq
+        target_day.descendant.add_active_item(new_section.id)
         target_day.descendant.save!
 
         @section_mapping[section.title] = new_section.id
@@ -130,7 +131,7 @@ class Items::DeferService
   def find_section_on_day(day, section_title)
     return nil unless day.descendant
 
-    section_ids = day.descendant.active_items
+    section_ids = day.descendant.extract_active_item_ids
     sections = Item.sections.where(id: section_ids, title: section_title)
     sections.first
   end
@@ -171,12 +172,12 @@ class Items::DeferService
             active_items: [],
             inactive_items: []
           )
-          section.descendant.active_items = (section.descendant.active_items + [new_item.id]).uniq
+          section.descendant.add_active_item(new_item.id)
           section.descendant.save!
         end
       else
         # Add to day's active items
-        target_day.descendant.active_items = (target_day.descendant.active_items + [new_item.id]).uniq
+        target_day.descendant.add_active_item(new_item.id)
         target_day.descendant.save!
       end
     end
@@ -187,14 +188,15 @@ class Items::DeferService
       original_item = link_data[:original_item]
       new_item = link_data[:new_item]
 
-      # Get the new IDs of nested items
-      original_nested_ids = original_item.descendant.active_items
+      # Get the new IDs of nested items (extract from tuples)
+      original_nested_ids = original_item.descendant.extract_active_item_ids
       new_nested_ids = original_nested_ids.map { |old_id| @item_mapping[old_id] }.compact
 
-      # Create descendant for new item
+      # Create descendant for new item with tuple format
+      new_active_tuples = new_nested_ids.map { |id| { "Item" => id } }
       Descendant.create!(
         descendable: new_item,
-        active_items: new_nested_ids,
+        active_items: new_active_tuples,
         inactive_items: []
       )
     end
@@ -217,19 +219,17 @@ class Items::DeferService
   end
 
   def move_to_inactive(item)
-    # Find which descendant contains this item
+    # Find which descendant contains this item (using tuple format)
+    tuple = { "Item" => item.id }
     descendant = Descendant.where(
-      "active_items @> ?", [item.id].to_json
+      "active_items @> ?", [tuple].to_json
     ).first
 
     return unless descendant
 
-    # Remove from active_items
-    descendant.active_items = descendant.active_items.reject { |id| id == item.id }
-
-    # Add to inactive_items (deduplicate)
-    descendant.inactive_items = (descendant.inactive_items + [item.id]).uniq
-
+    # Remove from active_items and add to inactive_items
+    descendant.remove_active_item(item.id)
+    descendant.add_inactive_item(item.id)
     descendant.save!
   end
 end

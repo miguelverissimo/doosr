@@ -18,17 +18,23 @@ class List < ApplicationRecord
 
   def items
     return [] unless descendant
-    Item.where(id: descendant.all_items)
+    item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
+    return [] if item_ids.empty?
+    Item.where(id: item_ids)
   end
 
   def active_items
     return [] unless descendant
-    Item.where(id: descendant.active_items).order(Arel.sql("array_position(ARRAY[#{descendant.active_items.join(',')}]::integer[], id)"))
+    item_ids = descendant.extract_active_item_ids
+    return [] if item_ids.empty?
+    Item.where(id: item_ids).order(Arel.sql("array_position(ARRAY[#{item_ids.join(',')}]::integer[], id)"))
   end
 
   def inactive_items
     return [] unless descendant
-    Item.where(id: descendant.inactive_items).order(Arel.sql("array_position(ARRAY[#{descendant.inactive_items.join(',')}]::integer[], id)"))
+    item_ids = descendant.extract_inactive_item_ids
+    return [] if item_ids.empty?
+    Item.where(id: item_ids).order(Arel.sql("array_position(ARRAY[#{item_ids.join(',')}]::integer[], id)"))
   end
 
   def public_url

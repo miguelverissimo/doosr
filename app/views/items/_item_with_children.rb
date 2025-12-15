@@ -34,8 +34,8 @@ module Views
 
       def render_children
         descendant = @item.descendant
-        active_item_ids = descendant.active_items || []
-        inactive_item_ids = descendant.inactive_items || []
+        active_item_ids = descendant.extract_active_item_ids || []
+        inactive_item_ids = descendant.extract_inactive_item_ids || []
         all_item_ids = active_item_ids + inactive_item_ids
 
         return if all_item_ids.empty?
