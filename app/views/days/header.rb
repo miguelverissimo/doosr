@@ -153,23 +153,15 @@ module Views
 
             # Show "Import from [date]" if latest importable day is available
             if @latest_importable_day
-              form(
-                action: view_context.import_days_path,
-                method: "post",
-                class: "w-full",
+              a(
+                href: view_context.new_day_migration_path(date: @date),
                 data: {
-                  controller: "import-loader",
-                  action: "submit->import-loader#showLoading"
-                }
+                  turbo_frame: "day_migration_modal",
+                  turbo_stream: true
+                },
+                class: "block w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
               ) do
-                raw view_context.hidden_field_tag(:authenticity_token, view_context.form_authenticity_token)
-                raw view_context.hidden_field_tag(:date, @date.to_s)
-                button(
-                  type: "submit",
-                  class: "w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
-                ) do
-                  plain "Import from #{format_date(@latest_importable_day.date)}"
-                end
+                plain "Import from #{format_date(@latest_importable_day.date)}"
               end
             end
           end

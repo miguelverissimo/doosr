@@ -9,8 +9,8 @@ class DaysController < ApplicationController
     @day = current_user.days.includes(:imported_from_day, :imported_to_day, :descendant).find_by(date: @date)
     @is_today = @date == Date.today
 
-    # Fetch latest importable day for import button
-    @latest_importable_day = Days::FindLatestImportableDayService.new(user: current_user).call
+    # Fetch latest importable day for import button (only if current day is open)
+    @latest_importable_day = Days::FindLatestImportableDayService.new(user: current_user, current_date: @date).call if @day&.open? || @day.nil?
 
     # Fetch all items recursively if day exists
     if @day
@@ -61,20 +61,56 @@ class DaysController < ApplicationController
 
   def import
     begin
-      result = Days::ImportService.new(user: current_user, target_date: @date).call
-      imported_count = result[:imported_count]
-
-      if imported_count > 0
+      # Check if current day is closed - cannot import into closed days
+      current_day = current_user.days.find_by(date: @date)
+      if current_day&.closed?
         flash[:toast] = {
-          message: "Import complete!",
-          description: "Successfully imported #{imported_count} item#{imported_count > 1 ? 's' : ''}",
+          message: "Import failed",
+          description: "Cannot import into a closed day. Reopen the day first.",
+          type: "danger",
+          icon: "❌"
+        }
+        redirect_to day_path(date: @date)
+        return
+      end
+
+      # Find latest importable day (from days before the current date)
+      source_day = Days::FindLatestImportableDayService.new(user: current_user, current_date: @date).call
+
+      unless source_day
+        flash[:toast] = {
+          message: "Import failed",
+          description: "No importable days found",
+          type: "danger",
+          icon: "❌"
+        }
+        redirect_to day_path(date: @date)
+        return
+      end
+
+      # Use user's default migration settings
+      migration_settings = current_user.day_migration_settings || MigrationOptions.defaults
+
+      result = Days::DayMigrationService.new(
+        user: current_user,
+        source_day: source_day,
+        target_date: @date,
+        migration_settings: migration_settings
+      ).call
+
+      migrated_count = result[:migrated_count]
+
+      if migrated_count > 0
+        flash[:toast] = {
+          message: "Migration complete!",
+          description: "Successfully migrated #{migrated_count} item#{migrated_count > 1 ? 's' : ''}",
           type: "success",
           icon: "✅"
         }
       else
         flash[:toast] = {
-          message: "Import complete",
-          description: "No items to import",
+          message: "Migration complete",
+          description: "No items to migrate",
           type: "default",
           icon: "ℹ️"
         }
@@ -82,11 +118,11 @@ class DaysController < ApplicationController
 
       redirect_to day_path(date: @date)
     rescue StandardError => e
-      Rails.logger.error "Import failed: #{e.message}"
+      Rails.logger.error "Migration failed: #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
 
       flash[:toast] = {
-        message: "Import failed",
+        message: "Migration failed",
         description: e.message,
         type: "danger",
         icon: "❌"

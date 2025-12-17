@@ -14,11 +14,12 @@ class Days::ImportService
   # - Updates both source and target days with import relationships
   # - Handles empty imports (no todo items) by still marking import relationship
 
-  attr_reader :user, :target_date
+  attr_reader :user, :target_date, :migration_settings
 
-  def initialize(user:, target_date:)
+  def initialize(user:, target_date:, migration_settings: nil)
     @user = user
     @target_date = target_date.is_a?(Date) ? target_date : Date.parse(target_date.to_s)
+    @migration_settings = migration_settings || user.day_migration_settings || MigrationOptions.defaults
     @item_mapping = {} # Maps old item IDs to new item IDs
     @section_mapping = {} # Maps old section IDs to existing target day section IDs
     @items_to_import = [] # Items to import in order
@@ -28,8 +29,8 @@ class Days::ImportService
 
   def call
     ActiveRecord::Base.transaction do
-      # Step 1: Find latest importable day
-      source_day = Days::FindLatestImportableDayService.new(user: user).call
+      # Step 1: Find latest importable day (from days before target_date)
+      source_day = Days::FindLatestImportableDayService.new(user: user, current_date: target_date).call
 
       # Step 2: Validate import conditions
       validation = Days::ValidateImportConditionsService.new(
@@ -65,6 +66,23 @@ class Days::ImportService
   end
 
   private
+
+  def should_import_item?(item, parent_item: nil)
+    # Always import completable items (todos)
+    return true if item.completable?
+
+    # Check section type against migration settings
+    if parent_item
+      # This is a nested item, check items.sections setting
+      return false if item.section? && !migration_settings.dig("items", "sections")
+    else
+      # This is a top-level item, check active_item_sections setting
+      return false if item.section? && !migration_settings.dig("active_item_sections")
+    end
+
+    # For reusable and trackable items, import them by default
+    true
+  end
 
   def map_permanent_sections(source_day, target_day)
     # Find all permanent sections on source day
@@ -111,7 +129,7 @@ class Days::ImportService
     Days::OpenDayService.new(user: user, date: target_date).call
   end
 
-  def collect_items_to_import(descendant, parent_item_id: nil)
+  def collect_items_to_import(descendant, parent_item_id: nil, parent_item: nil)
     return unless descendant
 
     # Only process active_items (not inactive_items) - extract IDs from tuples
@@ -129,6 +147,9 @@ class Days::ImportService
       # Only import TODO items
       next unless item.state == "todo"
 
+      # Check if item should be imported based on migration settings
+      next unless should_import_item?(item, parent_item: parent_item)
+
       # Add to items_to_import array (maintains order)
       @items_to_import << {
         item: item,
@@ -138,7 +159,7 @@ class Days::ImportService
 
       # Recursively process children if this item has a descendant with active items
       if item.descendant && item.descendant.extract_active_item_ids.any?
-        collect_items_to_import(item.descendant, parent_item_id: item.id)
+        collect_items_to_import(item.descendant, parent_item_id: item.id, parent_item: item)
       end
     end
   end

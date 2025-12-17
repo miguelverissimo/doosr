@@ -28,6 +28,7 @@ class User < ApplicationRecord
 
   def theme=(value)
     settings["theme"] = value
+    settings_will_change!
   end
 
   def permanent_sections
@@ -36,6 +37,7 @@ class User < ApplicationRecord
 
   def permanent_sections=(value)
     settings["permanent_sections"] = value
+    settings_will_change!
   end
 
   def day_migration_settings
@@ -44,6 +46,7 @@ class User < ApplicationRecord
 
   def day_migration_settings=(value)
     settings["day_migration_settings"] = value
+    settings_will_change!
   end
 
   # Ensure settings has default values

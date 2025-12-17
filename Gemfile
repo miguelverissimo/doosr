@@ -48,7 +48,7 @@ gem "tailwind_merge", "~> 1.3"
 gem "openssl", "~> 3.3.2"
 
 # Authentication
-gem "devise"
+gem "devise", "~> 4.9.1"
 gem "omniauth"
 gem "omniauth-rails_csrf_protection"
 gem "omniauth-google-oauth2"

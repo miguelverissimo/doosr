@@ -2,8 +2,8 @@ require "test_helper"
 
 class ItemTest < ActiveSupport::TestCase
   def setup
-    @user = users(:one)
-    @item = items(:completable_one)
+    @user = User.create!(email: "test@example.com", password: "password123", password_confirmation: "password123")
+    @item = @user.items.create!(title: "Test Item", item_type: :completable, state: :todo)
   end
 
   test "should be valid" do
@@ -23,33 +23,33 @@ class ItemTest < ActiveSupport::TestCase
 
   test "completable items can be marked as done" do
     assert @item.completable?
-    assert @item.mark_done!
+    assert @item.set_done!
     assert @item.done?
     assert_not_nil @item.done_at
   end
 
   test "section items cannot be completed" do
-    section = items(:section_one)
+    section = @user.items.create!(title: "Section", item_type: :section, state: :todo)
     assert section.section?
-    assert_not section.mark_done!
+    assert_not section.set_done!
   end
 
   test "items can be dropped" do
-    assert @item.mark_dropped!
+    assert @item.set_dropped!
     assert @item.dropped?
     assert_not_nil @item.dropped_at
   end
 
   test "items can be deferred" do
     future_date = 1.week.from_now
-    assert @item.mark_deferred!(future_date)
+    assert @item.set_deferred!(future_date)
     assert @item.deferred?
     assert_not_nil @item.deferred_at
     assert_equal future_date, @item.deferred_to
   end
 
   test "items can be returned to todo state" do
-    @item.mark_done!
+    @item.set_done!
     assert @item.done?
 
     assert @item.mark_todo!

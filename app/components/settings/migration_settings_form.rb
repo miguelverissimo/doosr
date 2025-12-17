@@ -13,6 +13,7 @@ module Components
           action: view_context.update_migration_settings_settings_path,
           method: "post",
           class: "space-y-6",
+          "data-turbo-method": "patch",
           data: {
             controller: "migration-settings-form",
             action: "submit->migration-settings-form#submit"
@@ -21,47 +22,35 @@ module Components
           view_context.hidden_field_tag :authenticity_token, view_context.form_authenticity_token
           view_context.hidden_field_tag :_method, "patch"
 
-          # Links toggle
+          # Dynamically render migration options
           div(class: "space-y-3") do
-            render_toggle_field(
-              name: "day_migration_settings[links]",
-              label: "Migrate Links",
-              description: "Include links when importing from previous day",
-              checked: @settings.dig("links")
-            )
+            label(class: "text-sm font-semibold mb-3 block") { "Day Settings" }
 
-            render_toggle_field(
-              name: "day_migration_settings[active_item_sections]",
-              label: "Migrate Active Item Sections",
-              description: "Include active item sections when importing",
-              checked: @settings.dig("active_item_sections")
-            )
+            # Render top-level options
+            MigrationOptions.top_level_options.each do |key, config|
+              render_toggle_field(
+                name: "day_migration_settings[#{key}]",
+                label: config[:label],
+                description: config[:description],
+                checked: @settings.dig(key.to_s)
+              )
+            end
 
-            render_toggle_field(
-              name: "day_migration_settings[notes]",
-              label: "Migrate Notes",
-              description: "Include notes when importing",
-              checked: @settings.dig("notes")
-            )
+            # Render nested option groups
+            MigrationOptions.nested_option_groups.each do |group_key, group_config|
+              div(class: "pt-4") do
+                label(class: "text-sm font-semibold mb-3 block") { group_config[:label] }
 
-            # Items section
-            div(class: "pt-4 border-t") do
-              label(class: "text-sm font-semibold mb-3 block") { "Item Settings" }
-
-              div(class: "space-y-3 pl-4") do
-                render_toggle_field(
-                  name: "day_migration_settings[items][sections]",
-                  label: "Migrate Sections",
-                  description: "Include section items",
-                  checked: @settings.dig("items", "sections")
-                )
-
-                render_toggle_field(
-                  name: "day_migration_settings[items][notes]",
-                  label: "Migrate Item Notes",
-                  description: "Include notes within items",
-                  checked: @settings.dig("items", "notes")
-                )
+                div(class: "space-y-3 pl-4") do
+                  MigrationOptions.options_for_group(group_key).each do |option_key, option_config|
+                    render_toggle_field(
+                      name: "day_migration_settings[#{group_key}][#{option_key}]",
+                      label: option_config[:label],
+                      description: option_config[:description],
+                      checked: @settings.dig(group_key.to_s, option_key.to_s)
+                    )
+                  end
+                end
               end
             end
           end
@@ -70,8 +59,13 @@ module Components
           div(class: "pt-4 flex justify-end") do
             button(
               type: "submit",
-              class: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-            ) { "Save Settings" }
+              class: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed h-10 px-4 py-2",
+              data: {
+                migration_settings_form_target: "submitButton"
+              }
+            ) do
+              span(data: { migration_settings_form_target: "buttonText" }) { "Save Settings" }
+            end
           end
         end
       end
@@ -87,13 +81,19 @@ module Components
 
           # Toggle switch
           label(class: "relative inline-flex items-center cursor-pointer") do
+            # Hidden field to ensure false is sent when unchecked
+            input(type: "hidden", name: name, value: "false")
+
             input(
               type: "checkbox",
               name: name,
               value: "true",
               id: name.tr("[]", "_"),
               class: "sr-only peer",
-              checked: checked
+              checked: checked,
+              data: {
+                action: "change->migration-settings-form#checkboxChanged"
+              }
             )
 
             div(

@@ -1,15 +1,14 @@
 Rails.application.routes.draw do
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+
   # Action Cable for real-time WebSocket connections
   mount ActionCable.server, at: '/cable'
 
-  devise_for :users,
-             controllers: {
-               sessions: "users/sessions",
-               registrations: "users/registrations",
-               omniauth_callbacks: "users/omniauth_callbacks"
-             }
-
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  devise_for :users, controllers: {
+    sessions: "users/sessions",
+    registrations: "users/registrations",
+    omniauth_callbacks: "users/omniauth_callbacks"
+  }
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
@@ -32,7 +31,10 @@ Rails.application.routes.draw do
     end
   end
 
-  # Ephemeries - astrological aspects
+  # Day migrations - import with custom settings
+  resources :day_migrations, only: [:new, :create]
+
+  # Ephemeries
   get 'ephemeries', to: 'ephemeries#index', as: :ephemeries
 
   # Lists - reusable item collections
@@ -79,6 +81,7 @@ Rails.application.routes.draw do
     delete 'sections/:section_name', to: 'settings#remove_section', as: 'remove_section'
     patch 'sections/:section_name/move', to: 'settings#move_section', as: 'move_section'
     patch 'migration_settings', to: 'settings#update_migration_settings', as: 'update_migration_settings'
+    post 'migration_settings', to: 'settings#update_migration_settings' # Temporary fallback
   end
 
   # Authenticated users see the day view, unauthenticated users see sign in

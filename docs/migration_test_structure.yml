@@ -1,0 +1,165 @@
+data structure for test:
+  - day::descendant
+    - note::"n1"
+    - section::"s1"
+      - item::active::"s1a1"
+        - note::"s1a1n1"
+      - item::active::"s1a2"
+        - item::active::"s1a2a1"
+        - section::"s1a2s1"
+          - item::active::"s1a2s1a1"
+          - note::"s1a2s1n1"
+      - note::"s1n1"
+      - section::"s1s1"
+        - item::inactive::"s1s1i1"
+        - note::"s1s1n1"
+        - item::inactive::"s1s1i2"
+    - item::active::"a1"
+      - note::"a1n1"
+      - section::"a1s1"
+        - item::active::"a1s1a1"
+        - note::"a1s1n1"
+        - item::active::"a1s1a2"
+        - section::"a1s1s1"
+          - item::active::"a1s1s1a1"
+          - note::"a1s1s1n1"
+      - note::"a1n2"
+      - item::inactive::"a1i1"
+      - item::inactive::"a1i2"
+      - item::inactive::"a1i3"
+    - section::"s2"
+      - item::inactive::"s2i1"
+      - section::"s2s1"
+        - item::active::"s2s1a1"
+        - note::"s2s1n1"
+        - item::inactive::"s2s1i1"
+    - section::"s3"
+      - item::inactive::"s3i1"
+scenarios:
+  - scenario 1
+    - settings:
+        links: false
+        notes: false
+        items:
+          notes: false
+          sections_with_inactive_items: false
+    - expected output:
+      - day::descendant
+        - section::"s1"
+          - item::active::"s1a1"
+          - item::active::"s1a2"
+            - item::active::"s1a2a1"
+            - section::"s1a2s1"
+              - item::active::"s1a2s1a1"
+        - item::active::"a1"
+          - section::"a1s1"
+            - item::active::"a1s1a1"
+            - item::active::"a1s1a2"
+            - section::"a1s1s1"
+              - item::active::"a1s1s1a1"
+        - section::"s2"
+          - section::"s2s1"
+            - item::active::"s2s1a1"
+  - scenario 2
+    - settings:
+        links: false
+        notes: true
+        items:
+          notes: false
+          sections_with_inactive_items: false
+    - expected output:
+      - day::descendant
+        - section::"s1"
+          - item::active::"s1a1"
+          - item::active::"s1a2"
+            - item::active::"s1a2a1"
+            - section::"s1a2s1"
+              - item::active::"s1a2s1a1"
+        - item::active::"a1"
+          - section::"a1s1"
+            - item::active::"a1s1a1"
+            - item::active::"a1s1a2"
+            - section::"a1s1s1"
+              - item::active::"a1s1s1a1"
+        - section::"s2"
+          - section::"s2s1"
+            - item::active::"s2s1a1"
+  - scenario 3
+    - settings:
+        links: false
+        notes: true
+        items:
+          notes: true
+          sections_with_inactive_items: false
+    - expected output:
+      - day::descendant
+        - note::"n1"
+        - section::"s1"
+          - item::active::"s1a1"
+            - note::"s1a1n1"
+          - item::active::"s1a2"
+            - item::active::"s1a2a1"
+            - section::"s1a2s1"
+              - item::active::"s1a2s1a1"
+              - note::"s1a2s1n1"
+          - note::"s1n1"
+          - section::"s1s1"
+            - item::inactive::"s1s1i1"
+            - note::"s1s1n1"
+            - item::inactive::"s1s1i2"
+        - item::active::"a1"
+          - note::"a1n1"
+          - section::"a1s1"
+            - item::active::"a1s1a1"
+            - note::"a1s1n1"
+            - item::active::"a1s1a2"
+            - section::"a1s1s1"
+              - item::active::"a1s1s1a1"
+              - note::"a1s1s1n1"
+          - note::"a1n2"
+          - item::inactive::"a1i1"
+          - item::inactive::"a1i2"
+          - item::inactive::"a1i3"
+        - section::"s2"
+          - item::inactive::"s2i1"
+          - section::"s2s1"
+            - item::active::"s2s1a1"
+            - note::"s2s1n1"
+            - item::inactive::"s2s1i1"
+
+  - scenario 4
+    - settings:
+        links: false
+        notes: true
+        items:
+          notes: true
+          sections_with_inactive_items: true
+    - expected output:
+      - day::descendant
+        - note::"n1"
+        - section::"s1"
+          - item::active::"s1a1"
+            - note::"s1a1n1"
+          - item::active::"s1a2"
+            - item::active::"s1a2a1"
+            - section::"s1a2s1"
+              - item::active::"s1a2s1a1"
+              - note::"s1a2s1n1"
+          - note::"s1n1"
+          - section::"s1s1"
+            - note::"s1s1n1"
+        - item::active::"a1"
+          - note::"a1n1"
+          - section::"a1s1"
+            - item::active::"a1s1a1"
+            - note::"a1s1n1"
+            - item::active::"a1s1a2"
+            - section::"a1s1s1"
+              - item::active::"a1s1s1a1"
+              - note::"a1s1s1n1"
+          - note::"a1n2"
+        - section::"s2"
+          - section::"s2s1"
+            - item::active::"s2s1a1"
+            - note::"s2s1n1"
+        - section::"s3"

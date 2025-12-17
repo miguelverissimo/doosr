@@ -28,9 +28,8 @@ class ItemsController < ApplicationController
 
         respond_to do |format|
           format.turbo_stream do
-            # Reload parent and its descendant to get fresh data
-            @parent_item.reload
-            @parent_item.descendant.reload
+            # Reload parent with its descendant to get fresh data
+            @parent_item = @acting_user.items.includes(:descendant).find(@parent_item.id)
 
             # Check if this is the first child
             is_first_child = @parent_item.descendant.active_items.count == 1
@@ -558,8 +557,7 @@ class ItemsController < ApplicationController
 
         if is_list_descendant && @list&.descendant
           # Reload to get fresh data
-          @list.reload
-          @list.descendant.reload
+          @list = @acting_user.lists.includes(:descendant).find(@list.id)
 
           # Build tree ONCE using ItemTree::Build
           tree = ItemTree::Build.call(@list.descendant, root_label: "list")
@@ -590,8 +588,7 @@ class ItemsController < ApplicationController
           broadcast_list_update(@list, streams)
         elsif is_day_descendant && @day&.descendant
           # Reload to get fresh data
-          @day.reload
-          @day.descendant.reload
+          @day = @acting_user.days.includes(:descendant).find(@day.id)
 
           # Build tree ONCE using ItemTree::Build
           tree = ItemTree::Build.call(@day.descendant, root_label: "day")
@@ -619,8 +616,7 @@ class ItemsController < ApplicationController
           )
         elsif parent_item
           # Re-render the nested items in the drawer
-          parent_item.reload
-          parent_item.descendant.reload
+          parent_item = @acting_user.items.includes(:descendant).find(parent_item.id)
 
           active_item_ids = parent_item.descendant.active_items || []
           items = Item.where(id: active_item_ids).index_by(&:id)

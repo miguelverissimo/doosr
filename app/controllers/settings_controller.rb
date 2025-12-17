@@ -182,10 +182,21 @@ class SettingsController < ApplicationController
   end
 
   def update_migration_settings
+    Rails.logger.info "=== UPDATE MIGRATION SETTINGS CALLED ==="
+    Rails.logger.info "Params: #{params.inspect}"
+    Rails.logger.info "day_migration_settings params: #{params[:day_migration_settings].inspect}"
+
     settings = parse_migration_settings(params[:day_migration_settings] || {})
+    Rails.logger.info "Parsed settings: #{settings.inspect}"
+
     current_user.day_migration_settings = settings
+    Rails.logger.info "User settings before save: #{current_user.settings.inspect}"
+    Rails.logger.info "User changed?: #{current_user.changed?}"
+    Rails.logger.info "Changed attributes: #{current_user.changes.inspect}"
 
     if current_user.save
+      Rails.logger.info "User saved successfully!"
+      Rails.logger.info "User day_migration_settings after save: #{current_user.reload.day_migration_settings.inspect}"
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Migration settings saved successfully', { type: 'success' });</script>")
@@ -193,6 +204,7 @@ class SettingsController < ApplicationController
         format.json { render json: { day_migration_settings: current_user.day_migration_settings } }
       end
     else
+      Rails.logger.error "User save failed: #{current_user.errors.full_messages}"
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to save migration settings', { type: 'error' });</script>")
@@ -209,14 +221,25 @@ class SettingsController < ApplicationController
   end
 
   def parse_migration_settings(settings_params)
-    {
-      "links" => settings_params[:links] == "true",
-      "active_item_sections" => settings_params[:active_item_sections] == "true",
-      "notes" => settings_params[:notes] == "true",
-      "items" => {
-        "sections" => settings_params.dig(:items, :sections) == "true",
-        "notes" => settings_params.dig(:items, :notes) == "true"
-      }
-    }
+    # Dynamically rebuild settings based on MigrationOptions structure
+    # This ensures the entire object is replaced with form data (not merged)
+    # Hidden fields send "false" for unchecked, checkboxes send "true" for checked
+    result = {}
+
+    # Process top-level options
+    MigrationOptions.top_level_options.each do |key, _config|
+      result[key.to_s] = settings_params[key] == "true"
+    end
+
+    # Process nested option groups
+    MigrationOptions.nested_option_groups.each do |group_key, _group_config|
+      result[group_key.to_s] = {}
+
+      MigrationOptions.options_for_group(group_key).each do |option_key, _option_config|
+        result[group_key.to_s][option_key.to_s] = settings_params.dig(group_key, option_key) == "true"
+      end
+    end
+
+    result
   end
 end

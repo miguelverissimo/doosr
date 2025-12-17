@@ -83,7 +83,7 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     foo = create_item!("foo")
     create_descendant_for!(descendable: foo) # foo.descendant exists
 
-    root_desc.update!(active_items: [{ "Item" => foo.id }], inactive_items: [])
+    root_desc.update!(active_items: [foo.id], inactive_items: [])
 
     # foo descendant: active [bar, baz], inactive [qux]
     bar = create_item!("bar")
@@ -94,14 +94,14 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     create_descendant_for!(descendable: baz)
 
     foo.descendant.update!(
-      active_items: [{ "Item" => bar.id }, { "Item" => baz.id }],
-      inactive_items: [{ "Item" => qux.id }]
+      active_items: [bar.id, baz.id],
+      inactive_items: [qux.id]
     )
 
     # bar descendant: active [bar 1], inactive [bar 2]
     bar1 = create_item!("bar 1")
     bar2 = create_item!("bar 2")
-    bar.descendant.update!(active_items: [{ "Item" => bar1.id }], inactive_items: [{ "Item" => bar2.id }])
+    bar.descendant.update!(active_items: [bar1.id], inactive_items: [bar2.id])
 
     # baz descendant: active [baz 1, baz 2], inactive [baz 3, baz 4]
     baz1 = create_item!("baz 1")
@@ -111,14 +111,14 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     create_descendant_for!(descendable: baz2)
 
     baz.descendant.update!(
-      active_items: [{ "Item" => baz1.id }, { "Item" => baz2.id }],
-      inactive_items: [{ "Item" => baz3.id }, { "Item" => baz4.id }]
+      active_items: [baz1.id, baz2.id],
+      inactive_items: [baz3.id, baz4.id]
     )
 
     # baz 2 descendant: active [baz 2.2], inactive [baz 2.1]
     baz22 = create_item!("baz 2.2")
     baz21 = create_item!("baz 2.1")
-    baz2.descendant.update!(active_items: [{ "Item" => baz22.id }], inactive_items: [{ "Item" => baz21.id }])
+    baz2.descendant.update!(active_items: [baz22.id], inactive_items: [baz21.id])
 
     tree = ItemTree::Build.call(root_desc)
 
@@ -158,7 +158,7 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     # give them descendants so includes(:descendant) has something to load, not required though
     [a, b, c, d].each { |it| create_descendant_for!(descendable: it) }
 
-    root_desc.update!(active_items: [{ "Item" => c.id }, { "Item" => a.id }], inactive_items: [{ "Item" => d.id }, { "Item" => b.id }])
+    root_desc.update!(active_items: [c.id, a.id], inactive_items: [d.id, b.id])
 
     tree = ItemTree::Build.call(root_desc)
     labels = tree.children.map(&:label)
@@ -185,7 +185,7 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
 
     missing_id = 999_999_999
 
-    root_desc.update!(active_items: [{ "Item" => missing_id }, { "Item" => real.id }], inactive_items: [{ "Item" => missing_id }])
+    root_desc.update!(active_items: [missing_id, real.id], inactive_items: [missing_id])
 
     tree = ItemTree::Build.call(root_desc)
     assert_equal ["real"], tree.children.map(&:label)
@@ -198,10 +198,10 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     # Make foo.descendant point to a descendant that (incorrectly) references foo again.
     foo_desc = create_descendant_for!(descendable: foo)
 
-    root_desc.update!(active_items: [{ "Item" => foo.id }], inactive_items: [])
+    root_desc.update!(active_items: [foo.id], inactive_items: [])
 
     # Create a cycle: foo_desc lists foo again (bad data), so recursion sees foo -> foo_desc -> foo -> foo_desc ...
-    foo_desc.update!(active_items: [{ "Item" => foo.id }], inactive_items: [])
+    foo_desc.update!(active_items: [foo.id], inactive_items: [])
 
     tree = ItemTree::Build.call(root_desc.reload)
     foo_node = find_label(tree, "foo")
@@ -218,7 +218,7 @@ class ItemTreeBuildTest < ActiveSupport::TestCase
     root_desc = create_root_descendant!
     items = 10.times.map { |i| create_item!("it#{i}") }
     items.each { |it| create_descendant_for!(descendable: it) }
-    root_desc.update!(active_items: items.map { |it| { "Item" => it.id } }, inactive_items: [])
+    root_desc.update!(active_items: items.map(&:id), inactive_items: [])
   
     assert_queries(2..6) do
       ItemTree::Build.call(root_desc)

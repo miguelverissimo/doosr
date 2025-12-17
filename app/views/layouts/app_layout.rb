@@ -231,6 +231,9 @@ class Views::Layouts::AppLayout < Views::Base
             div(class: "vertical mx-auto mt-0 w-full max-w-[var(--container-max-width)] flex-1 px-4 py-4") do
               render_flash_toasts
 
+              # Turbo frame for day migration modal
+              div(id: "day_migration_modal")
+
               yield
             end
           end

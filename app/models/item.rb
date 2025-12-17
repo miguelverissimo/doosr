@@ -106,10 +106,11 @@ class Item < ApplicationRecord
 
     # Find the descendant this item belongs to
     containing_descendant = Descendant.containing_item(id)
-    Rails.logger.debug "Containing descendant: #{containing_descendant.id}"
-    Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
-    Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
+
     if containing_descendant
+      Rails.logger.debug "Containing descendant: #{containing_descendant.id}"
+      Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
+      Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
       # If already in inactive items, just update state
       if containing_descendant.inactive_item?(id)
         Rails.logger.debug "=== ALREADY IN INACTIVE ITEMS ==="
