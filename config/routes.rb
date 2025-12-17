@@ -66,6 +66,7 @@ Rails.application.routes.draw do
       get 'actions', to: 'items#actions_sheet', as: 'actions_sheet'
       get 'edit_form', to: 'items#edit_form', as: 'edit_form'
       get 'defer_options', to: 'items#defer_options', as: 'defer_options'
+      get 'recurrence_options', to: 'items#recurrence_options', as: 'recurrence_options'
       patch 'toggle_state', to: 'items#toggle_state', as: 'toggle_state'
       patch 'move', to: 'items#move', as: 'move'
       patch 'reparent', to: 'items#reparent', as: 'reparent'

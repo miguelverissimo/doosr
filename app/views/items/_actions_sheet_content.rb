@@ -18,8 +18,21 @@ module Views
         div(id: "sheet_content_area") do
           SheetHeader do
             SheetTitle(class: "text-left") { @item.title }
-            SheetDescription(class: "text-left text-xs text-muted-foreground") do
-              "#{@item.item_type.titleize} • #{@item.state.titleize}"
+            SheetDescription(class: "text-left text-xs text-muted-foreground space-y-1") do
+              div { "#{@item.item_type.titleize} • #{@item.state.titleize}" }
+              if @item.has_recurrence?
+                div(class: "flex items-center gap-1 text-blue-500") do
+                  svg(xmlns: "http://www.w3.org/2000/svg", width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", stroke_width: "2", stroke_linecap: "round", stroke_linejoin: "round", class: "shrink-0") do |s|
+                    s.path(d: "M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5")
+                    s.path(d: "M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12")
+                    s.path(d: "m14 16-3 3 3 3")
+                    s.path(d: "M8.293 13.596 7.196 9.5 3.1 10.598")
+                    s.path(d: "m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843")
+                    s.path(d: "m13.378 9.633 4.096 1.098 1.097-4.096")
+                  end
+                  plain format_recurrence_rule(@item.recurrence_rule)
+                end
+              end
             end
           end
 
@@ -195,6 +208,35 @@ module Views
             end
           end
         end
+      end
+
+      def format_recurrence_rule(rule_json)
+        return "Recurring" if rule_json.blank?
+
+        rule = rule_json.is_a?(String) ? JSON.parse(rule_json) : rule_json
+        frequency = rule["frequency"] || rule[:frequency]
+
+        case frequency
+        when "daily"
+          "Repeats daily"
+        when "every_weekday"
+          "Repeats every weekday"
+        when "every_n_days"
+          interval = rule["interval"] || rule[:interval] || 3
+          "Repeats every #{interval} days"
+        when "weekly"
+          days_of_week = rule["days_of_week"] || rule[:days_of_week] || []
+          day_names = days_of_week.map { |d| Date::DAYNAMES[d][0..2] }.join(", ")
+          "Repeats weekly on #{day_names}"
+        when "monthly"
+          "Repeats monthly"
+        when "yearly"
+          "Repeats yearly"
+        else
+          "Recurring"
+        end
+      rescue JSON::ParserError
+        "Recurring"
       end
     end
   end

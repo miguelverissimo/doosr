@@ -182,6 +182,128 @@ Located in `app/services/`:
 - Dismiss on `turbo:submit-end` or response received
 - Applies to all actions: create, update, delete, move, toggle, defer, reparent
 
+### Drawer Navigation (CRITICAL - READ CAREFULLY)
+**THIS IS EXTREMELY IMPORTANT. VIOLATING THESE RULES CREATES MULTIPLE OVERLAYS AND WASTES USER MONEY.**
+
+#### Drawer Architecture
+The drawer system has two layers:
+1. **ActionsSheet**: The full drawer (backdrop + sheet container + close button) with `id="item_actions_sheet"`
+2. **Sheet Content**: The replaceable content area with `id="sheet_content_area"` inside the drawer
+
+#### Opening vs Navigating
+- **Opening a new drawer** (from day/list view → actions sheet):
+  - Use `turbo_stream.append("body", ActionsSheet.new(...))`
+  - This creates the ENTIRE drawer structure including backdrop
+
+- **Navigating within a drawer** (actions → defer/recurrence/edit):
+  - Use `turbo_stream.replace("sheet_content_area", OptionsView.new(...))`
+  - This ONLY replaces the content, keeping the same backdrop and close button
+
+#### Controller Pattern for Option Screens
+**ALWAYS use this exact pattern for defer_options, recurrence_options, edit_form, etc.**:
+```ruby
+def defer_options  # or recurrence_options, edit_form, etc.
+  @item = @acting_user.items.find(params[:id])
+  @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present?
+
+  respond_to do |format|
+    format.turbo_stream do
+      render turbo_stream: turbo_stream.replace(
+        "sheet_content_area",
+        Views::Items::DeferOptions.new(item: @item, day: @day)
+      )
+    end
+  end
+end
+```
+
+#### View Pattern for Option Screens
+**ALWAYS wrap your option view content in a div with id="sheet_content_area"**:
+```ruby
+def view_template
+  div(id: "sheet_content_area", data: { controller: "your-controller" }) do
+    SheetHeader do
+      SheetTitle { "Your Title" }
+    end
+    SheetMiddle do
+      # Your content
+    end
+    # Cancel button with from_edit_form: true
+  end
+end
+```
+
+#### Common Mistakes That Create Multiple Overlays
+- ❌ **NEVER** create backdrop divs in option views (defer, recurrence, edit)
+- ❌ **NEVER** use `turbo_stream.append` for navigating within a drawer
+- ❌ **NEVER** forget to wrap option content with `id="sheet_content_area"`
+- ❌ **NEVER** create new drawer structures in option views
+
+### Drawer Cancel Buttons
+- **CRITICAL**: All Cancel buttons in drawer option screens MUST return to the item actions drawer
+- **MUST include `from_edit_form: true` parameter**:
+  ```ruby
+  a(
+    href: actions_sheet_item_path(@item, day_id: @day&.id, from_edit_form: true),
+    data: { turbo_stream: true },
+    class: "flex-1 h-12 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md font-medium transition-colors flex items-center justify-center"
+  ) { "Cancel" }
+  ```
+
+### Item State Transitions (CRITICAL - READ CAREFULLY)
+**THIS IS ABSOLUTELY CRITICAL. VIOLATING THESE RULES BREAKS RECURRENCE, DESCENDANT MANAGEMENT, AND OTHER CORE FEATURES.**
+
+#### Single Code Path Rule
+**NEVER create multiple code paths for the same user action.** Every state change MUST go through the same code path regardless of where the user triggers it (checkbox, button, keyboard, etc.).
+
+#### State Transition Methods
+ALL item state changes MUST go through these methods in `Item` model:
+- `set_done!` - Mark item as done (handles Descendant arrays, recurrence scheduling)
+- `set_todo!` - Mark item as todo (handles Descendant arrays, deletes next recurrence)
+- `set_dropped!` - Mark item as dropped (handles Descendant arrays)
+- `set_deferred!(date)` - Defer item to future date (handles Descendant arrays)
+
+**NEVER use `@item.update(state: ...)` or `@item.update!(state: ...)` to change state** - this bypasses critical logic:
+- ❌ Descendant array management (moving between active_items/inactive_items)
+- ❌ Recurrence scheduling (creating next occurrence when completing recurring items)
+- ❌ Recurring item cleanup (deleting next occurrence when uncompleting)
+- ❌ Timestamp tracking (done_at, dropped_at, deferred_at)
+
+#### Controller Actions
+Use the `toggle_state` action for ALL state changes from the UI:
+- **For day items**: `toggle_state_item_path(@item)` → `ItemsController#toggle_state`
+- **For list items**: `toggle_state_reusable_item_path(@item)` → `ReusableItemsController#toggle_state`
+
+**NEVER route checkboxes, buttons, or other UI elements to the `update` action for state changes.**
+
+#### Example: Checkbox Implementation
+```ruby
+def render_checkbox
+  # ALWAYS use toggle_state endpoint for both days and lists
+  # This ensures state changes go through set_done!/set_todo! methods
+  toggle_path = if @list
+    toggle_state_reusable_item_path(@item)
+  else
+    toggle_state_item_path(@item)
+  end
+
+  form(action: toggle_path, method: "post", ...) do
+    csrf_token_field
+    input(type: "hidden", name: "_method", value: "patch")
+    # Always use state param (not item[state])
+    input(type: "hidden", name: "state", value: @item.done? ? "todo" : "done")
+    # checkbox input
+  end
+end
+```
+
+#### Why This Matters
+If a checkbox uses `item_path(@item)` (update action) while a button uses `toggle_state_item_path(@item)`:
+- ✓ Button → `toggle_state` → `set_done!` → Recurrence works, Descendant arrays updated
+- ✗ Checkbox → `update` → `@item.update(state: :done)` → Recurrence BROKEN, Descendant arrays NOT updated
+
+This creates an inconsistent user experience where the same action works differently depending on how it's triggered.
+
 ### Item Movement Rules
 Active items can move within their array IF:
 1. The day/list is not closed

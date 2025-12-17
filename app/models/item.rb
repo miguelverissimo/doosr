@@ -101,10 +101,13 @@ class Item < ApplicationRecord
   end
 
   def set_done!
-    Rails.logger.debug "=== SET DONE ==="
-    Rails.logger.debug "Item: #{id}:#{title}"
-    Rails.logger.debug "Can be completed: #{can_be_completed?}"
-    Rails.logger.debug "=== END SET DONE ==="
+    Rails.logger.info "===================================================="
+    Rails.logger.info "=== SET DONE CALLED ==="
+    Rails.logger.info "Item: #{id}:#{title}"
+    Rails.logger.info "Can be completed: #{can_be_completed?}"
+    Rails.logger.info "HAS RECURRENCE: #{has_recurrence?}"
+    Rails.logger.info "RECURRENCE RULE: #{recurrence_rule.inspect}"
+    Rails.logger.info "===================================================="
     return false unless can_be_completed?
 
     # Find the descendant this item belongs to
@@ -116,31 +119,50 @@ class Item < ApplicationRecord
       Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
       # If already in inactive items, just update state
       if containing_descendant.inactive_item?(id)
-        Rails.logger.debug "=== ALREADY IN INACTIVE ITEMS ==="
+        Rails.logger.info "=== ALREADY IN INACTIVE ITEMS ==="
         update!(state: :done, done_at: Time.current)
-        schedule_next_recurrence if has_recurrence?
+        Rails.logger.info ">>> ABOUT TO CHECK RECURRENCE: has_recurrence?=#{has_recurrence?}"
+        if has_recurrence?
+          Rails.logger.info ">>> CALLING schedule_next_recurrence"
+          schedule_next_recurrence
+        else
+          Rails.logger.info ">>> NOT CALLING schedule_next_recurrence (no recurrence)"
+        end
         return true
       end
 
       # If in active items, move to inactive items FIRST, then update state
       if containing_descendant.active_item?(id)
-        Rails.logger.debug "=== IN ACTIVE ITEMS ==="
+        Rails.logger.info "=== IN ACTIVE ITEMS ==="
         containing_descendant.remove_active_item(id)
         containing_descendant.add_inactive_item(id)
         containing_descendant.save!
 
-        Rails.logger.debug "Descendant state after move:"
-        Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
-        Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
+        Rails.logger.info "Descendant state after move:"
+        Rails.logger.info "Active items: #{containing_descendant.active_items.inspect}"
+        Rails.logger.info "Inactive items: #{containing_descendant.inactive_items.inspect}"
         update!(state: :done, done_at: Time.current)
-        schedule_next_recurrence if has_recurrence?
+        Rails.logger.info ">>> ABOUT TO CHECK RECURRENCE: has_recurrence?=#{has_recurrence?}"
+        if has_recurrence?
+          Rails.logger.info ">>> CALLING schedule_next_recurrence"
+          schedule_next_recurrence
+        else
+          Rails.logger.info ">>> NOT CALLING schedule_next_recurrence (no recurrence)"
+        end
         return true
       end
     end
 
     # No descendant or item not in any array - just update state
+    Rails.logger.info "=== NO DESCENDANT OR NOT IN ARRAY ==="
     update!(state: :done, done_at: Time.current)
-    schedule_next_recurrence if has_recurrence?
+    Rails.logger.info ">>> ABOUT TO CHECK RECURRENCE: has_recurrence?=#{has_recurrence?}"
+    if has_recurrence?
+      Rails.logger.info ">>> CALLING schedule_next_recurrence"
+      schedule_next_recurrence
+    else
+      Rails.logger.info ">>> NOT CALLING schedule_next_recurrence (no recurrence)"
+    end
     true
   end
 
@@ -348,6 +370,11 @@ class Item < ApplicationRecord
 
   # Schedule the next recurrence when this item is completed
   def schedule_next_recurrence
+    Rails.logger.info "=== SCHEDULING NEXT RECURRENCE ==="
+    Rails.logger.info "Item ID: #{id}, Title: #{title}"
+    Rails.logger.info "has_recurrence?: #{has_recurrence?}"
+    Rails.logger.info "recurrence_rule: #{recurrence_rule.inspect}"
+
     return unless has_recurrence?
 
     result = Items::ScheduleNextOccurrenceService.new(
@@ -356,10 +383,14 @@ class Item < ApplicationRecord
     ).call
 
     if result[:success]
-      Rails.logger.debug "Scheduled next recurrence for item #{id}: #{result[:new_item].id}"
+      Rails.logger.info "✓ Successfully scheduled next recurrence for item #{id}"
+      Rails.logger.info "  New item ID: #{result[:new_item].id}"
+      Rails.logger.info "  New item title: #{result[:new_item].title}"
+      Rails.logger.info "  Target date: #{result[:new_item].id}"
     else
-      Rails.logger.error "Failed to schedule next recurrence for item #{id}: #{result[:error]}"
+      Rails.logger.error "✗ Failed to schedule next recurrence for item #{id}: #{result[:error]}"
     end
+    Rails.logger.info "=== END SCHEDULING NEXT RECURRENCE ==="
   end
 
   # Delete the next recurring item (hard delete)

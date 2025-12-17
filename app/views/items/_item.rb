@@ -50,6 +50,22 @@ module Views
             end
           end
 
+          # Recurring badge
+          if @item.has_recurrence?
+            span(class: "shrink-0 rounded-full bg-blue-500 text-white px-2 py-0.5 text-xs flex items-center gap-1") do
+              # Small recycle icon
+              svg(xmlns: "http://www.w3.org/2000/svg", width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", stroke_width: "2", stroke_linecap: "round", stroke_linejoin: "round", class: "shrink-0") do |s|
+                s.path(d: "M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5")
+                s.path(d: "M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12")
+                s.path(d: "m14 16-3 3 3 3")
+                s.path(d: "M8.293 13.596 7.196 9.5 3.1 10.598")
+                s.path(d: "m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843")
+                s.path(d: "m13.378 9.633 4.096 1.098 1.097-4.096")
+              end
+              plain "recurring"
+            end
+          end
+
           # Actions menu (hidden, shown on hover)
           div(class: "opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1") do
             Button(variant: :ghost, icon: true, size: :sm, class: "h-7 w-7") do
@@ -80,16 +96,13 @@ module Views
       end
 
       def render_checkbox
-        # Use appropriate path based on context (list vs day)
+        # ALWAYS use toggle_state endpoint for both days and lists
+        # This ensures state changes go through set_done!/set_todo! methods
         toggle_path = if @list
           toggle_state_reusable_item_path(@item)
         else
-          item_path(@item)
+          toggle_state_item_path(@item)
         end
-
-        # Build params for list context
-        form_params = {}
-        form_params["list_id"] = @list.id if @list
 
         form(
           action: toggle_path,
@@ -105,12 +118,12 @@ module Views
           csrf_token_field
           input(type: "hidden", name: "_method", value: "patch")
 
-          # For lists, use state param; for days, use item[state]
+          # Always use state param (not item[state])
+          input(type: "hidden", name: "state", value: @item.done? ? "todo" : "done")
+
+          # Add list_id for lists (day_id not needed for toggle_state)
           if @list
-            input(type: "hidden", name: "state", value: @item.done? ? "todo" : "done")
             input(type: "hidden", name: "list_id", value: @list.id)
-          else
-            input(type: "hidden", name: "item[state]", value: @item.done? ? "todo" : "done")
           end
 
           # Custom styled checkbox wrapper

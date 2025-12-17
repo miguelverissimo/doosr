@@ -139,8 +139,9 @@ class Items::UndeferServiceTest < ActiveSupport::TestCase
   test "deletes nested items recursively" do
     # Create nested structure in deferred copy
     @deferred_copy.create_descendant! unless @deferred_copy.descendant
-    child1 = @user.items.create!(title: "Child 1", state: :todo, source_item: @source_item)
-    child2 = @user.items.create!(title: "Child 2", state: :todo, source_item: @source_item)
+    # Nested items should NOT have source_item - they're children of the deferred copy
+    child1 = @user.items.create!(title: "Child 1", state: :todo)
+    child2 = @user.items.create!(title: "Child 2", state: :todo)
 
     @deferred_copy.descendant.add_active_item(child1.id)
     @deferred_copy.descendant.add_active_item(child2.id)
@@ -156,7 +157,7 @@ class Items::UndeferServiceTest < ActiveSupport::TestCase
 
     result = service.call
 
-    assert result[:success]
+    assert result[:success], "Expected success but got error: #{result[:error]}"
 
     # Check all nested items were deleted
     assert_nil Item.find_by(id: child1_id)
@@ -166,13 +167,14 @@ class Items::UndeferServiceTest < ActiveSupport::TestCase
   test "deletes multi-level nested tree recursively" do
     # Create 3-level nested structure
     @deferred_copy.create_descendant! unless @deferred_copy.descendant
-    child = @user.items.create!(title: "Child", state: :todo, source_item: @source_item)
+    # Nested items should NOT have source_item - they're children of the deferred copy
+    child = @user.items.create!(title: "Child", state: :todo)
     @deferred_copy.descendant.add_active_item(child.id)
     @deferred_copy.descendant.save!
 
     child.reload
     child.create_descendant! unless child.descendant
-    grandchild = @user.items.create!(title: "Grandchild", state: :todo, source_item: @source_item)
+    grandchild = @user.items.create!(title: "Grandchild", state: :todo)
     child.descendant.add_active_item(grandchild.id)
     child.descendant.save!
 
@@ -345,7 +347,8 @@ class Items::UndeferServiceTest < ActiveSupport::TestCase
 
     section_copy.reload
     section_copy.create_descendant! unless section_copy.descendant
-    task = @user.items.create!(title: "Task", state: :todo, source_item: section)
+    # Nested items should NOT have source_item - they're children of the deferred copy
+    task = @user.items.create!(title: "Task", state: :todo)
     section_copy.descendant.add_active_item(task.id)
     section_copy.descendant.save!
 
