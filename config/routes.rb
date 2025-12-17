@@ -70,6 +70,8 @@ Rails.application.routes.draw do
       patch 'move', to: 'items#move', as: 'move'
       patch 'reparent', to: 'items#reparent', as: 'reparent'
       patch 'defer', to: 'items#defer', as: 'defer'
+      patch 'undefer', to: 'items#undefer', as: 'undefer'
+      patch 'update_recurrence', to: 'items#update_recurrence', as: 'update_recurrence'
       get 'debug', to: 'items#debug', as: 'debug'
     end
   end

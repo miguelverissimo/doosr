@@ -1,130 +1,173 @@
 # frozen_string_literal: true
 
 class Items::DeferService
-  # Service for deferring items to a target date.
-  # This service:
-  # - Recursively collects item and all nested todo items
-  # - Tracks section information for each item
-  # - Creates target day and descendant if needed
-  # - Creates or finds permanent sections on target day
-  # - Creates new items maintaining hierarchy
-  # - Sets source_item_id, deferred_at, deferred_to
-  # - Moves original items from activeItems to inactiveItems
+  # Service for deferring an item to a target date.
   #
-  # This service is generic and can also be used for copying items to a target day.
-  attr_reader :source_item, :target_date, :user, :deferred_items_count
+  # This service:
+  # - Validates item is in 'todo' state
+  # - Creates target day with descendant if needed
+  # - ALWAYS ensures permanent sections exist on target day
+  # - Finds which permanent section (if any) the source item belongs to
+  # - Copies item to the SAME permanent section on target day (or day root if not in a section)
+  # - Sets source item: state=deferred, deferred_at=now, deferred_to=target_date
+  # - Moves source item from active_items to inactive_items in its descendant
+  #
+  # Returns: { success: Boolean, new_item: Item, nested_items_count: Integer, error: String }
+
+  attr_reader :source_item, :target_date, :user
 
   def initialize(source_item:, target_date:, user:)
-  @source_item = source_item
-  @target_date = target_date.is_a?(Date) ? target_date : Date.parse(target_date.to_s)
-  @user = user
-  @deferred_items_count = 0
-  @item_mapping = {} # Maps old item IDs to new item IDs
-  @section_mapping = {} # Maps section titles to section IDs on target day
-  @items_to_create = [] # Items to create (first pass)
-  @descendants_to_link = [] # Descendants to link (second pass)
+    @source_item = source_item
+    @target_date = target_date.is_a?(Date) ? target_date : Date.parse(target_date.to_s)
+    @user = user
   end
 
   def call
-  ActiveRecord::Base.transaction do
-    # Step 1: Find or create target day
-    target_day = find_or_create_target_day
+    # Validate item can be deferred
+    return validation_error unless can_defer?
 
-    # Step 2: Collect all items to defer (recursively)
-    collect_items_to_defer(source_item, parent_section: nil)
+    # Count nested todo items for confirmation
+    nested_count = count_nested_todo_items
 
-    # Step 3: Create permanent sections on target day if needed
-    create_permanent_sections(target_day)
+    ActiveRecord::Base.transaction do
+      # Find or create target day with descendant
+      target_day = find_or_create_target_day
 
-    # Step 4: Create new items on target day (first pass)
-    create_new_items(target_day)
+      # ALWAYS ensure permanent sections exist on target day
+      ensure_permanent_sections(target_day)
 
-    # Step 5: Link items and create descendants (second pass)
-    link_descendants
+      # Find which permanent section (if any) the source item belongs to
+      source_permanent_section = source_item.find_permanent_section
 
-    # Step 6: Mark original items as deferred and move to inactive
-    mark_original_items_as_deferred
+      # Determine target descendant (either permanent section's descendant or day's descendant)
+      target_descendant = if source_permanent_section
+        find_or_create_matching_permanent_section(target_day, source_permanent_section)
+      else
+        target_day.descendant
+      end
 
-    # Return deferred count
-    @deferred_items_count
-  end
+      # Copy item to target descendant using CopyToDescendantService
+      result = Items::CopyToDescendantService.new(
+        source_item: source_item,
+        target_descendant: target_descendant,
+        user: user,
+        copy_settings: user.day_migration_settings&.dig("items") || MigrationOptions.defaults["items"]
+      ).call
+
+      return result unless result[:success]
+
+      new_item = result[:new_item]
+
+      # Update source item: mark as deferred and set timestamps
+      # Note: Sections cannot have completion states, so keep them as :todo
+      if source_item.section?
+        source_item.update!(
+          deferred_at: Time.current,
+          deferred_to: target_date.to_time
+        )
+      else
+        source_item.update!(
+          state: :deferred,
+          deferred_at: Time.current,
+          deferred_to: target_date.to_time
+        )
+      end
+
+      # Move source item from active to inactive in its descendant
+      move_source_to_inactive
+
+      {
+        success: true,
+        new_item: new_item,
+        nested_items_count: nested_count
+      }
+    end
+  rescue StandardError => e
+    Rails.logger.error "Defer item failed: #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    { success: false, error: e.message }
   end
 
   private
 
+  def can_defer?
+    # Only items in 'todo' state can be deferred
+    source_item.todo?
+  end
+
+  def validation_error
+    {
+      success: false,
+      error: "Only items in 'todo' state can be deferred. Current state: #{source_item.state}"
+    }
+  end
+
+  def count_nested_todo_items
+    return 0 unless source_item.descendant&.active_items&.any?
+
+    active_item_ids = source_item.descendant.extract_active_item_ids
+    active_items = Item.where(id: active_item_ids)
+
+    # Count only todo items recursively
+    count_todo_items_recursive(active_items)
+  end
+
+  def count_todo_items_recursive(items)
+    count = 0
+    items.each do |item|
+      count += 1 if item.todo?
+
+      if item.descendant&.active_items&.any?
+        nested_ids = item.descendant.extract_active_item_ids
+        nested_items = Item.where(id: nested_ids)
+        count += count_todo_items_recursive(nested_items)
+      end
+    end
+    count
+  end
+
   def find_or_create_target_day
-    day = user.days.find_or_create_by!(date: target_date)
+    day = user.days.find_by(date: target_date)
+
+    if day
+      # Ensure descendant exists
+      day.descendant || day.create_descendant!(active_items: [], inactive_items: [])
+      return day
+    end
+
+    # Create new day with descendant
+    day = user.days.create!(date: target_date, state: :open)
 
     # Ensure descendant exists
-    unless day.descendant
-      Descendant.create!(
-        descendable: day,
-        active_items: [],
-        inactive_items: []
-      )
-    end
+    day.descendant || day.create_descendant!(active_items: [], inactive_items: [])
 
     day
   end
 
-  def collect_items_to_defer(item, parent_section:)
-    # Track this item
-    item_data = {
-      item: item,
-      parent_section: parent_section
-    }
+  def ensure_permanent_sections(day)
+    # ALWAYS ensure permanent sections exist on the target day
+    permanent_sections = user.permanent_sections || []
+    return if permanent_sections.empty?
 
-    # Determine if this is a permanent section
-    current_section = if item.section? && item.extra_data['permanent_section']
-      item
-    else
-      parent_section
-    end
+    permanent_sections.each do |section_name|
+      # Check if section already exists on day (by title)
+      existing_section = find_section_on_day(day, section_name)
+      next if existing_section
 
-    # Only defer TODO items (skip done, dropped, already deferred)
-    if item.todo?
-      @items_to_create << item_data
-      @deferred_items_count += 1
-    end
+      # Create section item
+      section = user.items.create!(
+        title: section_name,
+        item_type: :section,
+        state: :todo,
+        extra_data: { permanent_section: true }
+      )
 
-    # Recursively collect nested items (only from TODO items)
-    if item.todo? && item.descendant&.active_items&.any?
-      nested_item_ids = item.descendant.extract_active_item_ids
-      nested_items = Item.where(id: nested_item_ids).includes(:descendant)
-      nested_items.each do |nested_item|
-        collect_items_to_defer(nested_item, parent_section: current_section)
-      end
-    end
-  end
+      # Ensure section has a descendant
+      section.descendant || section.create_descendant!(active_items: [], inactive_items: [])
 
-  def create_permanent_sections(target_day)
-    # Find all permanent sections we need to create/find
-    permanent_sections = @items_to_create
-      .select { |data| data[:item].section? && data[:item].extra_data['permanent_section'] }
-      .map { |data| data[:item] }
-
-    permanent_sections.each do |section|
-      # Check if section already exists on target day
-      existing_section = find_section_on_day(target_day, section.title)
-
-      if existing_section
-        # Section exists, map it
-        @section_mapping[section.title] = existing_section.id
-      else
-        # Create new section
-        new_section = user.items.create!(
-          title: section.title,
-          item_type: :section,
-          state: :todo,
-          extra_data: section.extra_data
-        )
-
-        # Add section to day's active items
-        target_day.descendant.add_active_item(new_section.id)
-        target_day.descendant.save!
-
-        @section_mapping[section.title] = new_section.id
-      end
+      # Add section to day's active items
+      day.descendant.add_active_item(section.id)
+      day.descendant.save!
     end
   end
 
@@ -136,100 +179,46 @@ class Items::DeferService
     sections.first
   end
 
-  def create_new_items(target_day)
-    @items_to_create.each do |item_data|
-      original_item = item_data[:item]
-      parent_section = item_data[:parent_section]
+  def find_or_create_matching_permanent_section(day, source_section)
+    # Find the matching permanent section on the target day
+    matching_section = find_section_on_day(day, source_section.title)
 
-      # Create new item with same properties
-      new_item = user.items.create!(
-        title: original_item.title,
-        item_type: original_item.item_type,
-        state: :todo,
-        extra_data: original_item.extra_data,
-        source_item: original_item
-      )
-
-      # Map old ID to new ID
-      @item_mapping[original_item.id] = new_item.id
-
-      # Track if this item needs descendants linked later
-      if original_item.descendant&.active_items&.any?
-        @descendants_to_link << {
-          original_item: original_item,
-          new_item: new_item
-        }
-      end
-
-      # Add item to appropriate location
-      if parent_section && parent_section.extra_data['permanent_section']
-        # Add to permanent section's descendant
-        section_id = @section_mapping[parent_section.title]
-        if section_id
-          section = Item.find(section_id)
-          section.descendant ||= Descendant.create!(
-            descendable: section,
-            active_items: [],
-            inactive_items: []
-          )
-          section.descendant.add_active_item(new_item.id)
-          section.descendant.save!
-        end
-      else
-        # Add to day's active items
-        target_day.descendant.add_active_item(new_item.id)
-        target_day.descendant.save!
-      end
+    if matching_section
+      # Ensure it has a descendant
+      matching_section.descendant || matching_section.create_descendant!(active_items: [], inactive_items: [])
+      return matching_section.descendant
     end
+
+    # This should not happen since we ensured permanent sections above
+    # but handle it gracefully by creating the section
+    new_section = user.items.create!(
+      title: source_section.title,
+      item_type: :section,
+      state: :todo,
+      extra_data: { permanent_section: true }
+    )
+
+    # Ensure section has a descendant
+    new_section.create_descendant!(active_items: [], inactive_items: [])
+
+    # Add section to day's active items
+    day.descendant.add_active_item(new_section.id)
+    day.descendant.save!
+
+    new_section.descendant
   end
 
-  def link_descendants
-    @descendants_to_link.each do |link_data|
-      original_item = link_data[:original_item]
-      new_item = link_data[:new_item]
+  def move_source_to_inactive
+    # Find which descendant contains this item
+    containing_descendant = Descendant.containing_item(source_item.id)
+    return unless containing_descendant
 
-      # Get the new IDs of nested items (extract from tuples)
-      original_nested_ids = original_item.descendant.extract_active_item_ids
-      new_nested_ids = original_nested_ids.map { |old_id| @item_mapping[old_id] }.compact
+    # Only move if in active items
+    return unless containing_descendant.active_item?(source_item.id)
 
-      # Create descendant for new item with tuple format
-      new_active_tuples = new_nested_ids.map { |id| { "Item" => id } }
-      Descendant.create!(
-        descendable: new_item,
-        active_items: new_active_tuples,
-        inactive_items: []
-      )
-    end
-  end
-
-  def mark_original_items_as_deferred
-    @items_to_create.each do |item_data|
-      original_item = item_data[:item]
-
-      # Mark as deferred
-      original_item.update!(
-        state: :deferred,
-        deferred_at: Time.current,
-        deferred_to: target_date.to_time
-      )
-
-      # Move from active to inactive in parent descendant
-      move_to_inactive(original_item)
-    end
-  end
-
-  def move_to_inactive(item)
-    # Find which descendant contains this item (using tuple format)
-    tuple = { "Item" => item.id }
-    descendant = Descendant.where(
-      "active_items @> ?", [tuple].to_json
-    ).first
-
-    return unless descendant
-
-    # Remove from active_items and add to inactive_items
-    descendant.remove_active_item(item.id)
-    descendant.add_inactive_item(item.id)
-    descendant.save!
+    # Move from active to inactive
+    containing_descendant.remove_active_item(source_item.id)
+    containing_descendant.add_inactive_item(source_item.id)
+    containing_descendant.save!
   end
 end

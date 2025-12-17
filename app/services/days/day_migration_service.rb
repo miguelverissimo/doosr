@@ -61,6 +61,8 @@ module Days
 
       if day.new_record?
         day.state = :open
+        # Skip the automatic permanent sections callback since we handle it explicitly below
+        day.skip_permanent_sections_callback = true
         day.save!
 
         # Create permanent sections for new day

@@ -35,6 +35,9 @@ class Day < ApplicationRecord
   validates :user, presence: true
   validates :state, presence: true
 
+  # Virtual attribute to skip callbacks when needed
+  attr_accessor :skip_permanent_sections_callback
+
   # Scopes
   scope :open_days, -> { where(state: :open) }
   scope :closed_days, -> { where(state: :closed) }
@@ -46,6 +49,7 @@ class Day < ApplicationRecord
 
   # Callbacks
   after_create :create_descendant
+  after_create :create_permanent_sections, unless: :skip_permanent_sections_callback
   before_update :track_state_changes
 
   # Close this Day
@@ -130,6 +134,41 @@ class Day < ApplicationRecord
   def create_descendant
     return if descendant.present?
     build_descendant.save!
+  end
+
+  def create_permanent_sections
+    # ALWAYS create permanent sections when a new day is created
+    permanent_sections = user.permanent_sections || []
+    return if permanent_sections.empty?
+
+    permanent_sections.each do |section_name|
+      # Check if section already exists on day (by title)
+      existing_section = find_section_by_title(section_name)
+      next if existing_section
+
+      # Create section item
+      section = user.items.create!(
+        title: section_name,
+        item_type: :section,
+        state: :todo,
+        extra_data: { permanent_section: true }
+      )
+
+      # Ensure section has a descendant
+      section.descendant || section.create_descendant!(active_items: [], inactive_items: [])
+
+      # Add section to day's active items
+      descendant.add_active_item(section.id)
+      descendant.save!
+    end
+  end
+
+  def find_section_by_title(section_title)
+    return nil unless descendant
+
+    section_ids = descendant.extract_active_item_ids
+    sections = Item.sections.where(id: section_ids, title: section_title)
+    sections.first
   end
 
   def track_state_changes

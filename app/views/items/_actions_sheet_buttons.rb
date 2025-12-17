@@ -47,19 +47,39 @@ module Views
           loading_message: @item.done? ? "Marking as todo..." : "Marking as done..."
         )
 
-        # Defer - open defer options sheet
-        if @item.deferred? || @day_is_closed
-          render_icon_button(
-            icon: :clock,
-            disabled: true
-          )
+        # Defer/Undefer
+        if @item.deferred?
+          # Show undefer button when item is deferred (unless day is closed)
+          if @day_is_closed
+            render_icon_button(
+              icon: :rotate_ccw,
+              disabled: true
+            )
+          else
+            render_icon_button(
+              icon: :rotate_ccw,
+              action: undefer_item_path(@item),
+              method: "patch",
+              params: { "day_id" => @day&.id },
+              variant: :default,
+              loading_message: "Restoring item..."
+            )
+          end
         else
-          a(
-            href: defer_options_item_path(@item, day_id: @day&.id),
-            data: { turbo_stream: true },
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-          ) do
-            render_icon(:clock, size: "20")
+          # Show defer button when item is not deferred (unless day is closed)
+          if @day_is_closed
+            render_icon_button(
+              icon: :clock,
+              disabled: true
+            )
+          else
+            a(
+              href: defer_options_item_path(@item, day_id: @day&.id),
+              data: { turbo_stream: true },
+              class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
+            ) do
+              render_icon(:clock, size: "20")
+            end
           end
         end
 
@@ -93,11 +113,24 @@ module Views
           end
         end
 
-        # Reparent (placeholder)
-        render_icon_button(
-          icon: :git_branch,
-          disabled: true
-        )
+        # Recurrence
+        if @item.deferred? || @day_is_closed
+          button(
+            type: "button",
+            disabled: true,
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
+          ) do
+            render_icon(:recycle, size: "20")
+          end
+        else
+          a(
+            href: recurrence_options_item_path(@item, day_id: @day&.id),
+            data: { turbo_stream: true },
+            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
+          ) do
+            render_icon(:recycle, size: "20")
+          end
+        end
       end
 
       def render_completable_utility_actions
@@ -382,6 +415,16 @@ module Views
               s.polyline(points: "19 9 22 12 19 15")
               s.line(x1: "2", x2: "22", y1: "12", y2: "12")
               s.line(x1: "12", x2: "12", y1: "2", y2: "22")
+            end
+          end,
+          recycle: -> do
+            svg(xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", stroke_width: "2", stroke_linecap: "round", stroke_linejoin: "round", class: "lucide lucide-recycle-icon lucide-recycle") do |s|
+              s.path(d: "M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5")
+              s.path(d: "M11 19h8.203a1.83 1.83 0 0 0 1.556-.89 1.784 1.784 0 0 0 0-1.775l-1.226-2.12")
+              s.path(d: "m14 16-3 3 3 3")
+              s.path(d: "M8.293 13.596 7.196 9.5 3.1 10.598")
+              s.path(d: "m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843")
+              s.path(d: "m13.378 9.633 4.096 1.098 1.097-4.096")
             end
           end
         }

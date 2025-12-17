@@ -488,6 +488,46 @@ class ItemsController < ApplicationController
     end
   end
 
+  def recurrence_options
+    @item = @acting_user.items.find(params[:id])
+    @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "sheet_content_area",
+          Views::Items::RecurrenceOptions.new(item: @item, day: @day)
+        )
+      end
+    end
+  end
+
+  def update_recurrence
+    @item = @acting_user.items.find(params[:id])
+    @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+
+    # Parse the recurrence rule from params
+    recurrence_rule = params[:recurrence_rule]
+
+    # If the rule is "none" or empty, clear the recurrence
+    if recurrence_rule.blank? || recurrence_rule == "none"
+      @item.update!(recurrence_rule: nil)
+    else
+      # Parse JSON string if needed
+      rule_hash = recurrence_rule.is_a?(String) ? JSON.parse(recurrence_rule) : recurrence_rule
+      @item.update!(recurrence_rule: rule_hash.to_json)
+    end
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "sheet_content_area",
+          Views::Items::ActionsSheet.new(item: @item, day: @day)
+        )
+      end
+    end
+  end
+
   def toggle_state
     @item = @acting_user.items.find(params[:id])
     new_state = params[:state]
@@ -795,55 +835,145 @@ class ItemsController < ApplicationController
       user: @acting_user
     )
 
-    deferred_count = service.call
+    result = service.call
 
-    # Find the day to refresh the UI
-    @day = find_day
+    if result[:success]
+      nested_count = result[:nested_items_count]
+      deferred_count = nested_count + 1 # +1 for the source item itself
 
-    respond_to do |format|
-      format.turbo_stream do
-        if @day&.descendant
-          # Reload to get fresh data
-          @day.reload
-          @day.descendant.reload
+      # Find the day to refresh the UI
+      @day = find_day
 
-          # Build tree ONCE using ItemTree::Build
-          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+      respond_to do |format|
+        format.turbo_stream do
+          if @day&.descendant
+            # Reload to get fresh data
+            @day.reload
+            @day.descendant.reload
 
-          # Render tree nodes from the pre-built tree
-          rendered_items = tree.children.map do |node|
-            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
-          end.join
+            # Build tree ONCE using ItemTree::Build
+            tree = ItemTree::Build.call(@day.descendant, root_label: "day")
 
-          # Reload the item to get fresh state
-          @item.reload
+            # Render tree nodes from the pre-built tree
+            rendered_items = tree.children.map do |node|
+              render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+            end.join
 
-          # Calculate position for the actions sheet
-          item_index = active_item_ids.index(@item.id)
-          total_items = active_item_ids.length
+            # Reload the item to get fresh state
+            @item.reload
 
-          # Show toast and reload the actions sheet
-          toast_message = "#{deferred_count} item#{deferred_count > 1 ? 's' : ''} deferred to #{target_date.strftime('%b %-d, %Y')}"
+            # Get active item IDs for positioning
+            active_item_ids = @day.descendant.extract_active_item_ids
 
-          render turbo_stream: [
-            turbo_stream.update("items_list", rendered_items),
-            turbo_stream.replace(
-              "sheet_content_area",
-              Views::Items::ActionsSheetContent.new(
-                item: @item,
-                day: @day,
-                item_index: item_index,
-                total_items: total_items
-              )
-            ),
-            turbo_stream.append("body", "<script>window.toast && window.toast(#{toast_message.to_json}, { type: 'success' })</script>")
-          ]
-        else
-          flash[:alert] = "Failed to defer item"
-          head :ok
+            # Calculate position for the actions sheet
+            item_index = active_item_ids.index(@item.id)
+            total_items = active_item_ids.length
+
+            # Show toast and reload the actions sheet
+            toast_message = "#{deferred_count} item#{deferred_count > 1 ? 's' : ''} deferred to #{target_date.strftime('%b %-d, %Y')}"
+
+            render turbo_stream: [
+              turbo_stream.update("items_list", rendered_items),
+              turbo_stream.replace(
+                "sheet_content_area",
+                Views::Items::ActionsSheetContent.new(
+                  item: @item,
+                  day: @day,
+                  item_index: item_index,
+                  total_items: total_items
+                )
+              ),
+              turbo_stream.append("body", "<script>window.toast && window.toast(#{toast_message.to_json}, { type: 'success' })</script>")
+            ]
+          else
+            flash[:alert] = "Failed to defer item"
+            head :ok
+          end
         end
+        format.html { redirect_back(fallback_location: root_path, notice: "Item deferred successfully") }
       end
-      format.html { redirect_back(fallback_location: root_path, notice: "Item deferred successfully") }
+    else
+      # Handle error case
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast(#{result[:error].to_json}, { type: 'error' })</script>")
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: result[:error]) }
+      end
+    end
+  end
+
+  def undefer
+    @item = @acting_user.items.find(params[:id])
+
+    # Undefer the item using the service
+    service = ::Items::UndeferService.new(
+      source_item: @item,
+      user: @acting_user
+    )
+
+    result = service.call
+
+    if result[:success]
+      # Find the day to refresh the UI
+      @day = find_day
+
+      respond_to do |format|
+        format.turbo_stream do
+          if @day&.descendant
+            # Reload to get fresh data
+            @day.reload
+            @day.descendant.reload
+
+            # Build tree ONCE using ItemTree::Build
+            tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+
+            # Render tree nodes from the pre-built tree
+            rendered_items = tree.children.map do |node|
+              render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+            end.join
+
+            # Reload the item to get fresh state
+            @item.reload
+
+            # Get active item IDs for positioning
+            active_item_ids = @day.descendant.extract_active_item_ids
+
+            # Calculate position for the actions sheet
+            item_index = active_item_ids.index(@item.id)
+            total_items = active_item_ids.length
+
+            # Show toast and update the UI
+            toast_message = "Item restored to todo"
+
+            render turbo_stream: [
+              turbo_stream.update("items_list", rendered_items),
+              turbo_stream.replace(
+                "action_sheet_buttons_#{@item.id}",
+                Views::Items::ActionsSheetButtons.new(
+                  item: @item,
+                  day: @day,
+                  item_index: item_index,
+                  total_items: total_items
+                )
+              ),
+              turbo_stream.append("body", "<script>window.toast && window.toast(#{toast_message.to_json}, { type: 'success' })</script>")
+            ]
+          else
+            flash[:alert] = "Failed to undefer item"
+            head :ok
+          end
+        end
+        format.html { redirect_back(fallback_location: root_path, notice: "Item restored to todo") }
+      end
+    else
+      # Handle error case
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast(#{result[:error].to_json}, { type: 'error' })</script>")
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: result[:error]) }
+      end
     end
   end
 

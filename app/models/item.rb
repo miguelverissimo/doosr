@@ -72,6 +72,9 @@ class Item < ApplicationRecord
   def set_todo!
     return false unless can_be_completed?
 
+    # If this item has a recurring_next_item, delete it (hard delete)
+    delete_next_recurring_item if recurring_next_item_id.present?
+
     # Find the descendant this item belongs to
     containing_descendant = Descendant.containing_item(id)
 
@@ -115,6 +118,7 @@ class Item < ApplicationRecord
       if containing_descendant.inactive_item?(id)
         Rails.logger.debug "=== ALREADY IN INACTIVE ITEMS ==="
         update!(state: :done, done_at: Time.current)
+        schedule_next_recurrence if has_recurrence?
         return true
       end
 
@@ -129,12 +133,14 @@ class Item < ApplicationRecord
         Rails.logger.debug "Active items: #{containing_descendant.active_items.inspect}"
         Rails.logger.debug "Inactive items: #{containing_descendant.inactive_items.inspect}"
         update!(state: :done, done_at: Time.current)
+        schedule_next_recurrence if has_recurrence?
         return true
       end
     end
 
     # No descendant or item not in any array - just update state
     update!(state: :done, done_at: Time.current)
+    schedule_next_recurrence if has_recurrence?
     true
   end
 
@@ -244,6 +250,25 @@ class Item < ApplicationRecord
     )
   end
 
+  # Find deferred copy of this item
+  # Returns the item that was created when this item was deferred
+  # Should only ever return 0 or 1 item
+  # Note: The copy might have been modified by the user (e.g., completed), so we don't filter by state
+  def find_deferred_copy
+    items_imported_from_this.first
+  end
+
+  # Find all copies (for validation/debugging)
+  def find_all_copies
+    items_imported_from_this
+  end
+
+  # Find which permanent section (if any) this item belongs to
+  # Returns the permanent section Item, or nil
+  def find_permanent_section
+    Items::FindPermanentSectionService.new(item: self).call
+  end
+
   # Recurrence support
   def has_recurrence?
     recurrence_rule.present?
@@ -319,5 +344,45 @@ class Item < ApplicationRecord
     if deferred? && deferred_to.present? && deferred_to.to_date < Date.today
       errors.add(:deferred_to, "must be today or in the future")
     end
+  end
+
+  # Schedule the next recurrence when this item is completed
+  def schedule_next_recurrence
+    return unless has_recurrence?
+
+    result = Items::ScheduleNextOccurrenceService.new(
+      completed_item: self,
+      user: user
+    ).call
+
+    if result[:success]
+      Rails.logger.debug "Scheduled next recurrence for item #{id}: #{result[:new_item].id}"
+    else
+      Rails.logger.error "Failed to schedule next recurrence for item #{id}: #{result[:error]}"
+    end
+  end
+
+  # Delete the next recurring item (hard delete)
+  def delete_next_recurring_item
+    return unless recurring_next_item_id.present?
+
+    next_item = Item.find_by(id: recurring_next_item_id)
+    return unless next_item
+
+    # Find the descendant containing this item and remove it
+    containing_descendant = Descendant.containing_item(next_item.id)
+    if containing_descendant
+      containing_descendant.remove_active_item(next_item.id) if containing_descendant.active_item?(next_item.id)
+      containing_descendant.remove_inactive_item(next_item.id) if containing_descendant.inactive_item?(next_item.id)
+      containing_descendant.save!
+    end
+
+    # Hard delete the item
+    next_item.destroy!
+
+    # Clear the link
+    update_column(:recurring_next_item_id, nil)
+
+    Rails.logger.debug "Deleted next recurring item #{next_item.id} for item #{id}"
   end
 end
