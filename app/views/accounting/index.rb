@@ -43,6 +43,7 @@ module Views
             end
             TabsContent(value: "settings") do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
+                render Views::Accounting::Settings::Index.new
               end
             end
           end

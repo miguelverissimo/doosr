@@ -89,7 +89,14 @@ Rails.application.routes.draw do
 
   # Accounting
   resources :accounting, only: [:index] do
+    collection do
+      resources :tax_brackets, 
+        path: "settings/tax_brackets",
+        controller: "accounting/settings/tax_brackets",
+        as: "settings_tax_brackets"
+    end
   end
+
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do
