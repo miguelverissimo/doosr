@@ -87,6 +87,9 @@ Rails.application.routes.draw do
     post 'migration_settings', to: 'settings#update_migration_settings' # Temporary fallback
   end
 
+  # Accounting
+  resources :accounting, only: [:index] do
+  end
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do

@@ -56,6 +56,12 @@ class Components::AppSidebar < Components::Base
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
+          SidebarMenuItem do
+            SidebarMenuButton(as: :a, href: view_context.accounting_index_path) do
+              render_icon(:accounting)
+              span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
+            end
+          end
         end
       end
 
@@ -322,6 +328,23 @@ class Components::AppSidebar < Components::Base
         s.path(d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4")
         s.polyline(points: "16 17 21 12 16 7")
         s.line(x1: "21", x2: "9", y1: "12", y2: "12")
+      end
+    when :accounting
+      svg(
+        xmlns: "http://www.w3.org/2000/svg",
+        width: "16",
+        height: "16",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        stroke_width: "2",
+        stroke_linecap: "round",
+        stroke_linejoin: "round",
+        class: "shrink-0"
+      ) do |s|
+        s.circle(cx:"12", cy:"12", r:"10")
+        s.path(d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8")
+        s.path(d: "M12 18V6")
       end
     end
   end
