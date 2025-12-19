@@ -85,10 +85,10 @@ class Components::AppSidebar < Components::Base
         render RubyUI::DropdownMenuTrigger.new do
           SidebarMenuButton(as: :div, size: :lg, class: "cursor-pointer") do
             div(class: "flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shrink-0") do
-              span(class: "text-sm font-semibold") { (user&.email&.first || "U").upcase }
+              span(class: "text-sm font-semibold") { (user&.name&.split(" ")&.collect(&:first)&.join("") || "U").upcase }
             end
             div(class: "grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden") do
-              span(class: "truncate font-semibold") { user&.email&.split("@")&.first || "User" }
+              span(class: "truncate font-semibold") { user&.name&.split(" ")&.first || "User" }
               span(class: "truncate text-xs") { user&.email || "user@example.com" }
             end
           end
