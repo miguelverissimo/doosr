@@ -21,7 +21,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render_icon(:edit)
+                        render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                       end
                     end
                     
@@ -52,7 +52,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render_icon(:delete)
+                  render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
               
@@ -86,42 +86,6 @@ module Views
             end
           end  
 
-          def render_icon(name)
-            case name
-            when :edit
-              svg(
-                xmlns: "http://www.w3.org/2000/svg", 
-                width: "12", 
-                height: "12", 
-                viewBox: "0 0 24 24", 
-                fill: "none", 
-                stroke: "currentColor", 
-                stroke_width: "2", 
-                stroke_linecap: "round", 
-                stroke_linejoin: "round", 
-                class: "w-5 h-5"
-              ) do |s|
-                s.path(d: "M12 20h9")
-                s.path(d: "M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z")
-              end
-            when :delete
-              svg(
-                xmlns: "http://www.w3.org/2000/svg", 
-                width: "12", 
-                height: "12", 
-                viewBox: "0 0 24 24", 
-                fill: "none", 
-                stroke: "currentColor", 
-                stroke_width: "2", 
-                stroke_linecap: "round", 
-                stroke_linejoin: "round", 
-                class: "w-5 h-5"
-              ) do |s|
-                s.path(d: "M3 6h18")
-                s.path(d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2")
-              end
-            end
-          end
         end
       end
     end

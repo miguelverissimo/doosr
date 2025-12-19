@@ -35,7 +35,7 @@ class Components::AppSidebar < Components::Base
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(as: :a, href: authenticated_root_path) do
-                render_icon(:calendar)
+                render Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
                 span(class: "group-data-[collapsible=icon]:hidden") { "Today" }
               end
             end
@@ -47,19 +47,19 @@ class Components::AppSidebar < Components::Base
         SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: "#") do
-              render_icon(:droplet)
+              render Components::Icon.new(name: :droplet, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "The Well" }
             end
           end
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.lists_path) do
-              render_icon(:list)
+              render Components::Icon.new(name: :list, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.accounting_index_path) do
-              render_icon(:accounting)
+              render Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
             end
           end
@@ -100,20 +100,20 @@ class Components::AppSidebar < Components::Base
               class: "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
               role: "menuitem"
             ) do
-              render_icon(:settings)
+              render Components::Icon.new(name: :settings, size: "16", class: "shrink-0")
               span(class: "ml-2") { "Settings" }
             end
           end
 
           render RubyUI::DropdownMenuItem.new(href: "#") do
-            render_icon(:user)
+            render Components::Icon.new(name: :user, size: "16", class: "shrink-0")
             span(class: "ml-2") { "Edit Profile" }
           end
 
           render RubyUI::DropdownMenuSeparator.new
 
           render RubyUI::DropdownMenuItem.new(href: view_context.destroy_user_session_path, data: { turbo_method: :delete }) do
-            render_icon(:log_out)
+            render Components::Icon.new(name: :log_out, size: "16", class: "shrink-0")
             span(class: "ml-2 text-destructive") { "Log out" }
           end
         end
@@ -208,7 +208,7 @@ class Components::AppSidebar < Components::Base
           href: day_path(date: Date.today.to_s),
           class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
         ) do
-          render_icon(:calendar)
+          render Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
           span { "Today" }
         end
       end
@@ -226,128 +226,5 @@ class Components::AppSidebar < Components::Base
     end
   end
 
-  def render_icon(name)
-    case name
-    when :calendar
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.path(d: "M8 2v4")
-        s.path(d: "M16 2v4")
-        s.rect(width: "18", height: "18", x: "3", y: "4", rx: "2")
-        s.path(d: "M3 10h18")
-      end
-    when :droplet
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.path(d: "M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z")
-      end
-    when :list
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.line(x1: "8", x2: "21", y1: "6", y2: "6")
-        s.line(x1: "8", x2: "21", y1: "12", y2: "12")
-        s.line(x1: "8", x2: "21", y1: "18", y2: "18")
-        s.line(x1: "3", x2: "3.01", y1: "6", y2: "6")
-        s.line(x1: "3", x2: "3.01", y1: "12", y2: "12")
-        s.line(x1: "3", x2: "3.01", y1: "18", y2: "18")
-      end
-    when :settings
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.path(d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z")
-        s.circle(cx: "12", cy: "12", r: "3")
-      end
-    when :user
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.path(d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2")
-        s.circle(cx: "12", cy: "7", r: "4")
-      end
-    when :log_out
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.path(d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4")
-        s.polyline(points: "16 17 21 12 16 7")
-        s.line(x1: "21", x2: "9", y1: "12", y2: "12")
-      end
-    when :accounting
-      svg(
-        xmlns: "http://www.w3.org/2000/svg",
-        width: "16",
-        height: "16",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        stroke_width: "2",
-        stroke_linecap: "round",
-        stroke_linejoin: "round",
-        class: "shrink-0"
-      ) do |s|
-        s.circle(cx:"12", cy:"12", r:"10")
-        s.path(d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8")
-        s.path(d: "M12 18V6")
-      end
-    end
-  end
 end
 
