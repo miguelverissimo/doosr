@@ -8,7 +8,7 @@ module Accounting
     end
 
     def create
-      @accounting_item = ::AccountingItem.new(accounting_item_params)
+      @accounting_item = ::Accounting::AccountingItem.new(accounting_item_params)
       @accounting_item.user = current_user
 
       respond_to do |format|
@@ -66,7 +66,7 @@ module Accounting
     private
 
     def set_accounting_item
-      @accounting_item = ::AccountingItem.where(user: current_user).find(params[:id])
+      @accounting_item = ::Accounting::AccountingItem.where(user: current_user).find(params[:id])
     rescue ActiveRecord::RecordNotFound
       redirect_to accounting_index_path, alert: "Accounting item not found"
     end

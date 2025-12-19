@@ -55,6 +55,10 @@ class Users::RegistrationsController < Devise::RegistrationsController
 
   private
 
+  def sign_up_params
+    params.require(:user).permit(:name, :email, :password, :password_confirmation)
+  end
+
   def minimum_password_length
     @minimum_password_length ||= resource_class.password_length.min
   end

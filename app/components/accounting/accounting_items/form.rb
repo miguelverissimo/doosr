@@ -3,7 +3,7 @@ module Components
     module AccountingItems
       class Form < Components::Base
         def initialize(accounting_item: nil)
-          @accounting_item = accounting_item || ::AccountingItem.new
+          @accounting_item = accounting_item || ::Accounting::AccountingItem.new
           @is_new_record = @accounting_item.new_record?
           @action = @is_new_record ? "Create" : "Update"
           super(**attrs)
@@ -60,7 +60,7 @@ module Components
                 class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 required: true
               ) do
-                ::AccountingItem.kinds.each_key do |kind|
+                ::Accounting::AccountingItem.kinds.each_key do |kind|
                   option(
                     value: kind,
                     selected: @accounting_item.kind == kind.to_s
@@ -115,7 +115,7 @@ module Components
                 class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 required: true
               ) do
-                ::AccountingItem.currencies.each_key do |currency|
+                ::Accounting::AccountingItem.currencies.each_key do |currency|
                   option(
                     value: currency,
                     selected: @accounting_item.currency == currency.to_s

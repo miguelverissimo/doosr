@@ -33,7 +33,7 @@ module Views
             end
             TabsContent(value: "items") do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::Settings::AccountingItems::Index.new
+                render Views::Accounting::AccountingItems::Index.new
               end
             end
             TabsContent(value: "automations") do

@@ -72,3 +72,4 @@ rails runner "require 'tailwind_merge'; merger = TailwindMerge::Merger.new; puts
 2. **For regular divs**: Tailwind classes work normally (no merge processing)
 3. **When in doubt**: Use inline styles for CSS properties that might conflict
 
+
