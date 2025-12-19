@@ -26,11 +26,12 @@ class Components::AppSidebar < Components::Base
         is_day_view = @pathname == "/" || @pathname.start_with?("/day")
         is_well_page = @pathname == "/well"
         is_lists_page = @pathname.start_with?("/lists")
+        is_accounting_page = @pathname.start_with?("/accounting")
 
         if is_day_view
           # Show calendar for day view
           render_day_calendar
-        elsif is_well_page || is_lists_page
+        elsif is_well_page || is_lists_page || is_accounting_page
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(as: :a, href: authenticated_root_path) do
@@ -43,7 +44,7 @@ class Components::AppSidebar < Components::Base
           div(class: "mt-4")
         end
 
-        SidebarMenu(class: "mt-4") do
+        SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: "#") do
               render_icon(:droplet)

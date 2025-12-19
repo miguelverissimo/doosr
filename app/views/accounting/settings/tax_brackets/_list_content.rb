@@ -30,7 +30,6 @@ module Views
                     render Views::Accounting::Settings::TaxBrackets::Row.new(tax_bracket: tax_bracket)
                   end
                 end
-                TableCaption { "Tax Brackets" }
               end
             end
           end

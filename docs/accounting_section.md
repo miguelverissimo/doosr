@@ -32,18 +32,42 @@
   - invoice fields:
     - invoice number (auto-generated sequence number, reset to 1 when the year changes)
     - client (select from a list of clients, required)
-    - client reference
+    - client order reference
     - invoice issue date (required)
-    - due date
+    - due date 
     - payment terms
     - payment method
     - currency
     - exchange rate
-    - collection of items and quantities (required)
+    - collection of ItemRows
     - discount rate
     - pay by date
     - invoice total (required)
     - invoice status (draft, sent, paid) (required)
+    - tax summary (json)
+    - services total
+    - goods total
+    - tools total
+    - equipment total
+    - discounts total
+    - tax total
+    - advancements total
+    - rounding total
+    - grand total
+    - payment details (select from a list of payment details)
+
+- ItemRow (internal, exposed in invoice interface)
+  - model that will link an item to an invoice
+  - fields:
+    - item (required, picked from list)
+    - invoice (the invoice being created/edited)
+    - placeholder replacements (json)
+    - quantity
+    - applied discount rate
+    - applied discount value
+    - applied tax rate
+    - applied tax value
+    - total
 
 - receipts:
   - shows a list of receipts with a rolling window of 3 months
@@ -95,16 +119,28 @@
     - client country (required)
     - client currency (required)
     - client notes
+    - client tax setting
+
+- TaxSetting (available in settings menu)
+  stores a tax setting to be applied to the client
+  - fields:
+    - tax exemption (boolean)
+    - tax rate modifier
+    - tax exemption motive
 
 - items:
   - shows a list of items
   - has controls to show all items, search by item name, or description
   - has a button to create a new item
-  - each item "row" shows:
+  - fields:
     - item reference
     - item name
+    - item unit
+    - item default discount
     - item usage (invoice, receipt, both)
     - item type (service, product, goods)
     - item description
     - item unit price
     - item status (active, inactive)
+    - tax bracket
+    - convert currency (boolean)
