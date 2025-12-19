@@ -10,9 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_18_155034) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_19_110317) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "accounting_items", force: :cascade do |t|
+    t.boolean "convert_currency", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "currency", default: "EUR", null: false
+    t.string "description"
+    t.string "detail"
+    t.string "kind", null: false
+    t.string "name", null: false
+    t.integer "price", null: false
+    t.string "reference", null: false
+    t.string "unit", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_accounting_items_on_user_id"
+  end
 
   create_table "addresses", force: :cascade do |t|
     t.string "address_type", default: "user", null: false
@@ -135,6 +151,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_18_155034) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "accounting_items", "users"
   add_foreign_key "addresses", "users"
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify

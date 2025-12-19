@@ -94,6 +94,7 @@ Rails.application.routes.draw do
         path: "settings/tax_brackets",
         controller: "accounting/settings/tax_brackets",
         as: "settings_tax_brackets"
+      
       resources :addresses, 
         path: "settings/addresses",
         controller: "accounting/settings/addresses",
@@ -102,6 +103,11 @@ Rails.application.routes.draw do
             patch :activate
           end
         end
+
+      resources :accounting_items, 
+        path: "accounting_items",
+        controller: "accounting/accounting_items",
+        as: "accounting_items"
     end
   end
 
