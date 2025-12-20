@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_19_172048) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_20_065724) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,24 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_19_172048) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_addresses_on_user_id"
+  end
+
+  create_table "checklists", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "flow", default: "sequential", null: false
+    t.jsonb "items", default: []
+    t.string "kind", default: "template", null: false
+    t.jsonb "metadata", default: {}
+    t.string "name", null: false
+    t.bigint "template_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["flow"], name: "index_checklists_on_flow"
+    t.index ["items"], name: "index_checklists_on_items", using: :gin
+    t.index ["kind"], name: "index_checklists_on_kind"
+    t.index ["template_id"], name: "index_checklists_on_template_id"
+    t.index ["user_id"], name: "index_checklists_on_user_id"
   end
 
   create_table "customers", force: :cascade do |t|
@@ -172,6 +190,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_19_172048) do
 
   add_foreign_key "accounting_items", "users"
   add_foreign_key "addresses", "users"
+  add_foreign_key "checklists", "checklists", column: "template_id", on_delete: :nullify
+  add_foreign_key "checklists", "users"
   add_foreign_key "customers", "addresses"
   add_foreign_key "customers", "users"
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify

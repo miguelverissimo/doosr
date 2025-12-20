@@ -173,6 +173,15 @@ class Views::Layouts::AppLayout < Views::Base
                     s.path(d: "M12 3l2.598 7.026L22 12l-7.402 1.974L12 21l-2.598-7.026L2 12l7.402-1.974L12 3z")
                   end
                 end
+              elsif @pathname == "/lists" || @pathname == "/lists/"
+                # Lists index page
+                render Views::Lists::Header.new
+              elsif @pathname == "/checklists" || @pathname == "/checklists/"
+                # Checklists page
+                render Views::Checklists::Header.new
+              elsif @pathname == "/accounting" || @pathname == "/accounting/"
+                # Accounting page
+                render Views::Accounting::Header.new
               end
 
               # Cancel button for moving mode (hidden by default)

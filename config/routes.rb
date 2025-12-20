@@ -116,6 +116,9 @@ Rails.application.routes.draw do
     end
   end
 
+  # Checklists
+  resources :checklists, only: [:index, :show, :create, :update, :destroy]
+
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do
     authenticated :user do

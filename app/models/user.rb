@@ -13,6 +13,7 @@ class User < ApplicationRecord
   has_many :days, dependent: :destroy
   has_many :items, dependent: :destroy
   has_many :lists, dependent: :destroy
+  has_many :checklists, dependent: :destroy
   has_many :accounting_items, dependent: :destroy
   has_many :addresses, dependent: :destroy
   has_many :tax_brackets, dependent: :destroy

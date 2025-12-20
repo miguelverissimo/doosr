@@ -146,6 +146,12 @@ class Components::Icon < Components::Base
       svg_element.path(d: "m22 17-5 5")
       svg_element.path(d: "M6 12h.01")
       svg_element.circle(cx: "12", cy: "12", r: "2")
+    when :checklist
+      svg_element.path(d: "M13 5h8")
+      svg_element.path(d: "M13 12h8")
+      svg_element.path(d: "M13 19h8")
+      svg_element.path(d: "m3 17 2 2 4-4")
+      svg_element.rect(x: "3", y: "4", width: "6", height: "6", rx: "1")
     else
       # Unknown icon - render nothing or a placeholder
     end

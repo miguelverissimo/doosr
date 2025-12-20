@@ -6,7 +6,6 @@ module Views
 
       def view_template
         div(class: "flex h-full flex-col") do
-          h1(class: "text-2xl font-bold") { "Accounting" }
           Tabs(default_value: "invoices") do
             TabsList do
               TabsTrigger(value: "invoices") { "Invoices" }

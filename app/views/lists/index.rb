@@ -9,9 +9,8 @@ module Views
 
       def view_template
         div(class: "flex h-full flex-col") do
-          # Header
-          div(class: "flex items-center justify-between mb-6") do
-            h1(class: "text-2xl font-bold") { "Lists" }
+          # New List button
+          div(class: "mb-6") do
             Button(href: new_list_path, variant: :default) do
               plain "New List"
             end

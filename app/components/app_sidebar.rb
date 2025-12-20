@@ -27,11 +27,12 @@ class Components::AppSidebar < Components::Base
         is_well_page = @pathname == "/well"
         is_lists_page = @pathname.start_with?("/lists")
         is_accounting_page = @pathname.start_with?("/accounting")
+        is_checklists_page = @pathname.start_with?("/checklists")
 
         if is_day_view
           # Show calendar for day view
           render_day_calendar
-        elsif is_well_page || is_lists_page || is_accounting_page
+        elsif is_well_page || is_lists_page || is_accounting_page || is_checklists_page
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(as: :a, href: authenticated_root_path) do
@@ -57,6 +58,15 @@ class Components::AppSidebar < Components::Base
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
+          SidebarMenuItem do
+            SidebarMenuButton(as: :a, href: view_context.checklists_path) do
+              render Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
+            end
+          end
+        end
+
+        SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.accounting_index_path) do
               render Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
