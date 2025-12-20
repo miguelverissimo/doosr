@@ -108,6 +108,11 @@ Rails.application.routes.draw do
         path: "accounting_items",
         controller: "accounting/accounting_items",
         as: "accounting_items"
+
+      resources :customers, 
+        path: "customers",
+        controller: "accounting/customers",
+        as: "customers"
     end
   end
 

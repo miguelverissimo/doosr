@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_19_110317) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_19_172048) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,25 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_19_110317) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_addresses_on_user_id"
+  end
+
+  create_table "customers", force: :cascade do |t|
+    t.bigint "address_id", null: false
+    t.string "billing_contact_name"
+    t.string "billing_email"
+    t.string "billing_phone"
+    t.string "contact_email"
+    t.string "contact_name"
+    t.string "contact_phone"
+    t.datetime "created_at", null: false
+    t.json "metadata"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "telephone"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["address_id"], name: "index_customers_on_address_id"
+    t.index ["user_id"], name: "index_customers_on_user_id"
   end
 
   create_table "days", force: :cascade do |t|
@@ -153,6 +172,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_19_110317) do
 
   add_foreign_key "accounting_items", "users"
   add_foreign_key "addresses", "users"
+  add_foreign_key "customers", "addresses"
+  add_foreign_key "customers", "users"
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
   add_foreign_key "days", "users"

@@ -3,7 +3,7 @@ class Address < ApplicationRecord
 
   enum :address_type, {
     user: :user,
-    client: :client,
+    customer: :customer,
     supplier: :supplier
   }, default: :user, validate: true
 

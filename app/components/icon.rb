@@ -119,6 +119,11 @@ class Components::Icon < Components::Base
     when :user
       svg_element.path(d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2")
       svg_element.circle(cx: "12", cy: "7", r: "4")
+    when :email, :at_sign
+      svg_element.circle(cx: "12", cy: "12", r: "4")
+      svg_element.path(d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8")
+    when :phone, :telephone
+      svg_element.path(d: "M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384")
     when :log_out
       svg_element.path(d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4")
       svg_element.polyline(points: "16 17 21 12 16 7")
