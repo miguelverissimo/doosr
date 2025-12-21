@@ -1,9 +1,13 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
+# This Dockerfile is designed for production, not development. Use with Coolify or build'n'run by hand:
 # docker build -t doosr .
 # docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name doosr doosr
+#
+# For Coolify: Configure a persistent volume in the Coolify UI:
+# - Go to your application settings in Coolify
+# - Add a volume: /rails/storage -> This will persist ActiveStorage files across deployments
 
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
@@ -67,6 +71,13 @@ USER 1000:1000
 # Copy built artifacts: gems, application
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
+
+# Ensure storage directory exists with proper permissions for ActiveStorage
+# This directory should be mounted as a persistent volume in Coolify to preserve files across deployments
+# Configure the volume in Coolify UI: /rails/storage
+RUN mkdir -p /rails/storage && \
+    chown -R rails:rails /rails/storage && \
+    chmod -R 755 /rails/storage
 
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]

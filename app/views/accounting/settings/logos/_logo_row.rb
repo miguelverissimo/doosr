@@ -17,11 +17,11 @@ module Views
                 div(class: "text-sm mt-1 text-muted-foreground") { @accounting_logo.description }
               end
 
-              div(class: "mt-1 flex items-center justify-between gap-2") do
+              div(class: "mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2") do
                 if @accounting_logo.image.attached?
                   div(
-                    class: "w-[250px] max-w-[250px] shrink-0 rounded-md border shadow-sm bg-neutral-300 p-2 flex items-center justify-center",
-                    style: "width: 250px; max-width: 250px; background-color: rgb(212 212 212);"
+                    class: "w-full sm:w-[250px] sm:max-w-[250px] shrink-0 rounded-md border shadow-sm bg-neutral-300 p-2 flex items-center justify-center",
+                    style: "background-color: rgb(212 212 212);"
                   ) do
                     img(
                       alt: "Logo",
@@ -35,7 +35,7 @@ module Views
                   div(class: "text-sm text-gray-500") { "No image attached" }
                 end
                 
-                div(class: "flex items-center gap-2 shrink-0") do
+                div(class: "flex items-center gap-2 shrink-0 self-end sm:self-auto") do
                   # Edit button with dialog
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do

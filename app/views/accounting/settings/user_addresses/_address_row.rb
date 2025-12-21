@@ -24,7 +24,7 @@ module Views
               end
 
               # Row 2: left = address+country, right = buttons
-              div(class: "mt-1 flex items-center justify-between gap-2") do
+              div(class: "mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2") do
                 # Left column: address (full) + country
                 div(class: "flex-1 min-w-0 space-y-1") do
                   div(class: "text-sm") do
@@ -37,7 +37,7 @@ module Views
                 end
 
                 # Right column: buttons
-                div(class: "flex items-center gap-2 shrink-0") do
+                div(class: "flex items-center gap-2 shrink-0 self-end sm:self-auto") do
                   # Edit button with dialog
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do

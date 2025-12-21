@@ -6,15 +6,20 @@ module Views
 
       def view_template
         div(class: "flex h-full flex-col") do
+          tabs_data = [
+            {value: "invoices", label: "Invoices"},
+            {value: "receipts", label: "Receipts"},
+            {value: "customers", label: "Customers"},
+            {value: "items", label: "Items"},
+            {value: "automations", label: "Automations"},
+            {value: "settings", label: "Settings"}
+          ]
+          
           Tabs(default_value: "invoices") do
-            TabsList do
-              TabsTrigger(value: "invoices") { "Invoices" }
-              TabsTrigger(value: "receipts") { "Receipts" }
-              TabsTrigger(value: "customers") { "Customers" } 
-              TabsTrigger(value: "items") { "Items" }
-              TabsTrigger(value: "automations") { "Automations" } 
-              TabsTrigger(value: "settings") { "Settings" }        
-            end
+            render RubyUI::ResponsiveTabsList.new(
+              tabs: tabs_data,
+              current_value: "invoices"
+            )
             TabsContent(value: "invoices") do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
                 plain "Invoices"
