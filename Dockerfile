@@ -5,9 +5,12 @@
 # docker build -t doosr .
 # docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name doosr doosr
 #
-# For Coolify: Configure a persistent volume in the Coolify UI:
-# - Go to your application settings in Coolify
-# - Add a volume: /rails/storage -> This will persist ActiveStorage files across deployments
+# For Coolify Persistent Storage (see https://coolify.io/docs/knowledge-base/persistent-storage):
+# - Go to your application settings in Coolify -> Persistent Storage
+# - Add a Volume with:
+#   - Name: storage (or any name you prefer)
+#   - Destination Path: /rails/storage
+# - Note: Even though Coolify's default base is /app, this Dockerfile uses /rails as WORKDIR
 
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
@@ -74,7 +77,13 @@ COPY --chown=rails:rails --from=build /rails /rails
 
 # Ensure storage directory exists with proper permissions for ActiveStorage
 # This directory should be mounted as a persistent volume in Coolify to preserve files across deployments
-# Configure the volume in Coolify UI: /rails/storage
+# 
+# To configure in Coolify UI:
+# 1. Go to your application -> Persistent Storage
+# 2. Add a Volume:
+#    - Name: storage (or any name)
+#    - Destination Path: /rails/storage
+# 3. Important: Create the volume BEFORE deploying, or it will be empty on first mount
 RUN mkdir -p /rails/storage && \
     chown -R rails:rails /rails/storage && \
     chmod -R 755 /rails/storage
