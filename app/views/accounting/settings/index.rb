@@ -36,6 +36,20 @@ module Views
                 render_address_form_dialog
               end
             end
+
+            # Accounting Logos
+            div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground mt-4") do
+              render RubyUI::Dialog.new do
+                div(class: "flex items-center justify-between mb-2") do
+                  render RubyUI::DialogTitle.new { "Your Logos" }
+                  render RubyUI::DialogTrigger.new do
+                    Button(variant: :primary, size: :sm) { "Add Logo" }
+                  end
+                end
+                render Views::Accounting::Settings::Logos::List.new(user: view_context.current_user)
+                render_logo_form_dialog
+              end
+            end
           end
         end
 
@@ -59,6 +73,18 @@ module Views
 
             render RubyUI::DialogMiddle.new do
               render Components::Accounting::Settings::Addresses::Form.new(address: address)
+            end
+          end
+        end
+
+        def render_logo_form_dialog(accounting_logo: nil)
+          render RubyUI::DialogContent.new(size: :lg) do
+            render RubyUI::DialogHeader.new do
+              render RubyUI::DialogDescription.new { "Manage logo" }
+            end
+
+            render RubyUI::DialogMiddle.new do
+              render Components::Accounting::Settings::Logos::Form.new(accounting_logo: accounting_logo)
             end
           end
         end

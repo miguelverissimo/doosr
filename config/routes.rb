@@ -103,6 +103,11 @@ Rails.application.routes.draw do
             patch :activate
           end
         end
+      
+      resources :accounting_logos, 
+        path: "settings/accounting_logos",
+        controller: "accounting/settings/logos",
+        as: "settings_logos"
 
       resources :accounting_items, 
         path: "accounting_items",

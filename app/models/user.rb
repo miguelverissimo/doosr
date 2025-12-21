@@ -17,6 +17,8 @@ class User < ApplicationRecord
   has_many :accounting_items, dependent: :destroy
   has_many :addresses, dependent: :destroy
   has_many :tax_brackets, dependent: :destroy
+  has_many :customers, dependent: :destroy
+  has_many :accounting_logos, class_name: "Accounting::AccountingLogo", dependent: :destroy
 
   # Settings defaults
   SETTINGS_DEFAULTS = {
