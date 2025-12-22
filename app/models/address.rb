@@ -1,5 +1,6 @@
 class Address < ApplicationRecord
   belongs_to :user
+  has_one :fiscal_info, class_name: "Accounting::FiscalInfo", dependent: :destroy
 
   enum :address_type, {
     user: :user,

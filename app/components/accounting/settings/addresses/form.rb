@@ -67,6 +67,17 @@ module Components
                 render RubyUI::FormFieldError.new
               end
 
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new { "Fiscal Number (Optional)" }
+                render RubyUI::Input.new(
+                  type: :text,
+                  name: "address[fiscal_number]",
+                  placeholder: "Enter fiscal/tax number",
+                  value: @address.fiscal_info&.tax_number.to_s
+                )
+                render RubyUI::FormFieldError.new
+              end
+
               div(class: "flex gap-2 justify-end") do
                 Button(variant: :outline, type: "button", data: { action: "click->ruby-ui--dialog#dismiss" }) { "Cancel" }
                 Button(variant: :primary, type: "submit") { @action }

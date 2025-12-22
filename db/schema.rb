@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_054959) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_144107) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -158,6 +158,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_054959) do
     t.index ["start", "end"], name: "index_ephemeries_on_start_and_end"
   end
 
+  create_table "fiscal_infos", force: :cascade do |t|
+    t.bigint "address_id"
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.string "tax_number"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["address_id"], name: "index_fiscal_infos_on_address_id"
+    t.index ["user_id"], name: "index_fiscal_infos_on_user_id"
+  end
+
   create_table "invoice_templates", force: :cascade do |t|
     t.bigint "accounting_logo_id", null: false
     t.datetime "created_at", null: false
@@ -253,6 +265,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_054959) do
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
   add_foreign_key "days", "users"
+  add_foreign_key "fiscal_infos", "addresses"
+  add_foreign_key "fiscal_infos", "users"
   add_foreign_key "invoice_templates", "accounting_logos"
   add_foreign_key "invoice_templates", "addresses", column: "provider_address_id"
   add_foreign_key "invoice_templates", "customers"

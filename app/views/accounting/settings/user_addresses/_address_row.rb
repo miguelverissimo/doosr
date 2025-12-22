@@ -34,6 +34,12 @@ module Views
                     end
                   end
                   div(class: "text-sm font-bold mt-1") { @address.country.upcase }
+                  if @address.fiscal_info.present?
+                    div(class: "text-sm mt-1") do
+                      span(class: "text-muted-foreground font-bold") { plain("Tax number: ") }
+                      plain(@address.fiscal_info.tax_number)
+                    end
+                  end
                 end
 
                 # Right column: buttons

@@ -95,6 +95,17 @@ module Components
                   end
                 end
               end
+
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new { "Fiscal Number (Optional)" }
+                render RubyUI::Input.new(
+                  type: :text,
+                  name: "address[fiscal_number]",
+                  placeholder: "Enter fiscal/tax number",
+                  value: existing_address&.fiscal_info&.tax_number.to_s
+                )
+                render RubyUI::FormFieldError.new
+              end
             end
 
 

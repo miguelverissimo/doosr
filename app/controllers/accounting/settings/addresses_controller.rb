@@ -5,12 +5,14 @@ module Accounting
       before_action :set_address, only: [:update, :destroy, :activate]
 
       def create
-        @address = ::Address.new(address_params)
+        @address = ::Address.new(address_params.except(:fiscal_number))
         @address.user = current_user
         @address.address_type = :user
 
         respond_to do |format|
           if @address.save
+            handle_fiscal_info(@address, address_params[:fiscal_number])
+            
             format.turbo_stream do
               render turbo_stream: [
                 turbo_stream.update("addresses_list", Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
@@ -28,7 +30,9 @@ module Accounting
       end
 
       def update
-        if @address.update(address_params)
+        if @address.update(address_params.except(:fiscal_number))
+          handle_fiscal_info(@address, address_params[:fiscal_number])
+          
           render turbo_stream: [
             turbo_stream.update(
               "addresses_list",
@@ -91,7 +95,21 @@ module Accounting
       end
 
       def address_params
-        params.require(:address).permit(:name, :full_address, :country, :address_type, :state)
+        params.require(:address).permit(:name, :full_address, :country, :address_type, :state, :fiscal_number)
+      end
+
+      def handle_fiscal_info(address, fiscal_number)
+        if fiscal_number.present?
+          fiscal_info = address.fiscal_info || address.build_fiscal_info
+          fiscal_info.user = current_user
+          fiscal_info.title = address.name
+          fiscal_info.kind = :provider
+          fiscal_info.tax_number = fiscal_number
+          fiscal_info.save
+        elsif address.fiscal_info.present?
+          # If fiscal_number is blank and fiscal_info exists, destroy it
+          address.fiscal_info.destroy
+        end
       end
     end
   end
