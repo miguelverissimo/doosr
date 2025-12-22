@@ -118,6 +118,11 @@ Rails.application.routes.draw do
         path: "customers",
         controller: "accounting/customers",
         as: "customers"
+
+      resources :invoice_templates, 
+        path: "invoice_templates",
+        controller: "accounting/invoice_templates",
+        as: "invoice_templates"
     end
   end
 

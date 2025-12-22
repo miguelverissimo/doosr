@@ -9,8 +9,8 @@ module RubyUI
     end
 
     def view_template
-      # Desktop: Show regular tabs (hidden on mobile)
-      div(class: "hidden md:block") do
+      # Desktop: Show regular tabs (hidden on mobile, visible on md and up)
+      div(class: "max-md:hidden") do
         TabsList(**attrs) do
           @tabs.each do |tab|
             TabsTrigger(value: tab[:value]) { tab[:label] }
@@ -18,8 +18,8 @@ module RubyUI
         end
       end
 
-      # Mobile: Show dropdown menu (hidden on desktop)
-      div(class: "block md:hidden") do
+      # Mobile: Show dropdown menu (visible on mobile, hidden on md and up)
+      div(class: "md:hidden") do
         render_mobile_dropdown
       end
     end

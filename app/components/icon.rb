@@ -152,8 +152,21 @@ class Components::Icon < Components::Base
       svg_element.path(d: "M13 19h8")
       svg_element.path(d: "m3 17 2 2 4-4")
       svg_element.rect(x: "3", y: "4", width: "6", height: "6", rx: "1")
+    when :currency_euro
+      svg_element.path(d: "M4 10h12")
+      svg_element.path(d: "M4 14h9")
+      svg_element.path(d: "M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2")
+    when :currency_usd
+      svg_element.line(x1: "12", x2: "12", y1: "2", y2: "22")
+      svg_element.path(d: "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")
+    when :currency_cad
+      svg_element.line(x1: "12", x2: "12", y1: "2", y2: "22")
+      svg_element.path(d: "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")
     else
       # Unknown icon - render nothing or a placeholder
+      svg_element.path(d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z")
+      svg_element.path(d: "M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3")
+      svg_element.path(d: "M12 17h.01")
     end
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_21_053948) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_054959) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -158,6 +158,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_053948) do
     t.index ["start", "end"], name: "index_ephemeries_on_start_and_end"
   end
 
+  create_table "invoice_templates", force: :cascade do |t|
+    t.bigint "accounting_logo_id", null: false
+    t.datetime "created_at", null: false
+    t.string "currency"
+    t.bigint "customer_id", null: false
+    t.string "description"
+    t.string "name"
+    t.bigint "provider_address_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["accounting_logo_id"], name: "index_invoice_templates_on_accounting_logo_id"
+    t.index ["customer_id"], name: "index_invoice_templates_on_customer_id"
+    t.index ["provider_address_id"], name: "index_invoice_templates_on_provider_address_id"
+    t.index ["user_id"], name: "index_invoice_templates_on_user_id"
+  end
+
   create_table "items", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "deferred_at"
@@ -237,6 +253,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_053948) do
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
   add_foreign_key "days", "users"
+  add_foreign_key "invoice_templates", "accounting_logos"
+  add_foreign_key "invoice_templates", "addresses", column: "provider_address_id"
+  add_foreign_key "invoice_templates", "customers"
+  add_foreign_key "invoice_templates", "users"
   add_foreign_key "items", "descendants"
   add_foreign_key "items", "items", column: "recurring_next_item_id", on_delete: :nullify
   add_foreign_key "items", "items", column: "source_item_id", on_delete: :nullify
