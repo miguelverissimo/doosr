@@ -1,6 +1,6 @@
 require "test_helper"
 module Accounting
-  class AddressTest < ActiveSupport::TestCase
+class BankInfoTest < ActiveSupport::TestCase
     # test "the truth" do
     #   assert true
     # end

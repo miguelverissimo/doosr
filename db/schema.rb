@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_25_055650) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -77,6 +77,19 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_addresses_on_user_id"
+  end
+
+  create_table "bank_infos", force: :cascade do |t|
+    t.string "account_number"
+    t.datetime "created_at", null: false
+    t.string "iban"
+    t.string "kind", default: "user", null: false
+    t.string "name"
+    t.string "routing_number"
+    t.string "swift_bic"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_bank_infos_on_user_id"
   end
 
   create_table "checklists", force: :cascade do |t|
@@ -195,8 +208,26 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
     t.index ["user_id"], name: "index_invoice_items_on_user_id"
   end
 
+  create_table "invoice_template_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.float "discount_rate"
+    t.bigint "invoice_template_id", null: false
+    t.bigint "item_id", null: false
+    t.float "quantity"
+    t.bigint "tax_bracket_id", null: false
+    t.string "unit"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["invoice_template_id"], name: "index_invoice_template_items_on_invoice_template_id"
+    t.index ["item_id"], name: "index_invoice_template_items_on_item_id"
+    t.index ["tax_bracket_id"], name: "index_invoice_template_items_on_tax_bracket_id"
+    t.index ["user_id"], name: "index_invoice_template_items_on_user_id"
+  end
+
   create_table "invoice_templates", force: :cascade do |t|
     t.bigint "accounting_logo_id", null: false
+    t.bigint "bank_info_id"
     t.datetime "created_at", null: false
     t.string "currency"
     t.bigint "customer_id", null: false
@@ -206,15 +237,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["accounting_logo_id"], name: "index_invoice_templates_on_accounting_logo_id"
+    t.index ["bank_info_id"], name: "index_invoice_templates_on_bank_info_id"
     t.index ["customer_id"], name: "index_invoice_templates_on_customer_id"
     t.index ["provider_address_id"], name: "index_invoice_templates_on_provider_address_id"
     t.index ["user_id"], name: "index_invoice_templates_on_user_id"
   end
 
   create_table "invoices", force: :cascade do |t|
+    t.bigint "bank_info_id"
     t.datetime "created_at", null: false
     t.string "currency", null: false
     t.bigint "customer_id", null: false
+    t.string "customer_reference"
     t.integer "discount"
     t.string "display_number", null: false
     t.datetime "due_at"
@@ -231,6 +265,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.integer "year", null: false
+    t.index ["bank_info_id"], name: "index_invoices_on_bank_info_id"
     t.index ["customer_id"], name: "index_invoices_on_customer_id"
     t.index ["invoice_template_id"], name: "index_invoices_on_invoice_template_id"
     t.index ["provider_id"], name: "index_invoices_on_provider_id"
@@ -312,6 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addresses", "users"
+  add_foreign_key "bank_infos", "users"
   add_foreign_key "checklists", "checklists", column: "template_id", on_delete: :nullify
   add_foreign_key "checklists", "users"
   add_foreign_key "customers", "addresses"
@@ -325,11 +361,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
   add_foreign_key "invoice_items", "items"
   add_foreign_key "invoice_items", "tax_brackets"
   add_foreign_key "invoice_items", "users"
+  add_foreign_key "invoice_template_items", "accounting_items", column: "item_id"
+  add_foreign_key "invoice_template_items", "invoice_templates"
+  add_foreign_key "invoice_template_items", "tax_brackets"
+  add_foreign_key "invoice_template_items", "users"
   add_foreign_key "invoice_templates", "accounting_logos"
   add_foreign_key "invoice_templates", "addresses", column: "provider_address_id"
+  add_foreign_key "invoice_templates", "bank_infos"
   add_foreign_key "invoice_templates", "customers"
   add_foreign_key "invoice_templates", "users"
   add_foreign_key "invoices", "addresses", column: "provider_id"
+  add_foreign_key "invoices", "bank_infos"
   add_foreign_key "invoices", "customers"
   add_foreign_key "invoices", "invoice_templates"
   add_foreign_key "invoices", "users"

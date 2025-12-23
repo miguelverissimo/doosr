@@ -1,0 +1,375 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #000;
+    background: #f5f5f0;
+    padding: 20px;
+}
+
+.invoice-container {
+    max-width: 850px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 50px 60px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 200px;
+    height: 70px;
+}
+
+.company-name {
+    display: flex;
+    flex-direction: column;
+}
+
+.company-name h1 {
+    font-size: 24pt;
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.company-name .tagline {
+    font-size: 9pt;
+    color: #666;
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+/* Two column layout */
+.addresses {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.from-address, .to-address {
+    width: 48%;
+}
+
+.from-address h2, .to-address h2 {
+    font-size: 10pt;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.to-address {
+    text-align: left;
+}
+
+.to-address h2 {
+    margin-bottom: 8px;
+}
+
+.address-line {
+    font-size: 10pt;
+    line-height: 1.5;
+    margin: 2px 0;
+}
+
+.tax-id {
+    margin-top: 8px;
+}
+
+.tax-id-label {
+    font-weight: 600;
+}
+
+/* Invoice number */
+.invoice-number {
+    text-align: right;
+    font-size: 18pt;
+    font-weight: 700;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 3px solid #000;
+}
+
+.invoice-number-label {
+    font-weight: 500;
+    font-size: 16pt;
+}
+
+/* Metadata grid */
+.metadata {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 10px 15px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #000;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.metadata-label {
+    font-size: 9pt;
+    font-weight: 700;
+    margin-bottom: 4px;
+    border-bottom: 1px dotted #000;
+}
+
+.metadata-value {
+    font-size: 10pt;
+}
+
+/* Items table */
+.items-table-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.spacer {
+    flex: 1 1 auto;
+    min-height: 20px;
+}
+
+.section-divider {
+    border: none;
+    border-top: 2px solid #000;
+    margin: 0;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px 0;
+    position: relative;
+}
+
+.items-table thead th {
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 2px dotted #999;
+}
+
+.items-table thead th:nth-child(3),
+.items-table thead th:nth-child(4),
+.items-table thead th:nth-child(5),
+.items-table thead th:nth-child(6),
+.items-table thead th:nth-child(7) {
+  text-align: center;
+}
+.items-table thead th:last-child {
+    text-align: right;
+}
+
+.items-table tbody td {
+    padding: 10px 6px;
+    font-size: 10pt;
+    border-bottom: 1px dotted #ccc;
+    vertical-align: top;
+}
+
+.items-table tbody tr:last-child td {
+    border-bottom: 1px dotted #ccc;
+}
+
+.items-table td.reference {
+  font-size: 9pt;
+}
+
+.items-table td.center-align {
+  text-align: center;
+}
+
+.items-table td.right-align {
+  text-align: right;
+}
+
+.items-table td.left-align {
+  text-align: left;
+}
+
+/* Bottom section */
+.bottom-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    margin-top: 10px;
+}
+
+.left-column {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.right-column {
+    flex: 0.8;
+}
+
+/* Tax summary table */
+.tax-summary {
+    margin-bottom: 0;
+}
+
+.tax-summary h3 {
+    font-size: 10pt;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.tax-summary-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 1px 0;
+}
+
+.tax-summary-table thead th {
+    font-size: 9pt;
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px dotted #999;
+}
+
+.tax-summary-table tbody td {
+    font-size: 10pt;
+    padding: 8px 8px;
+    border-bottom: 1px dotted #ccc;
+}
+
+.tax-summary-table tbody td:nth-child(2),
+.tax-summary-table tbody td:nth-child(3) {
+    text-align: right;
+}
+
+/* Payment details */
+.payment-details {
+    border: 2px dotted #999;
+    padding: 15px;
+    margin-top: auto;
+}
+
+.payment-details h3 {
+    font-size: 10pt;
+    font-weight: 700;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.payment-details p {
+    font-size: 10pt;
+    line-height: 1.6;
+}
+
+/* Summary */
+.summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px dotted #ccc;
+    gap: 8px;
+}
+
+.summary-row.total {
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    padding: 8px 0;
+    margin-top: 6px;
+    font-weight: 700;
+    font-size: 12pt;
+}
+
+.summary-label {
+    font-size: 9pt;
+    white-space: nowrap;
+}
+
+.summary-value {
+    font-size: 9pt;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.summary-row.total .summary-label,
+.summary-row.total .summary-value {
+    font-size: 12pt;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    @page :first {
+        size: A4;
+        margin: 15mm;
+    }
+
+    body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+    }
+
+    .invoice-container {
+        box-shadow: none;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+        min-height: 100vh;
+        page-break-inside: avoid;
+    }
+
+    .spacer {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .bottom-section {
+        page-break-inside: avoid;
+        flex-shrink: 0;
+    }
+}
+
+/* Letter size support */
+@media print and (width: 8.5in) and (height: 11in) {
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+}
+

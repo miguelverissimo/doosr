@@ -7,6 +7,7 @@ export default class extends Controller {
 		taxBrackets: { type: Object, default: {} },
 		currency: { type: String, default: "EUR" },
 		initialItems: { type: Array, default: [] },
+		formPrefix: { type: String, default: "invoice[invoice_items_attributes]" },
 	};
 
 	connect() {
@@ -91,11 +92,12 @@ export default class extends Controller {
 	reindexItems() {
 		Array.from(this.itemsListTarget.children).forEach((row, index) => {
 			// Update all input names with new index
+			// Support both invoice_items_attributes and invoice_template_items_attributes
 			row.querySelectorAll("input, select").forEach((input) => {
 				if (input.name) {
 					input.name = input.name.replace(
-						/\[invoice_items_attributes\]\[\d+\]/,
-						`[invoice_items_attributes][${index}]`,
+						/\[(invoice_items_attributes|invoice_template_items_attributes)\]\[\d+\]/,
+						`[$1][${index}]`,
 					);
 				}
 			});
@@ -113,6 +115,9 @@ export default class extends Controller {
 	updateCalculations(index) {
 		const row = this.itemsListTarget.children[index];
 		if (!row) return;
+
+		const formPrefix = this.formPrefixValue || "invoice[invoice_items_attributes]";
+		const isTemplateForm = formPrefix.includes("invoice_template_items_attributes");
 
 		const accountingItemId = row.querySelector('[name*="[item_id]"]')?.value;
 		const quantityInput = row.querySelector('[name*="[quantity]"]');
@@ -146,50 +151,55 @@ export default class extends Controller {
 		const amount = subtotal - discountAmount + taxAmount;
 
 		// Update hidden fields
-		const unitPriceField = row.querySelector('[name*="[unit_price]"]');
-		const subtotalField = row.querySelector('[name*="[subtotal]"]');
-		const discountAmountField = row.querySelector(
-			'[name*="[discount_amount]"]',
-		);
-		const taxRateField = row.querySelector('[name*="[tax_rate]"]');
-		const taxAmountField = row.querySelector('[name*="[tax_amount]"]');
-		const amountField = row.querySelector('[name*="[amount]"]');
 		const descriptionField = row.querySelector('[name*="[description]"]');
 		const unitField = row.querySelector('[name*="[unit]"]');
 
-		if (unitPriceField) unitPriceField.value = Math.round(unitPrice * 100); // Convert to cents
-		if (subtotalField) subtotalField.value = Math.round(subtotal * 100); // Convert to cents
-		if (discountAmountField)
-			discountAmountField.value = Math.round(discountAmount * 100); // Convert to cents
-		if (taxRateField) taxRateField.value = taxRate;
-		if (taxAmountField) taxAmountField.value = Math.round(taxAmount * 100); // Convert to cents
-		if (amountField) amountField.value = Math.round(amount * 100); // Convert to cents
 		if (descriptionField && !descriptionField.value)
 			descriptionField.value = accountingItem.name || "";
 		if (unitField && !unitField.value)
 			unitField.value = accountingItem.unit || "";
 
-		// Update displayed values
-		const subtotalDisplay = row.querySelector(
-			'[data-invoice-items-form-target="subtotalDisplay"]',
-		);
-		const discountAmountDisplay = row.querySelector(
-			'[data-invoice-items-form-target="discountAmountDisplay"]',
-		);
-		const taxAmountDisplay = row.querySelector(
-			'[data-invoice-items-form-target="taxAmountDisplay"]',
-		);
-		const amountDisplay = row.querySelector(
-			'[data-invoice-items-form-target="amountDisplay"]',
-		);
+		// Only update monetary fields for invoice forms, not template forms
+		if (!isTemplateForm) {
+			const unitPriceField = row.querySelector('[name*="[unit_price]"]');
+			const subtotalField = row.querySelector('[name*="[subtotal]"]');
+			const discountAmountField = row.querySelector(
+				'[name*="[discount_amount]"]',
+			);
+			const taxRateField = row.querySelector('[name*="[tax_rate]"]');
+			const taxAmountField = row.querySelector('[name*="[tax_amount]"]');
+			const amountField = row.querySelector('[name*="[amount]"]');
 
-		if (subtotalDisplay)
-			subtotalDisplay.textContent = this.formatCurrency(subtotal);
-		if (discountAmountDisplay)
-			discountAmountDisplay.textContent = this.formatCurrency(discountAmount);
-		if (taxAmountDisplay)
-			taxAmountDisplay.textContent = this.formatCurrency(taxAmount);
-		if (amountDisplay) amountDisplay.textContent = this.formatCurrency(amount);
+			if (unitPriceField) unitPriceField.value = Math.round(unitPrice * 100); // Convert to cents
+			if (subtotalField) subtotalField.value = Math.round(subtotal * 100); // Convert to cents
+			if (discountAmountField)
+				discountAmountField.value = Math.round(discountAmount * 100); // Convert to cents
+			if (taxRateField) taxRateField.value = taxRate;
+			if (taxAmountField) taxAmountField.value = Math.round(taxAmount * 100); // Convert to cents
+			if (amountField) amountField.value = Math.round(amount * 100); // Convert to cents
+
+			// Update displayed values
+			const subtotalDisplay = row.querySelector(
+				'[data-invoice-items-form-target="subtotalDisplay"]',
+			);
+			const discountAmountDisplay = row.querySelector(
+				'[data-invoice-items-form-target="discountAmountDisplay"]',
+			);
+			const taxAmountDisplay = row.querySelector(
+				'[data-invoice-items-form-target="taxAmountDisplay"]',
+			);
+			const amountDisplay = row.querySelector(
+				'[data-invoice-items-form-target="amountDisplay"]',
+			);
+
+			if (subtotalDisplay)
+				subtotalDisplay.textContent = this.formatCurrency(subtotal);
+			if (discountAmountDisplay)
+				discountAmountDisplay.textContent = this.formatCurrency(discountAmount);
+			if (taxAmountDisplay)
+				taxAmountDisplay.textContent = this.formatCurrency(taxAmount);
+			if (amountDisplay) amountDisplay.textContent = this.formatCurrency(amount);
+		}
 	}
 
 	formatCurrency(value) {
@@ -202,6 +212,9 @@ export default class extends Controller {
 	}
 
 	createItemRow(index) {
+		const formPrefix = this.formPrefixValue || "invoice[invoice_items_attributes]";
+		const isTemplateForm = formPrefix.includes("invoice_template_items_attributes");
+		
 		const row = document.createElement("div");
 		row.className = "space-y-4 p-4 border rounded-md bg-background";
 		row.dataset.invoiceItemsFormTarget = "itemRow";
@@ -212,7 +225,7 @@ export default class extends Controller {
 		accountingItemField.innerHTML = `
       <label class="text-sm font-medium">Accounting Item</label>
       <select 
-        name="invoice[invoice_items_attributes][${index}][item_id]" 
+        name="${formPrefix}[${index}][item_id]" 
         class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         required
         data-action="change->invoice-items-form#updateItem"
@@ -238,7 +251,7 @@ export default class extends Controller {
       <label class="text-sm font-medium">Quantity</label>
       <input 
         type="number" 
-        name="invoice[invoice_items_attributes][${index}][quantity]" 
+        name="${formPrefix}[${index}][quantity]" 
         step="0.01" 
         min="0"
         value="1"
@@ -255,7 +268,7 @@ export default class extends Controller {
       <label class="text-sm font-medium">Discount Rate (%)</label>
       <input 
         type="number" 
-        name="invoice[invoice_items_attributes][${index}][discount_rate]" 
+        name="${formPrefix}[${index}][discount_rate]" 
         step="0.01" 
         min="0" 
         max="100"
@@ -274,7 +287,7 @@ export default class extends Controller {
 		taxBracketField.innerHTML = `
       <label class="text-sm font-medium">Tax Bracket</label>
       <select 
-        name="invoice[invoice_items_attributes][${index}][tax_bracket_id]" 
+        name="${formPrefix}[${index}][tax_bracket_id]" 
         class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         required
         data-action="change->invoice-items-form#updateItem"
@@ -290,43 +303,54 @@ export default class extends Controller {
     `;
 		row.appendChild(taxBracketField);
 
-		// Calculated values display
-		const calculatedValues = document.createElement("div");
-		calculatedValues.className = "grid grid-cols-2 gap-4 text-sm";
-		const zeroFormatted = this.formatCurrency(0);
-		calculatedValues.innerHTML = `
-      <div>
-        <span class="text-muted-foreground">Subtotal:</span>
-        <span class="ml-2 font-medium" data-invoice-items-form-target="subtotalDisplay">${zeroFormatted}</span>
-      </div>
-      <div>
-        <span class="text-muted-foreground">Discount:</span>
-        <span class="ml-2 font-medium" data-invoice-items-form-target="discountAmountDisplay">${zeroFormatted}</span>
-      </div>
-      <div>
-        <span class="text-muted-foreground">Tax:</span>
-        <span class="ml-2 font-medium" data-invoice-items-form-target="taxAmountDisplay">${zeroFormatted}</span>
-      </div>
-      <div>
-        <span class="text-muted-foreground">Total:</span>
-        <span class="ml-2 font-semibold" data-invoice-items-form-target="amountDisplay">${zeroFormatted}</span>
-      </div>
-    `;
-		row.appendChild(calculatedValues);
+		// Calculated values display (only for invoice forms, not template forms)
+		if (!isTemplateForm) {
+			const calculatedValues = document.createElement("div");
+			calculatedValues.className = "grid grid-cols-2 gap-4 text-sm";
+			const zeroFormatted = this.formatCurrency(0);
+			calculatedValues.innerHTML = `
+        <div>
+          <span class="text-muted-foreground">Subtotal:</span>
+          <span class="ml-2 font-medium" data-invoice-items-form-target="subtotalDisplay">${zeroFormatted}</span>
+        </div>
+        <div>
+          <span class="text-muted-foreground">Discount:</span>
+          <span class="ml-2 font-medium" data-invoice-items-form-target="discountAmountDisplay">${zeroFormatted}</span>
+        </div>
+        <div>
+          <span class="text-muted-foreground">Tax:</span>
+          <span class="ml-2 font-medium" data-invoice-items-form-target="taxAmountDisplay">${zeroFormatted}</span>
+        </div>
+        <div>
+          <span class="text-muted-foreground">Total:</span>
+          <span class="ml-2 font-semibold" data-invoice-items-form-target="amountDisplay">${zeroFormatted}</span>
+        </div>
+      `;
+			row.appendChild(calculatedValues);
+		}
 
-		// Hidden fields for calculated values
+		// Hidden fields
 		const hiddenFields = document.createElement("div");
 		hiddenFields.style.display = "none";
-		hiddenFields.innerHTML = `
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][description]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][unit]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][unit_price]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][subtotal]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][discount_amount]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][tax_rate]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][tax_amount]" />
-      <input type="hidden" name="invoice[invoice_items_attributes][${index}][amount]" />
-    `;
+		if (isTemplateForm) {
+			// Template form only needs description and unit (no monetary fields)
+			hiddenFields.innerHTML = `
+        <input type="hidden" name="${formPrefix}[${index}][description]" />
+        <input type="hidden" name="${formPrefix}[${index}][unit]" />
+      `;
+		} else {
+			// Invoice form needs all fields including monetary ones
+			hiddenFields.innerHTML = `
+        <input type="hidden" name="${formPrefix}[${index}][description]" />
+        <input type="hidden" name="${formPrefix}[${index}][unit]" />
+        <input type="hidden" name="${formPrefix}[${index}][unit_price]" />
+        <input type="hidden" name="${formPrefix}[${index}][subtotal]" />
+        <input type="hidden" name="${formPrefix}[${index}][discount_amount]" />
+        <input type="hidden" name="${formPrefix}[${index}][tax_rate]" />
+        <input type="hidden" name="${formPrefix}[${index}][tax_amount]" />
+        <input type="hidden" name="${formPrefix}[${index}][amount]" />
+      `;
+		}
 		row.appendChild(hiddenFields);
 
 		// Remove button

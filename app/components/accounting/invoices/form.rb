@@ -93,6 +93,24 @@ module Components
             end
 
             render RubyUI::FormField.new do
+              render RubyUI::FormFieldLabel.new { "Bank Info (Optional)" }
+              select(
+                name: "invoice[bank_info_id]",
+                id: "invoice_bank_info_id",
+                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              ) do
+                option(value: "", selected: @invoice.bank_info_id.nil?) { "Select bank info (optional)" }
+                user.bank_infos.where(kind: :user).each do |bank_info|
+                  option(
+                    value: bank_info.id,
+                    selected: @invoice.bank_info_id == bank_info.id
+                  ) { bank_info.name }
+                end
+              end
+              render RubyUI::FormFieldError.new
+            end
+
+            render RubyUI::FormField.new do
               render RubyUI::FormFieldLabel.new { "Issue Date" }
               render RubyUI::Input.new(
                 type: :date,
@@ -113,6 +131,18 @@ module Components
                 id: "invoice_due_at",
                 class: "date-input-icon-light text-primary-foreground",
                 value: @invoice.due_at&.strftime("%Y-%m-%d")
+              )
+              render RubyUI::FormFieldError.new
+            end
+
+            render RubyUI::FormField.new do
+              render RubyUI::FormFieldLabel.new { "Customer Reference" }
+              render RubyUI::Input.new(
+                type: :text,
+                name: "invoice[customer_reference]",
+                id: "invoice_customer_reference",
+                value: @invoice.customer_reference,
+                placeholder: "Enter customer reference"
               )
               render RubyUI::FormFieldError.new
             end
@@ -186,24 +216,24 @@ module Components
 
         def accounting_items_json
           user.accounting_items.map do |item|
-            [item.id.to_s, {
+            [ item.id.to_s, {
               id: item.id.to_s,
               name: item.name,
               reference: item.reference,
               # price is stored as integer cents, expose in units for the UI
               price: item.price.to_f / 100.0,
               unit: item.unit
-            }]
+            } ]
           end.to_h.to_json
         end
 
         def tax_brackets_json
           user.tax_brackets.map do |bracket|
-            [bracket.id.to_s, {
+            [ bracket.id.to_s, {
               id: bracket.id.to_s,
               name: bracket.name,
               percentage: bracket.percentage.to_f
-            }]
+            } ]
           end.to_h.to_json
         end
 

@@ -1,7 +1,8 @@
 require "test_helper"
-
+module Accounting
 class InvoiceItemTest < ActiveSupport::TestCase
-  # test "the truth" do
-  #   assert true
-  # end
+    # test "the truth" do
+    #   assert true
+    # end
+  end
 end

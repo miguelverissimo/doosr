@@ -168,14 +168,14 @@ class Components::Icon < Components::Base
       svg_element.path(d: "M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2")
       svg_element.rect(width: "8", height: "4", x: "10", y: "6", rx: "1")
     when :draft
-      svg_element.path(d: "M8 2v4")
-      svg_element.path(d: "M12 2v4")
-      svg_element.path(d: "M16 2v4")
-      svg_element.path(d: "M16 4h2a2 2 0 0 1 2 2v2")
-      svg_element.path(d: "M20 12v2")
-      svg_element.path(d: "M20 18v2a2 2 0 0 1-2 2h-1")
-      svg_element.path(d: "M13 22h-2")
-      svg_element.path(d: "M7 22H6a2 2 0 0 1-2-2v-2")
+      svg_element.rect(x: "2", y: "6", width: "20", height: "8", rx: "1")
+      svg_element.path(d: "M17 14v7")
+      svg_element.path(d: "M7 14v7")
+      svg_element.path(d: "M17 3v3")
+      svg_element.path(d: "M7 3v3")
+      svg_element.path(d: "M10 14 2.3 6.3")
+      svg_element.path(d: "m14 6 7.7 7.7")
+      svg_element.path(d: "m8 6 8 8")
     when :send
       svg_element.path(d: "M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z")
       svg_element.path(d: "m21.854 2.147-10.94 10.939")
@@ -185,6 +185,30 @@ class Components::Icon < Components::Base
       svg_element.path(d: "m2 16 6 6")
       svg_element.circle(cx: "16", cy: "9", r: "2.9")
       svg_element.circle(cx: "6", cy: "5", r: "3")
+    when :eye
+      svg_element.path(d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z")
+      svg_element.circle(cx: "12", cy: "12", r: "3")
+    when :bank
+      svg_element.path(d: "M10 18v-7")
+      svg_element.path(d: "M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z")
+      svg_element.path(d: "M14 18v-7")
+      svg_element.path(d: "M18 18v-7")
+      svg_element.path(d: "M3 22h18")
+      svg_element.path(d: "M6 18v-7")
+    when :created_date
+      svg_element.path(d: "M8 2v4")
+      svg_element.path(d: "M16 2v4")
+      svg_element.rect(width: "18", height: "18", x: "3", y: "4", rx: "2")
+      svg_element.path(d: "M3 10h18")
+      svg_element.path(d: "M10 16h4")
+      svg_element.path(d: "M12 14v4")
+    when :due_date
+      svg_element.path(d: "M16 14v2.2l1.6 1")
+      svg_element.path(d: "M16 2v4")
+      svg_element.path(d: "M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5")
+      svg_element.path(d: "M3 10h5")
+      svg_element.path(d: "M8 2v4")
+      svg_element.circle(cx: "16", cy: "16", r: "6")
     else
       # Unknown icon - render nothing or a placeholder
       svg_element.path(d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z")

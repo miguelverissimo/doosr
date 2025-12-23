@@ -36,3 +36,6 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# random files
+/docs/invoice_12_dec_2025.*

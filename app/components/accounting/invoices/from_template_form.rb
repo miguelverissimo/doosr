@@ -94,7 +94,8 @@ module Components
                   controller: "invoice-items-form",
                   invoice_items_form_accounting_items_value: accounting_items_json,
                   invoice_items_form_tax_brackets_value: tax_brackets_json,
-                  invoice_items_form_currency_value: @invoice_template.currency
+                  invoice_items_form_currency_value: @invoice_template.currency,
+                  invoice_items_form_initial_items_value: initial_template_items_json
                 }
               ) do
                 div(
@@ -155,6 +156,21 @@ module Components
               percentage: bracket.percentage.to_f
             }]
           end.to_h.to_json
+        end
+
+        def initial_template_items_json
+          return [].to_json if @invoice_template.invoice_template_items.empty?
+
+          @invoice_template.invoice_template_items.map do |item|
+            {
+              item_id: item.item_id.to_s,
+              quantity: item.quantity.to_f,
+              discount_rate: item.discount_rate.to_f,
+              tax_bracket_id: item.tax_bracket_id.to_s,
+              description: item.description.to_s,
+              unit: item.unit.to_s
+            }
+          end.to_json
         end
       end
     end

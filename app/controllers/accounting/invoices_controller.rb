@@ -1,10 +1,21 @@
 module Accounting
   class InvoicesController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_invoice, only: [:destroy]
+    before_action :set_invoice, only: [ :destroy, :preview ]
 
     def index
       @invoices = current_user.invoices
+    end
+
+    def preview
+      @invoice = current_user.invoices
+        .includes(
+          :provider, :customer, :bank_info,
+          invoice_items: [ :item, :tax_bracket ],
+          invoice_template: [ :accounting_logo ]
+        )
+        .find(params[:id])
+      render Views::Accounting::Invoices::Preview.new(invoice: @invoice), layout: false
     end
 
     def create
@@ -24,17 +35,18 @@ module Accounting
         @invoice.provider_id ||= template.provider_address_id
         @invoice.customer_id ||= template.customer_id
         @invoice.currency ||= template.currency
+        @invoice.bank_info_id ||= template.bank_info_id
       end
 
       # Generate number (sequence per user per year, reset to 1 each year)
       current_year = Date.today.year
       @invoice.year = current_year
-      
+
       last_invoice = current_user.invoices
         .where(year: current_year)
         .order(number: :desc)
         .first
-      
+
       @invoice.number = last_invoice ? last_invoice.number + 1 : 1
       @invoice.display_number = "#{@invoice.number}/#{current_year}"
 
@@ -45,7 +57,7 @@ module Accounting
 
           accounting_item = current_user.accounting_items.find_by(id: item_params[:item_id])
           tax_bracket = current_user.tax_brackets.find_by(id: item_params[:tax_bracket_id])
-          
+
           next unless accounting_item && tax_bracket
 
           # Base description comes from the accounting item (tokens live there),
@@ -86,7 +98,7 @@ module Accounting
           format.html { redirect_to accounting_index_path, notice: "Invoice created successfully." }
         else
           format.turbo_stream do
-            error_message = @invoice.errors.full_messages.join(', ')
+            error_message = @invoice.errors.full_messages.join(", ")
             render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create invoice: #{error_message}', { type: 'error' });</script>")
           end
           format.html { redirect_to accounting_index_path, alert: "Failed to create invoice" }
@@ -160,7 +172,7 @@ module Accounting
 
                 accounting_item = current_user.accounting_items.find_by(id: item_params[:item_id])
                 tax_bracket = current_user.tax_brackets.find_by(id: item_params[:tax_bracket_id])
-                
+
                 next unless accounting_item && tax_bracket
 
                 raw_description =
@@ -230,9 +242,11 @@ module Accounting
         :provider_id,
         :customer_id,
         :currency,
+        :bank_info_id,
         :issued_at,
         :due_at,
         :notes,
+        :customer_reference,
         invoice_items_attributes: [
           :item_id,
           :quantity,

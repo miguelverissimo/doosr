@@ -5,7 +5,7 @@ module Views
         class ListContent < Views::Base
           def initialize(user:, **attrs)
             @user = user
-            @invoice_templates = user.invoice_templates
+            @invoice_templates = user.invoice_templates.includes(:invoice_template_items)
             super(**attrs)
           end
 

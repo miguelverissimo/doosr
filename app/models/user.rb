@@ -14,15 +14,17 @@ class User < ApplicationRecord
   has_many :items, dependent: :destroy
   has_many :lists, dependent: :destroy
   has_many :checklists, dependent: :destroy
-  has_many :accounting_items, dependent: :destroy
+
+  # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy
+  has_many :accounting_items, class_name: "Accounting::AccountingItem", dependent: :destroy
+  has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
+  has_many :invoices, class_name: "Accounting::Invoice", dependent: :destroy
+  has_many :invoice_templates, class_name: "Accounting::InvoiceTemplate", dependent: :destroy
   has_many :tax_brackets, class_name: "Accounting::TaxBracket", dependent: :destroy
   has_many :customers, class_name: "Accounting::Customer", dependent: :destroy
   has_many :accounting_logos, class_name: "Accounting::AccountingLogo", dependent: :destroy
-  has_many :invoice_templates, class_name: "Accounting::InvoiceTemplate", dependent: :destroy
-  has_many :invoices, class_name: "Accounting::Invoice", dependent: :destroy
-  has_many :accounting_items, class_name: "Accounting::AccountingItem", dependent: :destroy
-  has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
+  has_many :bank_infos, class_name: "Accounting::BankInfo", dependent: :destroy
 
   # Settings defaults
   SETTINGS_DEFAULTS = {

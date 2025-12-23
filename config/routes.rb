@@ -109,6 +109,11 @@ Rails.application.routes.draw do
         controller: "accounting/settings/logos",
         as: "settings_logos"
 
+      resources :bank_infos, 
+        path: "settings/bank_infos",
+        controller: "accounting/settings/bank_infos",
+        as: "settings_bank_infos"
+
       resources :accounting_items, 
         path: "accounting_items",
         controller: "accounting/accounting_items",
@@ -127,7 +132,11 @@ Rails.application.routes.draw do
       resources :invoices, 
         path: "invoices",
         controller: "accounting/invoices",
-        as: "invoices"
+        as: "invoices" do
+          member do
+            get :preview
+          end
+        end
     end
   end
 

@@ -18,7 +18,21 @@ module Views
                   plain(@invoice.display_number)
                 end
                 render_state_badge
-                
+              end
+              div(class: "flex flex-row items-center justify-between w-full gap-2") do
+                div(class: "flex flex-row items-center gap-2") do
+                  render Components::Icon.new(name: :created_date, size: "12", class: "w-5 h-5")
+                  div(class: "text-sm font-bold") { @invoice.created_at.strftime("%d/%m/%Y") }
+                end
+                div(class: "flex flex-row items-center gap-2") do
+                  render Components::Icon.new(name: :due_date, size: "12", class: "w-5 h-5")
+                  div(class: "text-sm font-bold") { @invoice.due_at.strftime("%d/%m/%Y") }
+                  if @invoice.overdue?
+                    render RubyUI::Badge.new(variant: :red, size: :md) { "Overdue for #{@invoice.days_until_due}" }
+                  elsif @invoice.days_until_due
+                    render RubyUI::Badge.new(variant: :lime, size: :md) { "Due #{@invoice.days_until_due}" }
+                  end
+                end
               end
               div(class: "flex flex-row items-start gap-2") do
                 render_items_table
@@ -44,27 +58,27 @@ module Views
           Table do
             TableHeader do
               TableRow do
-                TableHead { "Ref." }
-                TableHead { "Description" }
-                TableHead { "Qty." }
-                TableHead { "Unit" }
-                TableHead { "Unit Price" }
-                TableHead { "Disc." }
-                TableHead { "Tax" }
-                TableHead { "Amount" }
+                TableHead { span(class: "text-xs") { "Ref." } }
+                TableHead { span(class: "text-xs") { "Description" } }
+                TableHead { span(class: "text-xs") { "Qty." } }
+                TableHead { span(class: "text-xs") { "Unit" } }
+                TableHead { span(class: "text-xs") { "Unit Price" } }
+                TableHead { span(class: "text-xs") { "Disc." } }
+                TableHead { span(class: "text-xs") { "Tax" } }
+                TableHead { span(class: "text-xs") { "Amount" } }
               end
             end
             TableBody do
               @invoice.invoice_items.each do |invoice_item|
                 TableRow do
-                  TableCell { invoice_item.item.reference }
-                  TableCell { invoice_item.description }
-                  TableCell { invoice_item.quantity }
-                  TableCell { invoice_item.unit }
-                  TableCell { invoice_item.unit_price_formatted_without_currency }
-                  TableCell { invoice_item.discount_amount_formatted_without_currency }
-                  TableCell { invoice_item.tax_amount_formatted_without_currency }
-                  TableCell { invoice_item.amount_formatted_without_currency }
+                  TableCell { span(class: "text-xs") { invoice_item.item.reference } }
+                  TableCell { span(class: "text-xs") { invoice_item.description } }
+                  TableCell { span(class: "text-xs") { invoice_item.quantity } }
+                  TableCell { span(class: "text-xs") { invoice_item.unit } }
+                  TableCell { span(class: "text-xs") { invoice_item.unit_price_formatted_without_currency } }
+                  TableCell { span(class: "text-xs") { invoice_item.discount_amount_formatted_without_currency } }
+                  TableCell { span(class: "text-xs") { invoice_item.tax_amount_formatted_without_currency } }
+                  TableCell { span(class: "text-xs") { invoice_item.amount_formatted_without_currency } }
                 end
               end
             end
@@ -125,6 +139,23 @@ module Views
                 icon: true,
                 disabled: @invoice.state != "sent"
               ) { render Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
+            end
+
+            # Preview button (always active) - opens preview in new tab
+            a(
+              href: view_context.preview_invoice_path(@invoice),
+              target: "_blank",
+              rel: "noopener noreferrer",
+              class: "inline-flex"
+            ) do
+              Button(
+                variant: :outline,
+                size: :md,
+                type: :button,
+                icon: true
+              ) do
+                render Components::Icon.new(name: :eye, size: "12", class: "w-4 h-4")
+              end
             end
 
             # Edit button (only active in draft) - opens full edit dialog

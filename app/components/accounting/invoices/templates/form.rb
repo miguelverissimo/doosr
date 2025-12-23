@@ -10,7 +10,7 @@ module Components
             @action = @is_new_record ? "Create" : "Update"
             super(**attrs)
           end
-          
+
           def view_template
             form_url = if @is_new_record
               view_context.invoice_templates_path
@@ -133,6 +133,66 @@ module Components
                 render RubyUI::FormFieldError.new
               end
 
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new { "Bank Info (Optional)" }
+                select(
+                  name: "invoice_template[bank_info_id]",
+                  id: "invoice_template_bank_info_id",
+                  class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                ) do
+                  option(value: "", selected: @invoice_template.bank_info_id.nil?) { "Select bank info (optional)" }
+                  user.bank_infos.where(kind: :user).each do |bank_info|
+                    option(
+                      value: bank_info.id,
+                      selected: @invoice_template.bank_info_id == bank_info.id
+                    ) { bank_info.name }
+                  end
+                end
+                render RubyUI::FormFieldError.new
+              end
+
+              # Invoice Template Items Section
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new { "Template Items" }
+                div(
+                  class: "space-y-4",
+                  data: {
+                    controller: "invoice-items-form",
+                    invoice_items_form_accounting_items_value: accounting_items_json,
+                    invoice_items_form_tax_brackets_value: tax_brackets_json,
+                    invoice_items_form_currency_value: @invoice_template.currency || "EUR",
+                    invoice_items_form_initial_items_value: initial_template_items_json,
+                    invoice_items_form_form_prefix_value: "invoice_template[invoice_template_items_attributes]"
+                  }
+                ) do
+                  div(
+                    class: "space-y-4",
+                    data: {
+                      invoice_items_form_target: "itemsContainer"
+                    }
+                  ) do
+                    div(
+                      class: "space-y-4",
+                      data: {
+                        invoice_items_form_target: "itemsList"
+                      }
+                    ) do
+                      # Items will be added dynamically by JavaScript
+                    end
+
+                    Button(
+                      type: :button,
+                      variant: :outline,
+                      size: :sm,
+                      data: {
+                        action: "click->invoice-items-form#addItem"
+                      }
+                    ) { "Add Item" }
+                  end
+                end
+                render RubyUI::FormFieldError.new
+              end
+
               render RubyUI::Button.new(variant: :primary, type: :submit) { @action }
             end
           end
@@ -141,6 +201,44 @@ module Components
 
           def user
             @user || view_context.current_user
+          end
+
+          def accounting_items_json
+            user.accounting_items.map do |item|
+              [item.id.to_s, {
+                id: item.id.to_s,
+                name: item.name,
+                reference: item.reference,
+                # price is stored as integer cents, expose in units for the UI
+                price: item.price.to_f / 100.0,
+                unit: item.unit
+              }]
+            end.to_h.to_json
+          end
+
+          def tax_brackets_json
+            user.tax_brackets.map do |bracket|
+              [bracket.id.to_s, {
+                id: bracket.id.to_s,
+                name: bracket.name,
+                percentage: bracket.percentage.to_f
+              }]
+            end.to_h.to_json
+          end
+
+          def initial_template_items_json
+            return [].to_json if @invoice_template.new_record? || @invoice_template.invoice_template_items.empty?
+
+            @invoice_template.invoice_template_items.map do |item|
+              {
+                item_id: item.item_id.to_s,
+                quantity: item.quantity.to_f,
+                discount_rate: item.discount_rate.to_f,
+                tax_bracket_id: item.tax_bracket_id.to_s,
+                description: item.description.to_s,
+                unit: item.unit.to_s
+              }
+            end.to_json
           end
         end
       end

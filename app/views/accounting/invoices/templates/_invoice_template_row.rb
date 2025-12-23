@@ -21,6 +21,12 @@ module Views
                     render_currency_icon
                     div(class: "text-sm font-bold mt-1") { @invoice_template.currency.upcase }
                   end
+                  if @invoice_template.bank_info.present?
+                    div(class: "flex flex-row items-center gap-2") do
+                      render Components::Icon.new(name: :bank, size: "12", class: "w-5 h-5")
+                      div(class: "text-sm font-bold mt-1") { @invoice_template.bank_info.name }
+                    end
+                  end
                 end
                 div(class: "flex flex-row items-center justify-between gap-2") do
                   div(class: "flex flex-row items-center justify-between gap-2") do
