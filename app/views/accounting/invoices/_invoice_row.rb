@@ -77,10 +77,10 @@ module Views
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              data: { turbo_method: :patch },
               class: "inline-flex"
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+              input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "draft")
               Button(
                 variant: :outline,
@@ -95,10 +95,10 @@ module Views
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              data: { turbo_method: :patch },
               class: "inline-flex"
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+              input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "sent")
               Button(
                 variant: :outline,
@@ -113,10 +113,10 @@ module Views
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              data: { turbo_method: :patch },
               class: "inline-flex"
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+              input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "paid")
               Button(
                 variant: :outline,
