@@ -24,6 +24,9 @@ module Views
                 end
                 div(class: "flex flex-row items-center justify-between gap-2") do
                   div(class: "flex flex-row items-center justify-between gap-2") do
+                    # Create invoice from template button
+                    render_create_invoice_dialog
+
                     render RubyUI::Dialog.new do
                       render RubyUI::DialogTrigger.new do
                         Button(variant: :outline, icon: true) do
@@ -160,6 +163,27 @@ module Views
               "text-blue-500"
             when "CAD"
               "text-red-500"
+            end
+          end
+
+          def render_create_invoice_dialog
+            render RubyUI::Dialog.new do
+              render RubyUI::DialogTrigger.new do
+                Button(variant: :primary, icon: true) do
+                  render Components::Icon.new(name: :new_invoice, size: "12", class: "w-5 h-5")
+                end
+              end
+              
+              render RubyUI::DialogContent.new(size: :lg) do
+                render RubyUI::DialogHeader.new do
+                  render RubyUI::DialogTitle.new { "Create Invoice from Template" }
+                  render RubyUI::DialogDescription.new { "Create a new invoice based on #{@invoice_template.name}" }
+                end
+
+                render RubyUI::DialogMiddle.new do
+                  render Components::Accounting::Invoices::FromTemplateForm.new(invoice_template: @invoice_template)
+                end
+              end
             end
           end
         end

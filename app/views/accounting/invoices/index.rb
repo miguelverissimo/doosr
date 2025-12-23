@@ -18,7 +18,7 @@ module Views
               )
               TabsContent(value: "invoices") do
                 div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                  plain "Invoices"
+                  render Views::Accounting::Invoices::List.new(user: view_context.current_user)
                 end
               end
               TabsContent(value: "templates") do

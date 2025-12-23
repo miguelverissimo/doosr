@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_144107) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_23_063846) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -170,6 +170,31 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_144107) do
     t.index ["user_id"], name: "index_fiscal_infos_on_user_id"
   end
 
+  create_table "invoice_items", force: :cascade do |t|
+    t.integer "amount"
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.integer "discount_amount"
+    t.float "discount_rate"
+    t.boolean "display_quantity"
+    t.bigint "invoice_id", null: false
+    t.bigint "item_id", null: false
+    t.float "quantity"
+    t.integer "subtotal"
+    t.integer "tax_amount"
+    t.bigint "tax_bracket_id", null: false
+    t.string "tax_exemption_motive"
+    t.float "tax_rate"
+    t.string "unit"
+    t.integer "unit_price"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["invoice_id"], name: "index_invoice_items_on_invoice_id"
+    t.index ["item_id"], name: "index_invoice_items_on_item_id"
+    t.index ["tax_bracket_id"], name: "index_invoice_items_on_tax_bracket_id"
+    t.index ["user_id"], name: "index_invoice_items_on_user_id"
+  end
+
   create_table "invoice_templates", force: :cascade do |t|
     t.bigint "accounting_logo_id", null: false
     t.datetime "created_at", null: false
@@ -184,6 +209,35 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_144107) do
     t.index ["customer_id"], name: "index_invoice_templates_on_customer_id"
     t.index ["provider_address_id"], name: "index_invoice_templates_on_provider_address_id"
     t.index ["user_id"], name: "index_invoice_templates_on_user_id"
+  end
+
+  create_table "invoices", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "currency", null: false
+    t.bigint "customer_id", null: false
+    t.integer "discount"
+    t.string "display_number", null: false
+    t.datetime "due_at"
+    t.bigint "invoice_template_id"
+    t.datetime "issued_at"
+    t.jsonb "metadata"
+    t.text "notes"
+    t.integer "number", null: false
+    t.bigint "provider_id", null: false
+    t.string "state", default: "draft", null: false
+    t.integer "subtotal"
+    t.integer "tax"
+    t.integer "total"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "year", null: false
+    t.index ["customer_id"], name: "index_invoices_on_customer_id"
+    t.index ["invoice_template_id"], name: "index_invoices_on_invoice_template_id"
+    t.index ["provider_id"], name: "index_invoices_on_provider_id"
+    t.index ["user_id", "display_number"], name: "index_invoices_on_user_id_and_display_number", unique: true
+    t.index ["user_id", "state"], name: "index_invoices_on_user_id_and_state"
+    t.index ["user_id", "year", "number"], name: "index_invoices_on_user_id_and_year_and_number", unique: true
+    t.index ["user_id"], name: "index_invoices_on_user_id"
   end
 
   create_table "items", force: :cascade do |t|
@@ -267,10 +321,18 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_144107) do
   add_foreign_key "days", "users"
   add_foreign_key "fiscal_infos", "addresses"
   add_foreign_key "fiscal_infos", "users"
+  add_foreign_key "invoice_items", "invoices"
+  add_foreign_key "invoice_items", "items"
+  add_foreign_key "invoice_items", "tax_brackets"
+  add_foreign_key "invoice_items", "users"
   add_foreign_key "invoice_templates", "accounting_logos"
   add_foreign_key "invoice_templates", "addresses", column: "provider_address_id"
   add_foreign_key "invoice_templates", "customers"
   add_foreign_key "invoice_templates", "users"
+  add_foreign_key "invoices", "addresses", column: "provider_id"
+  add_foreign_key "invoices", "customers"
+  add_foreign_key "invoices", "invoice_templates"
+  add_foreign_key "invoices", "users"
   add_foreign_key "items", "descendants"
   add_foreign_key "items", "items", column: "recurring_next_item_id", on_delete: :nullify
   add_foreign_key "items", "items", column: "source_item_id", on_delete: :nullify

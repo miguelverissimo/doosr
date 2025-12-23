@@ -162,6 +162,29 @@ class Components::Icon < Components::Base
     when :currency_cad
       svg_element.line(x1: "12", x2: "12", y1: "2", y2: "22")
       svg_element.path(d: "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")
+    when :new_invoice
+      svg_element.path(d: "M15 18h-5")
+      svg_element.path(d: "M18 14h-8")
+      svg_element.path(d: "M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2")
+      svg_element.rect(width: "8", height: "4", x: "10", y: "6", rx: "1")
+    when :draft
+      svg_element.path(d: "M8 2v4")
+      svg_element.path(d: "M12 2v4")
+      svg_element.path(d: "M16 2v4")
+      svg_element.path(d: "M16 4h2a2 2 0 0 1 2 2v2")
+      svg_element.path(d: "M20 12v2")
+      svg_element.path(d: "M20 18v2a2 2 0 0 1-2 2h-1")
+      svg_element.path(d: "M13 22h-2")
+      svg_element.path(d: "M7 22H6a2 2 0 0 1-2-2v-2")
+    when :send
+      svg_element.path(d: "M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z")
+      svg_element.path(d: "m21.854 2.147-10.94 10.939")
+    when :paid
+      svg_element.path(d: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17")
+      svg_element.path(d: "m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9")
+      svg_element.path(d: "m2 16 6 6")
+      svg_element.circle(cx: "16", cy: "9", r: "2.9")
+      svg_element.circle(cx: "6", cy: "5", r: "3")
     else
       # Unknown icon - render nothing or a placeholder
       svg_element.path(d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z")

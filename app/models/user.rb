@@ -20,6 +20,9 @@ class User < ApplicationRecord
   has_many :customers, class_name: "Accounting::Customer", dependent: :destroy
   has_many :accounting_logos, class_name: "Accounting::AccountingLogo", dependent: :destroy
   has_many :invoice_templates, class_name: "Accounting::InvoiceTemplate", dependent: :destroy
+  has_many :invoices, class_name: "Accounting::Invoice", dependent: :destroy
+  has_many :accounting_items, class_name: "Accounting::AccountingItem", dependent: :destroy
+  has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
 
   # Settings defaults
   SETTINGS_DEFAULTS = {

@@ -1,5 +1,7 @@
 module Accounting
   class AccountingItem < ApplicationRecord
+    include MoneyPresentable
+
     belongs_to :user
 
     enum :kind, {
@@ -22,5 +24,7 @@ module Accounting
     validates :kind, presence: true, inclusion: { in: kinds.keys }
     validates :unit, presence: true
     validates :price, presence: true
+
+    money_attribute :price
   end
 end
