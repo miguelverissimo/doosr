@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_25_055650) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_25_122048) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -357,8 +357,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_25_055650) do
   add_foreign_key "days", "users"
   add_foreign_key "fiscal_infos", "addresses"
   add_foreign_key "fiscal_infos", "users"
+  add_foreign_key "invoice_items", "accounting_items", column: "item_id"
   add_foreign_key "invoice_items", "invoices"
-  add_foreign_key "invoice_items", "items"
   add_foreign_key "invoice_items", "tax_brackets"
   add_foreign_key "invoice_items", "users"
   add_foreign_key "invoice_template_items", "accounting_items", column: "item_id"

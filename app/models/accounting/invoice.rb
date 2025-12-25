@@ -29,7 +29,8 @@ module Accounting
     validates :currency, inclusion: { in: currencies.keys }
 
     # Associations
-    has_many :invoice_items, dependent: :destroy
+    has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
+    has_many :items, class_name: "Accounting::AccountingItem", through: :invoice_items, source: :item
 
     money_attribute :subtotal, :discount, :tax, :total
 
