@@ -74,21 +74,14 @@ module Accounting
       end
 
       # Convert to PDF using Grover (Chromium-based, supports modern CSS)
-      grover_options = {
-        content: html_final,
+      # Launch args for production containers are configured in config/initializers/grover.rb
+      pdf = Grover.new(
+        html_final,
         format: 'A4',
         viewport: { width: 1280, height: 1024 },
         print_background: true,
         wait_until: 'networkidle0'  # Wait for all resources (including images) to load
-      }
-      
-      # Add launch args for production (Docker/container environments)
-      # Chromium needs --no-sandbox when running in containers without proper sandbox support
-      if Rails.env.production?
-        grover_options[:args] = ['--no-sandbox', '--disable-setuid-sandbox']
-      end
-      
-      pdf = Grover.new(grover_options).to_pdf
+      ).to_pdf
 
       filename = "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf"
       send_data(pdf, filename: filename, type: 'application/pdf', disposition: 'attachment')
