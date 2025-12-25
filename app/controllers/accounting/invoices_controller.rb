@@ -145,20 +145,76 @@ module Accounting
           interpolated_description =
             InvoiceDescriptionTokens.interpolate_description(raw_description, @invoice)
 
+          # Calculate prices from current accounting_item.price (not from form values)
+          quantity = item_params[:quantity].to_f
+          discount_rate = (item_params[:discount_rate] || 0).to_f
+          unit_price = accounting_item.price # Current price from accounting item
+          subtotal = (quantity * unit_price).round
+          discount_amount = (subtotal * discount_rate / 100.0).round
+          tax_rate = tax_bracket.percentage
+          tax_amount = ((subtotal - discount_amount) * tax_rate / 100.0).round
+          amount = subtotal - discount_amount + tax_amount
+
           @invoice.invoice_items.build(
             user: current_user,
             item: accounting_item,
             tax_bracket: tax_bracket,
             description: interpolated_description,
-            quantity: item_params[:quantity],
+            quantity: quantity,
             unit: item_params[:unit] || accounting_item.unit,
-            unit_price: item_params[:unit_price],
-            subtotal: item_params[:subtotal],
-            discount_rate: item_params[:discount_rate] || 0,
-            discount_amount: item_params[:discount_amount] || 0,
-            tax_rate: tax_bracket.percentage,
-            tax_amount: item_params[:tax_amount] || 0,
-            amount: item_params[:amount]
+            unit_price: unit_price,
+            subtotal: subtotal,
+            discount_rate: discount_rate,
+            discount_amount: discount_amount,
+            tax_rate: tax_rate,
+            tax_amount: tax_amount,
+            amount: amount
+          )
+        end
+      elsif invoice_params[:invoice_template_id].present?
+        # Fallback: build invoice items from template items if no invoice_item_params provided
+        template = current_user.invoice_templates
+          .includes(invoice_template_items: [:item, :tax_bracket])
+          .find(invoice_params[:invoice_template_id])
+        template.invoice_template_items.each do |template_item|
+          accounting_item = template_item.item
+          tax_bracket = template_item.tax_bracket
+
+          next unless accounting_item && tax_bracket
+
+          # Base description comes from the accounting item (tokens live there),
+          # falling back to the accounting item name.
+          raw_description =
+            accounting_item.description.presence ||
+            accounting_item.name
+
+          interpolated_description =
+            InvoiceDescriptionTokens.interpolate_description(raw_description, @invoice)
+
+          # Calculate prices from current accounting_item.price
+          quantity = template_item.quantity.to_f
+          discount_rate = template_item.discount_rate.to_f
+          unit_price = accounting_item.price # Current price from accounting item
+          subtotal = (quantity * unit_price).round
+          discount_amount = (subtotal * discount_rate / 100.0).round
+          tax_rate = tax_bracket.percentage
+          tax_amount = ((subtotal - discount_amount) * tax_rate / 100.0).round
+          amount = subtotal - discount_amount + tax_amount
+
+          @invoice.invoice_items.build(
+            user: current_user,
+            item: accounting_item,
+            tax_bracket: tax_bracket,
+            description: interpolated_description,
+            quantity: quantity,
+            unit: template_item.unit || accounting_item.unit,
+            unit_price: unit_price,
+            subtotal: subtotal,
+            discount_rate: discount_rate,
+            discount_amount: discount_amount,
+            tax_rate: tax_rate,
+            tax_amount: tax_amount,
+            amount: amount
           )
         end
       end
@@ -259,20 +315,30 @@ module Accounting
                 interpolated_description =
                   InvoiceDescriptionTokens.interpolate_description(raw_description, @invoice)
 
+                # Calculate prices from current accounting_item.price (not from form values)
+                quantity = item_params[:quantity].to_f
+                discount_rate = (item_params[:discount_rate] || 0).to_f
+                unit_price = accounting_item.price # Current price from accounting item
+                subtotal = (quantity * unit_price).round
+                discount_amount = (subtotal * discount_rate / 100.0).round
+                tax_rate = tax_bracket.percentage
+                tax_amount = ((subtotal - discount_amount) * tax_rate / 100.0).round
+                amount = subtotal - discount_amount + tax_amount
+
                 @invoice.invoice_items.build(
                   user: current_user,
                   item: accounting_item,
                   tax_bracket: tax_bracket,
                   description: interpolated_description,
-                  quantity: item_params[:quantity],
+                  quantity: quantity,
                   unit: item_params[:unit] || accounting_item.unit,
-                  unit_price: item_params[:unit_price],
-                  subtotal: item_params[:subtotal],
-                  discount_rate: item_params[:discount_rate] || 0,
-                  discount_amount: item_params[:discount_amount] || 0,
-                  tax_rate: tax_bracket.percentage,
-                  tax_amount: item_params[:tax_amount] || 0,
-                  amount: item_params[:amount]
+                  unit_price: unit_price,
+                  subtotal: subtotal,
+                  discount_rate: discount_rate,
+                  discount_amount: discount_amount,
+                  tax_rate: tax_rate,
+                  tax_amount: tax_amount,
+                  amount: amount
                 )
               end
 
