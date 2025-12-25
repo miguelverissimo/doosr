@@ -21,9 +21,24 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 # Rails app lives here
 WORKDIR /rails
 
-# Install base packages
+# Install base packages including Node.js and Chromium dependencies
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client && \
+    apt-get install --no-install-recommends -y \
+      curl \
+      libjemalloc2 \
+      libvips \
+      postgresql-client \
+      gnupg \
+      chromium \
+      fonts-liberation \
+      libnss3 \
+      libatk-bridge2.0-0 \
+      libdrm2 \
+      libxkbcommon0 \
+      libgbm1 \
+      libasound2 && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install --no-install-recommends -y nodejs && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -32,7 +47,8 @@ ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development" \
-    LD_PRELOAD="/usr/local/lib/libjemalloc.so"
+    LD_PRELOAD="/usr/local/lib/libjemalloc.so" \
+    PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium"
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
@@ -53,6 +69,9 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
+# Install Node.js dependencies (Puppeteer for PDF generation)
+RUN npm install
+
 # Precompile bootsnap code for faster boot times.
 # -j 1 disable parallel compilation to avoid a QEMU bug: https://github.com/rails/bootsnap/issues/495
 RUN bundle exec bootsnap precompile -j 1 app/ lib/
@@ -71,7 +90,7 @@ RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
 USER 1000:1000
 
-# Copy built artifacts: gems, application
+# Copy built artifacts: gems, application, node_modules, and Puppeteer cache
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
 

@@ -158,6 +158,26 @@ module Views
               end
             end
 
+            # PDF download button (always active) - downloads PDF
+            div(data: { controller: "pdf-download" }) do
+              a(
+                href: view_context.pdf_invoice_path(@invoice),
+                download: "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf",
+                class: "inline-flex",
+                data: { action: "click->pdf-download#download" }
+              ) do
+                Button(
+                  variant: :outline,
+                  size: :md,
+                  type: :button,
+                  icon: true,
+                  data: { pdf_download_target: "button" }
+                ) do
+                  render Components::Icon.new(name: :download, size: "12", class: "w-4 h-4")
+                end
+              end
+            end
+
             # Edit button (only active in draft) - opens full edit dialog
             render RubyUI::Dialog.new do
               render RubyUI::DialogTrigger.new do

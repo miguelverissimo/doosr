@@ -1,0 +1,8 @@
+{
+  "name": "doosr",
+  "private": true,
+  "dependencies": {
+    "puppeteer": "^24.15.0"
+  }
+}
+

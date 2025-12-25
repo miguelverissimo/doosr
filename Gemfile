@@ -47,6 +47,9 @@ gem "tailwind_merge", "~> 1.3"
 
 gem "openssl", "~> 3.3.2"
 
+# PDF generation
+gem "grover"
+
 # Authentication
 gem "devise", "~> 4.9.1"
 gem "omniauth"

@@ -1,7 +1,7 @@
 module Accounting
   class InvoicesController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_invoice, only: [ :destroy, :preview ]
+    before_action :set_invoice, only: [ :destroy, :preview, :pdf ]
 
     def index
       @invoices = current_user.invoices
@@ -16,6 +16,74 @@ module Accounting
         )
         .find(params[:id])
       render Views::Accounting::Invoices::Preview.new(invoice: @invoice), layout: false
+    end
+
+    def pdf
+      @invoice = current_user.invoices
+        .includes(
+          :provider, :customer, :bank_info,
+          invoice_items: [ :item, :tax_bracket ],
+          invoice_template: [ :accounting_logo ]
+        )
+        .find(params[:id])
+
+      # Render the Phlex component to HTML
+      html = render_to_string(
+        Views::Accounting::Invoices::Preview.new(invoice: @invoice),
+        layout: false
+      )
+
+      # Read and inline the CSS (Grover needs inline styles)
+      css_path = Rails.root.join("app/assets/stylesheets/invoice_preview.css")
+      css_content = File.exist?(css_path) ? File.read(css_path) : ""
+
+      # Remove stylesheet link tag and inline CSS instead
+      html_with_css = html
+        .gsub(/<link[^>]*stylesheet[^>]*>/i, "")
+        .sub("</head>", "<style>#{css_content}</style></head>")
+
+      # Convert Active Storage images to data URIs (base64) for PDF
+      if @invoice.invoice_template&.accounting_logo&.image&.attached?
+        logo = @invoice.invoice_template.accounting_logo
+        begin
+          # Download the image
+          image_data = logo.image.download
+          # Get the content type
+          content_type = logo.image.content_type
+          # Encode to base64
+          base64_image = Base64.strict_encode64(image_data)
+          # Create data URI
+          data_uri = "data:#{content_type};base64,#{base64_image}"
+          
+          # Replace the Active Storage URL with the data URI
+          html_with_css = html_with_css.gsub(
+            /src="[^"]*active_storage[^"]*"/,
+            "src=\"#{data_uri}\""
+          )
+        rescue => e
+          Rails.logger.error "Failed to embed logo: #{e.message}"
+        end
+      end
+
+      # Convert any remaining relative URLs to absolute URLs
+      base_url = "#{request.protocol}#{request.host_with_port}"
+      html_final = html_with_css.gsub(/src="(\/[^"]+)"/) do |match|
+        url = $1
+        full_url = url.start_with?('http') ? url : "#{base_url}#{url}"
+        "src=\"#{full_url}\""
+      end
+
+      # Convert to PDF using Grover (Chromium-based, supports modern CSS)
+      pdf = Grover.new(
+        html_final,
+        format: 'A4',
+        viewport: { width: 1280, height: 1024 },
+        print_background: true,
+        wait_until: 'networkidle0'  # Wait for all resources (including images) to load
+      ).to_pdf
+
+      filename = "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf"
+      send_data(pdf, filename: filename, type: 'application/pdf', disposition: 'attachment')
     end
 
     def create

@@ -39,3 +39,7 @@
 
 # random files
 /docs/invoice_12_dec_2025.*
+
+# Node.js
+/node_modules
+/.cache

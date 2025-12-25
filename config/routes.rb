@@ -135,6 +135,7 @@ Rails.application.routes.draw do
         as: "invoices" do
           member do
             get :preview
+            get :pdf
           end
         end
     end
