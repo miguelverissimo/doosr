@@ -15,7 +15,8 @@ module Components
             class: "space-y-6",
             data: {
               turbo: true,
-              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss",
+              controller: "invoice-date-constraint"
             }
           ) do
             # Hidden fields for Rails
@@ -58,18 +59,26 @@ module Components
                 id: "invoice_issued_at",
                 class: "date-input-icon-light text-primary-foreground",
                 value: Date.today.strftime("%Y-%m-%d"),
-                required: true
+                required: true,
+                data: {
+                  action: "change->invoice-date-constraint#updateDueDateMin"
+                }
               )
               render RubyUI::FormFieldError.new
             end
 
             render RubyUI::FormField.new do
               render RubyUI::FormFieldLabel.new { "Due Date" }
+              issue_date_value = Date.today.strftime("%Y-%m-%d")
               render RubyUI::Input.new(
                 type: :date,
                 name: "invoice[due_at]",
                 id: "invoice_due_at",
-                class: "date-input-icon-light text-primary-foreground"
+                class: "date-input-icon-light text-primary-foreground",
+                min: issue_date_value,
+                data: {
+                  invoice_date_constraint_target: "dueDate"
+                }
               )
               render RubyUI::FormFieldError.new
             end

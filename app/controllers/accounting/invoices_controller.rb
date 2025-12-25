@@ -74,13 +74,20 @@ module Accounting
       end
 
       # Convert to PDF using Grover (Chromium-based, supports modern CSS)
-      pdf = Grover.new(
-        html_final,
+      grover_options = {
         format: 'A4',
         viewport: { width: 1280, height: 1024 },
         print_background: true,
         wait_until: 'networkidle0'  # Wait for all resources (including images) to load
-      ).to_pdf
+      }
+      
+      # Add launch args for production (Docker/container environments)
+      # Chromium needs --no-sandbox when running in containers without proper sandbox support
+      if Rails.env.production?
+        grover_options[:args] = ['--no-sandbox', '--disable-setuid-sandbox']
+      end
+      
+      pdf = Grover.new(html_final, grover_options).to_pdf
 
       filename = "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf"
       send_data(pdf, filename: filename, type: 'application/pdf', disposition: 'attachment')
@@ -107,16 +114,23 @@ module Accounting
       end
 
       # Generate number (sequence per user per year, reset to 1 each year)
-      current_year = Date.today.year
-      @invoice.year = current_year
+      # Use the invoice issue date year if present, otherwise use current year
+      invoice_year = if @invoice.issued_at.present?
+                       # Handle both DateTime objects and date strings
+                       date = @invoice.issued_at.is_a?(String) ? Date.parse(@invoice.issued_at) : @invoice.issued_at.to_date
+                       date.year
+                     else
+                       Date.today.year
+                     end
+      @invoice.year = invoice_year
 
       last_invoice = current_user.invoices
-        .where(year: current_year)
+        .where(year: invoice_year)
         .order(number: :desc)
         .first
 
       @invoice.number = last_invoice ? last_invoice.number + 1 : 1
-      @invoice.display_number = "#{@invoice.number}/#{current_year}"
+      @invoice.display_number = "#{@invoice.number}/#{invoice_year}"
 
       # Build invoice items from nested attributes
       if invoice_item_params.present?
