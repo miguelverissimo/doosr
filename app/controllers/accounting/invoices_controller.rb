@@ -75,6 +75,7 @@ module Accounting
 
       # Convert to PDF using Grover (Chromium-based, supports modern CSS)
       grover_options = {
+        content: html_final,
         format: 'A4',
         viewport: { width: 1280, height: 1024 },
         print_background: true,
@@ -87,7 +88,7 @@ module Accounting
         grover_options[:args] = ['--no-sandbox', '--disable-setuid-sandbox']
       end
       
-      pdf = Grover.new(html_final, grover_options).to_pdf
+      pdf = Grover.new(grover_options).to_pdf
 
       filename = "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf"
       send_data(pdf, filename: filename, type: 'application/pdf', disposition: 'attachment')
