@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_26_120819) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_26_170108) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -332,6 +332,35 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_120819) do
     t.index ["user_id"], name: "index_receipt_items_on_user_id"
   end
 
+  create_table "receipt_receipt_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "gross_value"
+    t.integer "quantity"
+    t.bigint "receipt_id", null: false
+    t.bigint "receipt_item_id", null: false
+    t.float "tax_percentage"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "value_with_tax"
+    t.index ["receipt_id"], name: "index_receipt_receipt_items_on_receipt_id"
+    t.index ["receipt_item_id"], name: "index_receipt_receipt_items_on_receipt_item_id"
+    t.index ["user_id"], name: "index_receipt_receipt_items_on_user_id"
+  end
+
+  create_table "receipts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "invoice_id"
+    t.datetime "issue_date"
+    t.string "kind"
+    t.datetime "payment_date"
+    t.string "reference"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.integer "value"
+    t.index ["invoice_id"], name: "index_receipts_on_invoice_id"
+    t.index ["user_id"], name: "index_receipts_on_user_id"
+  end
+
   create_table "tax_brackets", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "legal_reference"
@@ -400,5 +429,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_120819) do
   add_foreign_key "lists", "users"
   add_foreign_key "receipt_items", "tax_brackets"
   add_foreign_key "receipt_items", "users"
+  add_foreign_key "receipt_receipt_items", "receipt_items"
+  add_foreign_key "receipt_receipt_items", "receipts"
+  add_foreign_key "receipt_receipt_items", "users"
+  add_foreign_key "receipts", "invoices"
+  add_foreign_key "receipts", "users"
   add_foreign_key "tax_brackets", "users"
 end

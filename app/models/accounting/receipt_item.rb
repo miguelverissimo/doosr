@@ -4,6 +4,8 @@ module Accounting
 
     belongs_to :user
     belongs_to :tax_bracket, class_name: "Accounting::TaxBracket"
+    has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
+    has_many :receipts, through: :receipt_receipt_items, source: :receipt, class_name: "Accounting::Receipt"
 
     enum :unit, {
       hour: :hour,

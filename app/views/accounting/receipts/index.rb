@@ -25,7 +25,7 @@ module Views
                       render_receipt_form_dialog
                     end
                   end
-                  # render Views::Accounting::Receipts::List.new(user: view_context.current_user)
+                  render Views::Accounting::Receipts::List.new(user: view_context.current_user)
                 end
               end
 
