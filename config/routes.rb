@@ -138,7 +138,17 @@ Rails.application.routes.draw do
             get :pdf
           end
         end
-    end
+
+      resources :receipts, 
+        path: "receipts",
+        controller: "accounting/receipts",
+        as: "receipts"     
+
+      resources :receipt_items, 
+        path: "receipt_items",
+        controller: "accounting/receipts/receipt_items",
+        as: "receipt_items"
+      end
   end
 
   # Checklists

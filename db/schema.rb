@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_25_122048) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_26_120819) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -315,6 +315,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_25_122048) do
     t.index ["user_id"], name: "index_lists_on_user_id"
   end
 
+  create_table "receipt_items", force: :cascade do |t|
+    t.boolean "active"
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.string "exemption_motive"
+    t.integer "gross_unit_price"
+    t.string "kind"
+    t.string "reference"
+    t.bigint "tax_bracket_id", null: false
+    t.string "unit"
+    t.integer "unit_price_with_tax"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["tax_bracket_id"], name: "index_receipt_items_on_tax_bracket_id"
+    t.index ["user_id"], name: "index_receipt_items_on_user_id"
+  end
+
   create_table "tax_brackets", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "legal_reference"
@@ -381,5 +398,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_25_122048) do
   add_foreign_key "items", "users"
   add_foreign_key "lists", "descendants"
   add_foreign_key "lists", "users"
+  add_foreign_key "receipt_items", "tax_brackets"
+  add_foreign_key "receipt_items", "users"
   add_foreign_key "tax_brackets", "users"
 end

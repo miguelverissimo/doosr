@@ -27,7 +27,7 @@ module Views
             end
             TabsContent(value: "receipts") do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                plain "Receipts"
+                render Views::Accounting::Receipts::Index.new
               end
             end
             TabsContent(value: "customers") do

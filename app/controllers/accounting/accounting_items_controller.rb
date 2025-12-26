@@ -8,7 +8,9 @@ module Accounting
     end
 
     def create
-      @accounting_item = ::Accounting::AccountingItem.new(accounting_item_params)
+      params_hash = accounting_item_params.to_h
+      convert_price_to_cents(params_hash)
+      @accounting_item = ::Accounting::AccountingItem.new(params_hash)
       @accounting_item.user = current_user
 
       respond_to do |format|
@@ -30,7 +32,9 @@ module Accounting
     end
 
     def update
-      if @accounting_item.update(accounting_item_params)
+      params_hash = accounting_item_params.to_h
+      convert_price_to_cents(params_hash)
+      if @accounting_item.update(params_hash)
         render turbo_stream: [
           turbo_stream.update(
             "accounting_items_list",
@@ -73,6 +77,13 @@ module Accounting
 
     def accounting_item_params
       params.require(:accounting_item).permit(:reference, :name, :kind, :description, :unit, :price, :currency, :convert_currency, :detail)
+    end
+
+    def convert_price_to_cents(params_hash)
+      # Convert price from decimal to cents
+      if params_hash[:price].present?
+        params_hash[:price] = (params_hash[:price].to_f * 100).round
+      end
     end
   end
 end

@@ -101,7 +101,7 @@ module Components
                 type: :number,
                 name: "accounting_item[price]",
                 placeholder: "0.00",
-                value: @accounting_item.price&.to_s,
+                value: price_in_units,
                 step: "0.01",
                 required: true
               )
@@ -173,6 +173,13 @@ module Components
               Button(variant: :primary, type: "submit") { @action }
             end
           end
+        end
+
+        private
+
+        def price_in_units
+          return "" if @accounting_item.price.nil?
+          (@accounting_item.price.to_f / 100.0).to_s
         end
       end
     end
