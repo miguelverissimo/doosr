@@ -97,7 +97,8 @@ module Views
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "draft")
               Button(
-                variant: :outline,
+                variant: :tinted,
+                tint: :sky,
                 size: :md,
                 type: :submit,
                 icon: true,
@@ -115,7 +116,8 @@ module Views
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "sent")
               Button(
-                variant: :outline,
+                variant: :tinted,
+                tint: :amber,
                 size: :md,
                 type: :submit,
                 icon: true,
@@ -133,7 +135,8 @@ module Views
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "paid")
               Button(
-                variant: :outline,
+                variant: :tinted,
+                tint: :lime,
                 size: :md,
                 type: :submit,
                 icon: true,
@@ -149,7 +152,8 @@ module Views
               class: "inline-flex"
             ) do
               Button(
-                variant: :outline,
+                variant: :tinted,
+                tint: :cyan,
                 size: :md,
                 type: :button,
                 icon: true
@@ -167,7 +171,8 @@ module Views
                 data: { action: "click->pdf-download#download" }
               ) do
                 Button(
-                  variant: :outline,
+                  variant: :tinted,
+                  tint: :fuchsia,
                   size: :md,
                   type: :button,
                   icon: true,
