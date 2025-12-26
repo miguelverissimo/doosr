@@ -57,25 +57,42 @@ module Accounting
       end
 
       def destroy
-        @tax_bracket.destroy
-        
-        respond_to do |format|
-          format.turbo_stream do
-            render turbo_stream: turbo_stream.update(
-              "tax_brackets_list",
-              Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
-            )
+        if @tax_bracket.destroy
+          respond_to do |format|
+            format.turbo_stream do
+              render turbo_stream: [
+                turbo_stream.append("body", "<div data-controller='auto-exec' data-auto-exec-code-value=\"document.querySelector('[data-state=\\\"open\\\"][role=\\\"alertdialog\\\"]')?.querySelector('[data-radix-collection-item]')?.click();\"></div>"),
+                turbo_stream.update("tax_brackets_list", Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user))
+              ]
+            end
+            format.html { redirect_to accounting_index_path, notice: "Tax bracket deleted successfully." }
           end
-          format.html { redirect_to accounting_index_path, notice: "Tax bracket deleted successfully." }
+        else
+          message = "Cannot delete tax bracket: it is still being used by invoices or receipt items"
+
+          respond_to do |format|
+            format.turbo_stream do
+              response.headers["X-Error-Message"] = message
+              head :ok
+            end
+            format.html { redirect_to accounting_index_path, alert: message }
+          end
         end
       end
 
       private
 
       def set_tax_bracket
-        @tax_bracket = ::Accounting::TaxBracket.find(user: current_user, id: params[:id])
-        unless @tax_bracket
-          redirect_to accounting_index_path, alert: "Tax bracket not found"
+        @tax_bracket = current_user.tax_brackets.find(params[:id])
+      rescue ActiveRecord::RecordNotFound
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.append(
+              "body",
+              "<script>window.toast && window.toast('Tax bracket not found', { type: 'error' })</script>"
+            )
+          end
+          format.html { redirect_to accounting_index_path, alert: "Tax bracket not found" }
         end
       end
 

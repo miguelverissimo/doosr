@@ -29,6 +29,22 @@ export default class extends Controller {
     }
   }
 
+  handleResponse(e) {
+    const response = e.detail.fetchResponse?.response
+    if (response) {
+      const errorMessage = response.headers.get("X-Error-Message")
+      if (errorMessage) {
+        // Immediately dismiss loading toast
+        if (window.toast && window.toast.dismiss && this.loadingToastId) {
+          window.toast.dismiss(this.loadingToastId)
+          this.loadingToastId = null
+        }
+        // Show error toast
+        window.toast && window.toast(errorMessage, { type: "error" })
+      }
+    }
+  }
+
   disconnect() {
     // Clean up event listeners
     this.element.removeEventListener("submit", this.handleSubmit.bind(this))

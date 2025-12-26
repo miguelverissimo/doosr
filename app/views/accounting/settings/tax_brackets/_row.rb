@@ -70,9 +70,10 @@ module Views
                   form(
                     action: view_context.settings_tax_bracket_path(@tax_bracket),
                     method: "post",
-                    data: { 
+                    data: {
+                      controller: "form-loading",
                       turbo_method: :delete,
-                      action: "submit@document->ruby-ui--alert-dialog#dismiss"
+                      action: "turbo:submit-end->ruby-ui--alert-dialog#dismiss turbo:submit-end->form-loading#handleResponse"
                     },
                     class: "inline",
                     id: "delete_tax_bracket_#{@tax_bracket.id}"

@@ -5,7 +5,8 @@ class AddDefaultReceiptItems < ActiveRecord::Migration[8.1]
       # Find or get the user's first tax bracket (or create a default one)
       tax_bracket = user.tax_brackets.find_by(name: "Exempt") || user.tax_brackets.create!(
         name: "Exempt",
-        percentage: 0
+        percentage: 0,
+        legal_reference: "a) IVA - autoliquidação - Artigo 6.º n.º 6 alínea a) do CIVA, a contrário"
       )
       
       # Create the 3 default receipt items
