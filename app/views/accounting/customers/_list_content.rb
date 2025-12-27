@@ -4,7 +4,7 @@ module Views
       class ListContent < Views::Base
         def initialize(user:, **attrs)
           @user = user
-          @customers = ::Accounting::Customer.where(user: @user)
+          @customers = ::Accounting::Customer.where(user: @user).includes(:address)
           super(**attrs)
         end
 

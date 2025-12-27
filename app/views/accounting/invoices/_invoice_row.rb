@@ -2,14 +2,17 @@ module Views
   module Accounting
     module Invoices
       class InvoiceRow < Views::Base
-        def initialize(invoice:)
+        def initialize(invoice:, receipt_items: {}, available_invoices: [])
           @invoice = invoice
+          @receipt_items = receipt_items
+          @available_invoices = available_invoices
         end
 
         def view_template
           div(
             id: "invoice_#{@invoice.id}_div", 
-            class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50"
+            class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50",
+            data: { controller: "mark-invoice-paid" }
           ) do
             div(class: "flex flex-col gap-2") do
               div(class: "flex flex-row items-center justify-between w-full gap-2") do
@@ -27,10 +30,12 @@ module Views
                 div(class: "flex flex-row items-center gap-2") do
                   render Components::Icon.new(name: :due_date, size: "12", class: "w-5 h-5")
                   div(class: "text-sm font-bold") { @invoice.due_at.strftime("%d/%m/%Y") }
-                  if @invoice.overdue?
-                    render RubyUI::Badge.new(variant: :red, size: :md) { "Overdue for #{@invoice.days_until_due}" }
-                  elsif @invoice.days_until_due
-                    render RubyUI::Badge.new(variant: :lime, size: :md) { "Due #{@invoice.days_until_due}" }
+                  if @invoice.state != "paid"
+                    if @invoice.overdue?
+                      render RubyUI::Badge.new(variant: :red, size: :md) { "Overdue for #{@invoice.days_until_due}" }
+                    elsif @invoice.days_until_due
+                      render RubyUI::Badge.new(variant: :lime, size: :md) { "Due #{@invoice.days_until_due}" }
+                    end
                   end
                 end
               end
@@ -91,7 +96,12 @@ module Views
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              class: "inline-flex"
+              class: "inline-flex",
+              data: {
+                controller: "invoice-state",
+                invoice_state_state_value: "draft",
+                action: "submit->invoice-state#submit"
+              }
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
@@ -110,7 +120,12 @@ module Views
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              class: "inline-flex"
+              class: "inline-flex",
+              data: {
+                controller: "invoice-state",
+                invoice_state_state_value: "sent",
+                action: "submit->invoice-state#submit"
+              }
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
@@ -125,11 +140,12 @@ module Views
               ) { render Components::Icon.new(name: :send, size: "12", class: "w-4 h-4") }
             end
 
-            # Mark as paid (only if currently sent)
+            # Mark as paid (only if currently sent) - with receipt prompt
             form(
               action: view_context.invoice_path(@invoice),
               method: "post",
-              class: "inline-flex"
+              class: "inline-flex",
+              data: { action: "submit->mark-invoice-paid#submit" }
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
@@ -243,6 +259,122 @@ module Views
                     render RubyUI::AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
                   end
                 end
+              end
+            end
+
+            # Receipt prompt dialogs (hidden, shown via Stimulus)
+            render_receipt_prompt_dialogs
+          end
+        end
+
+        def render_receipt_prompt_dialogs
+          # Alert dialog asking if user wants to add a receipt
+          render RubyUI::AlertDialog.new(
+            data: { mark_invoice_paid_target: "alertDialog" }
+          ) do
+            render RubyUI::AlertDialogContent.new do
+              render RubyUI::AlertDialogHeader.new do
+                render RubyUI::AlertDialogTitle.new { "Add Receipt?" }
+                render RubyUI::AlertDialogDescription.new do
+                  "Would you like to create a receipt for this payment?"
+                end
+              end
+
+              render RubyUI::AlertDialogFooter.new(class: "mt-4 flex flex-row justify-end gap-3") do
+                render RubyUI::AlertDialogCancel.new(
+                  data: { action: "click->mark-invoice-paid#cancelReceipt" }
+                ) { "Cancel" }
+                render RubyUI::AlertDialogAction.new(
+                  data: { action: "click->mark-invoice-paid#confirmReceipt" }
+                ) { "Yes, Add Receipt" }
+              end
+            end
+          end
+
+          # Choice dialog for selecting form type
+          render RubyUI::Dialog.new(
+            data: { mark_invoice_paid_target: "choiceDialog" }
+          ) do
+            render RubyUI::DialogContent.new(size: :md) do
+              render RubyUI::DialogHeader.new do
+                render RubyUI::DialogTitle.new { "Choose Receipt Form" }
+                render RubyUI::DialogDescription.new do
+                  "How would you like to create the receipt?"
+                end
+              end
+
+              render RubyUI::DialogMiddle.new do
+                div(class: "flex flex-col gap-3") do
+                  Button(
+                    variant: :primary,
+                    type: :button,
+                    class: "w-full",
+                    data: { 
+                      action: "click->mark-invoice-paid#openCalculatorForm",
+                      receipt_choice: "calculator"
+                    }
+                  ) { "With Calculator" }
+                  Button(
+                    variant: :outline,
+                    type: :button,
+                    class: "w-full",
+                    data: { 
+                      action: "click->mark-invoice-paid#openSimpleForm",
+                      receipt_choice: "simple"
+                    }
+                  ) { "Simple Form" }
+                end
+              end
+
+              render RubyUI::DialogFooter.new do
+                Button(
+                  variant: :outline,
+                  type: :button,
+                  data: { 
+                    action: "click->mark-invoice-paid#cancelChoice",
+                    receipt_choice: "cancel"
+                  }
+                ) { "Cancel" }
+              end
+            end
+          end
+
+          # Calculator form dialog
+          render RubyUI::Dialog.new(
+            data: { mark_invoice_paid_target: "calculatorDialog" }
+          ) do
+            render RubyUI::DialogContent.new(size: :lg) do
+              render RubyUI::DialogHeader.new do
+                render RubyUI::DialogTitle.new { "Add Receipt with Calculator" }
+                render RubyUI::DialogDescription.new { "Create a new receipt using the calculator" }
+              end
+
+              render RubyUI::DialogMiddle.new do
+                render Components::Accounting::Receipts::FormWithCalculator.new(
+                  invoice: @invoice,
+                  receipt_items: @receipt_items,
+                  available_invoices: @available_invoices
+                )
+              end
+            end
+          end
+
+          # Simple form dialog
+          render RubyUI::Dialog.new(
+            data: { mark_invoice_paid_target: "simpleDialog" }
+          ) do
+            render RubyUI::DialogContent.new(size: :lg) do
+              render RubyUI::DialogHeader.new do
+                render RubyUI::DialogTitle.new { "Add Receipt" }
+                render RubyUI::DialogDescription.new { "Create a new receipt" }
+              end
+
+              render RubyUI::DialogMiddle.new do
+                render Components::Accounting::Receipts::Form.new(
+                  invoice: @invoice,
+                  receipt_items: @receipt_items,
+                  available_invoices: @available_invoices
+                )
               end
             end
           end

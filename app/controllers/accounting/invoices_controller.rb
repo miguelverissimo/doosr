@@ -269,17 +269,24 @@ module Accounting
         if new_state.present?
           # Simple state transition update
           if Accounting::Invoice.states.key?(new_state) && @invoice.update(state: new_state)
+            state_messages = {
+              'draft' => 'Invoice marked as draft',
+              'sent' => 'Invoice marked as sent',
+              'paid' => 'Invoice marked as paid'
+            }
+            message = state_messages[new_state] || 'Invoice updated successfully'
+            
             format.turbo_stream do
               render turbo_stream: [
                 turbo_stream.update("invoices_list", Views::Accounting::Invoices::ListContent.new(user: current_user)),
-                turbo_stream.append("body", "<script>window.toast && window.toast('Invoice updated successfully', { type: 'success' });</script>")
+                turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'success' });</script>")
               ]
             end
-            format.html { redirect_to accounting_index_path, notice: "Invoice updated successfully." }
+            format.html { redirect_to accounting_index_path, notice: message }
           else
             format.turbo_stream do
-              message = "Failed to update invoice: invalid state"
-              render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'error' });</script>")
+              error_message = @invoice.errors.full_messages.any? ? @invoice.errors.full_messages.join(', ') : "Failed to update invoice: invalid state"
+              render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('#{error_message}', { type: 'error' });</script>")
             end
             format.html { redirect_to accounting_index_path, alert: "Failed to update invoice" }
           end

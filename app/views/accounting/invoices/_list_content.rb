@@ -4,7 +4,22 @@ module Views
       class ListContent < Views::Base
         def initialize(user:, **attrs)
           @user = user
-          @invoices = user.invoices.order(year: :desc, number: :desc)
+          @invoices = user.invoices.includes(:invoice_items, :items).order(year: :desc, number: :desc)
+
+          # Query receipt items once for all forms
+          @receipt_items = {
+            manev_h: user.receipt_items.find_by(reference: "OUT - MANEV-H"),
+            manev_on_call: user.receipt_items.find_by(reference: "OUT - MANEV-ON-CALL"),
+            token: user.receipt_items.find_by(reference: "OUT - TOKEN")
+          }
+
+          # Query available invoices once for all forms
+          @available_invoices = user.invoices
+            .where(state: :paid)
+            .where.not(id: ::Accounting::Receipt.where.not(invoice_id: nil).select(:invoice_id))
+            .order(year: :desc, number: :desc)
+            .to_a
+
           super(**attrs)
         end
 
@@ -16,7 +31,11 @@ module Views
           else
             @invoices.each do |invoice|
               div(id: "invoice_#{invoice.id}_div", class: "mt-2") do
-                render Views::Accounting::Invoices::InvoiceRow.new(invoice: invoice)
+                render Views::Accounting::Invoices::InvoiceRow.new(
+                  invoice: invoice,
+                  receipt_items: @receipt_items,
+                  available_invoices: @available_invoices
+                )
               end
             end
           end

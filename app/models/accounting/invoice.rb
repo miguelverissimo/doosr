@@ -7,6 +7,8 @@ module Accounting
     belongs_to :customer, class_name: "Accounting::Customer"
     belongs_to :provider, class_name: "Address"
     belongs_to :bank_info, optional: true, class_name: "Accounting::BankInfo"
+    has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
+    has_many :items, class_name: "Accounting::AccountingItem", through: :invoice_items, source: :item
 
     enum :state, {
       draft: :draft,

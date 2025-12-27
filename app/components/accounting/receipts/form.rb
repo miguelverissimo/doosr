@@ -2,10 +2,13 @@ module Components
   module Accounting
     module Receipts
       class Form < Components::Base
-        def initialize(receipt: nil)
+        def initialize(receipt: nil, invoice: nil, receipt_items: nil, available_invoices: nil)
           @receipt = receipt || ::Accounting::Receipt.new
+          @invoice = invoice
           @is_new_record = @receipt.new_record?
           @action = @is_new_record ? "Create" : "Update"
+          @receipt_items_passed = receipt_items
+          @available_invoices_passed = available_invoices
           super(**attrs)
         end
 
@@ -16,19 +19,35 @@ module Components
             view_context.receipt_path(@receipt)
           end
 
-          # Query ReceiptItems by reference
+          # Query or use passed receipt items
           user = view_context.current_user
-          manev_h_item = user&.receipt_items&.find_by(reference: "OUT - MANEV-H")
-          manev_on_call_item = user&.receipt_items&.find_by(reference: "OUT - MANEV-ON-CALL")
-          token_item = user&.receipt_items&.find_by(reference: "OUT - TOKEN")
+          if @receipt_items_passed.present?
+            manev_h_item = @receipt_items_passed[:manev_h]
+            manev_on_call_item = @receipt_items_passed[:manev_on_call]
+            token_item = @receipt_items_passed[:token]
+          else
+            manev_h_item = user&.receipt_items&.find_by(reference: "OUT - MANEV-H")
+            manev_on_call_item = user&.receipt_items&.find_by(reference: "OUT - MANEV-ON-CALL")
+            token_item = user&.receipt_items&.find_by(reference: "OUT - TOKEN")
+          end
 
-          # Query available invoices (paid, no receipt attached)
-          # Include current receipt's invoice if editing
-          available_invoices = if user
+          # Query or use passed available invoices
+          available_invoices = if @available_invoices_passed.present?
+            if @invoice.present?
+              (@available_invoices_passed + [@invoice]).uniq
+            else
+              @available_invoices_passed
+            end
+          elsif user
             invoices_query = user.invoices.where(state: :paid)
-            
-            # Exclude invoices that already have receipts, unless it's the current receipt's invoice
-            if @receipt&.invoice_id.present?
+
+            if @invoice.present?
+              invoices_query = invoices_query.where(
+                "id = ? OR (id NOT IN (?))",
+                @invoice.id,
+                ::Accounting::Receipt.where.not(invoice_id: nil).select(:invoice_id)
+              )
+            elsif @receipt&.invoice_id.present?
               invoices_query = invoices_query.where(
                 "id NOT IN (?) OR id = ?",
                 ::Accounting::Receipt.where.not(invoice_id: nil).where.not(id: @receipt.id).select(:invoice_id),
@@ -39,7 +58,7 @@ module Components
                 id: ::Accounting::Receipt.where.not(invoice_id: nil).select(:invoice_id)
               )
             end
-            
+
             invoices_query.order(year: :desc, number: :desc)
           else
             []
@@ -175,13 +194,13 @@ module Components
                 select(
                   name: "receipt[invoice_id]",
                   class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  disabled: available_invoices.empty?
+                  disabled: @invoice.present? || available_invoices.empty?
                 ) do
-                  option(value: "", selected: @receipt&.invoice_id.nil?) { "None" }
+                  option(value: "", selected: @receipt&.invoice_id.nil? && @invoice.nil?) { "None" }
                   available_invoices.each do |invoice|
                     option(
                       value: invoice.id,
-                      selected: @receipt&.invoice_id == invoice.id
+                      selected: (@receipt&.invoice_id == invoice.id) || (@invoice&.id == invoice.id)
                     ) { invoice.display_number }
                   end
                 end
