@@ -10,7 +10,7 @@ class ::Components::Base < Phlex::HTML
 
   def initialize(**user_attrs)
     @attrs = user_attrs || {}
-    super
+    super()
   end
 
   # CSRF helper usable inside Phlex components (e.g. Forms built with RubyUI::Form)

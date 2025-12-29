@@ -68,6 +68,7 @@ module Components
           render RubyUI::Form.new(
             action: form_url,
             method: "post",
+            enctype: "multipart/form-data",
             class: "space-y-6",
             data: {
               turbo: true,
@@ -272,6 +273,26 @@ module Components
                   value: (@receipt&.payment_date || Date.today).strftime("%Y-%m-%d"),
                   required: true
                 )
+                render RubyUI::FormFieldError.new
+              end
+
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new { "Document (PDF)" }
+                if @receipt&.document&.attached?
+                  div(class: "mb-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md") do
+                    p(class: "text-sm text-yellow-800 dark:text-yellow-200") do
+                      plain "Current file: "
+                      strong { @receipt.document.filename.to_s }
+                      plain " - Uploading a new file will replace this one."
+                    end
+                  end
+                end
+                render RubyUI::Input.new(
+                  type: :file,
+                  name: "receipt[document]",
+                  accept: "application/pdf"
+                )
+                p(class: "text-sm text-muted-foreground mt-1") { "Upload a PDF document (max 10MB)" }
                 render RubyUI::FormFieldError.new
               end
 

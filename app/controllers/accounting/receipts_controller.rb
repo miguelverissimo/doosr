@@ -248,7 +248,7 @@ module Accounting
     end
 
     def receipt_params
-      params.require(:receipt).permit(:reference, :kind, :issue_date, :payment_date, :value, :invoice_id, :payment_type)
+      params.require(:receipt).permit(:reference, :kind, :issue_date, :payment_date, :value, :invoice_id, :payment_type, :document)
     end
   end
 end

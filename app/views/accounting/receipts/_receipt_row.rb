@@ -24,6 +24,7 @@ module Views
                 render ::Components::Icon.new(name: :payment_date, size: "12", class: "w-5 h-5")
                 div(class: "text-sm") { @receipt.payment_date.strftime("%d/%m/%Y") }
               end
+              render_file_link
             end
             div(class: "flex flex-row items-start gap-2") do
               render_items_table
@@ -31,6 +32,20 @@ module Views
             div(class: "flex flex-row items-center justify-between gap-2") do
               render_payment_type_badge
               render_buttons
+            end
+          end
+        end
+
+        def render_file_link
+          if @receipt.document.attached?
+            render ::Components::BadgeWithIcon.new(icon: :file, variant: :lime, size: :md) do
+              a(href: view_context.url_for(@receipt.document), target: "_blank", rel: "noopener noreferrer") do
+                plain(@receipt.document.filename.to_s)
+              end
+            end
+          else
+            render ::Components::BadgeWithIcon.new(icon: :no_file, variant: :red, size: :md) do
+              plain(" No file attached")
             end
           end
         end

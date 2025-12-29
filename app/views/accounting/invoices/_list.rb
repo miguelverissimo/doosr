@@ -11,7 +11,7 @@ module Views
             div(class: "flex flex-col gap-4", id: "invoices_filter_section", data: { controller: "invoice-filter" }) do
               # Filter buttons
               div(class: "flex gap-2") do
-                BadgeLink(
+                render ::Components::BadgeLink.new(
                   href: view_context.invoices_path(filter: "unpaid"),
                   variant: :sky,
                   active: @filter == "unpaid",
@@ -22,7 +22,7 @@ module Views
                   id: "filter_unpaid"
                 ) { "Unpaid" }
 
-                BadgeLink(
+                render ::Components::BadgeLink.new(
                   href: view_context.invoices_path(filter: "paid"),
                   variant: :lime,
                   active: @filter == "paid",
@@ -33,7 +33,7 @@ module Views
                   id: "filter_paid"
                 ) { "Paid" }
 
-                BadgeLink(
+                render ::Components::BadgeLink.new(
                   href: view_context.invoices_path(filter: "all"),
                   variant: :rose,
                   active: @filter == "all",

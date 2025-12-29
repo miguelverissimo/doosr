@@ -7,6 +7,8 @@ module Accounting
     has_many :items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
     has_many :receipt_items, through: :items, source: :receipt_item, class_name: "Accounting::ReceiptItem"
 
+    has_one_attached :document
+
     enum :kind, {
       receipt: :receipt,
       invoice_receipt: :invoice_receipt
@@ -27,6 +29,22 @@ module Accounting
     validates :payment_date, presence: true
     validates :value, presence: true
 
+    validate :document_validation, if: -> { document.attached? }
+
     money_attribute :value
+
+    private
+
+    def document_validation
+      if document.attached?
+        unless document.content_type == "application/pdf"
+          errors.add(:document, "must be a PDF")
+        end
+
+        if document.byte_size > 10.megabytes
+          errors.add(:document, "must be less than 10MB")
+        end
+      end
+    end
   end
 end

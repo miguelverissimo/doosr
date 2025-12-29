@@ -22,6 +22,15 @@ export default class extends Controller {
       const date = new Date(selectedDate)
       const formattedDate = date.toISOString().split('T')[0]
 
+      // Show loading spinner
+      const navLoader = document.querySelector('[data-controller~="nav-loader"]')
+      if (navLoader) {
+        const controller = this.application.getControllerForElementAndIdentifier(navLoader, "nav-loader")
+        if (controller) {
+          controller.show()
+        }
+      }
+
       // Navigate to the day view for this date using Turbo
       const url = `/day?date=${formattedDate}`
       window.Turbo.visit(url)

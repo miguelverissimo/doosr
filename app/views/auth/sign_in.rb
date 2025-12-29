@@ -24,8 +24,7 @@ module Views
               method: "post",
               class: "space-y-4 rounded-xl border bg-card p-6 shadow-sm",
               data: {
-                controller: "auth-form",
-                action: "turbo:submit-start->auth-form#showLoading turbo:submit-end->auth-form#hideLoading"
+                turbo: "false"
               }
             ) do
               csrf_token_field

@@ -35,7 +35,11 @@ class ::Components::AppSidebar < ::Components::Base
         elsif is_well_page || is_lists_page || is_accounting_page || is_checklists_page
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
-              SidebarMenuButton(as: :a, href: authenticated_root_path) do
+              SidebarMenuButton(
+                as: :a,
+                href: authenticated_root_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
                 render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
                 span(class: "group-data-[collapsible=icon]:hidden") { "Today" }
               end
@@ -53,13 +57,21 @@ class ::Components::AppSidebar < ::Components::Base
             end
           end
           SidebarMenuItem do
-            SidebarMenuButton(as: :a, href: view_context.lists_path) do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.lists_path,
+              data: { action: "click->nav-loader#show" }
+            ) do
               render ::Components::Icon.new(name: :list, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
           SidebarMenuItem do
-            SidebarMenuButton(as: :a, href: view_context.checklists_path) do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.checklists_path,
+              data: { action: "click->nav-loader#show" }
+            ) do
               render ::Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
             end
@@ -68,7 +80,11 @@ class ::Components::AppSidebar < ::Components::Base
 
         SidebarMenu do
           SidebarMenuItem do
-            SidebarMenuButton(as: :a, href: view_context.accounting_index_path) do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.accounting_index_path,
+              data: { action: "click->nav-loader#show" }
+            ) do
               render ::Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
             end
@@ -216,7 +232,8 @@ class ::Components::AppSidebar < ::Components::Base
       div(class: "mt-2") do
         a(
           href: day_path(date: Date.today.to_s),
-          class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+          class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+          data: { action: "click->nav-loader#show" }
         ) do
           render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
           span { "Today" }
