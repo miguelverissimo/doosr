@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Settings
-      class Index < Views::Base
+      class Index < ::Views::Base
         def initialize
         end
 
@@ -18,7 +18,7 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Tax Bracket" }
                   end
                 end
-                render Views::Accounting::Settings::TaxBrackets::List.new(user: view_context.current_user)
+                render ::Views::Accounting::Settings::TaxBrackets::List.new(user: view_context.current_user)
                 render_tax_bracket_form_dialog
               end
             end
@@ -32,7 +32,7 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Address" }
                   end
                 end
-                render Views::Accounting::Settings::UserAddresses::List.new(user: view_context.current_user)
+                render ::Views::Accounting::Settings::UserAddresses::List.new(user: view_context.current_user)
                 render_address_form_dialog
               end
             end
@@ -46,7 +46,7 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Logo" }
                   end
                 end
-                render Views::Accounting::Settings::Logos::List.new(user: view_context.current_user)
+                render ::Views::Accounting::Settings::Logos::List.new(user: view_context.current_user)
                 render_logo_form_dialog
               end
             end
@@ -60,7 +60,7 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Bank Info" }
                   end
                 end
-                render Views::Accounting::Settings::BankInfos::List.new(user: view_context.current_user)
+                render ::Views::Accounting::Settings::BankInfos::List.new(user: view_context.current_user)
                 render_bank_info_form_dialog
               end
             end
@@ -74,7 +74,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Settings::TaxBrackets::Form.new(tax_bracket: tax_bracket)
+              render ::Components::Accounting::Settings::TaxBrackets::Form.new(tax_bracket: tax_bracket)
             end
           end
         end
@@ -86,7 +86,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Settings::Addresses::Form.new(address: address)
+              render ::Components::Accounting::Settings::Addresses::Form.new(address: address)
             end
           end
         end
@@ -98,7 +98,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Settings::Logos::Form.new(accounting_logo: accounting_logo)
+              render ::Components::Accounting::Settings::Logos::Form.new(accounting_logo: accounting_logo)
             end
           end
         end
@@ -110,7 +110,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Settings::BankInfos::Form.new(bank_info: bank_info)
+              render ::Components::Accounting::Settings::BankInfos::Form.new(bank_info: bank_info)
             end
           end
         end

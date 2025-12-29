@@ -2,7 +2,7 @@ module Views
   module Accounting
     module Settings
       module UserAddresses
-        class AddressRow < Views::Base
+        class AddressRow < ::Views::Base
           def initialize(address:)
             @address = address
           end
@@ -48,7 +48,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                        render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                       end
                     end
                     render_edit_dialog
@@ -67,7 +67,7 @@ module Views
                     input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
                     input(type: :hidden, name: "_method", value: "patch")
                     Button(variant: :secondary, icon: true, type: "submit") do
-                      render Components::Icon.new(name: :check, size: "12", class: "w-5 h-5")
+                      render ::Components::Icon.new(name: :check, size: "12", class: "w-5 h-5")
                     end
                   end
 
@@ -96,7 +96,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Settings::Addresses::Form.new(address: @address)
+                render ::Components::Accounting::Settings::Addresses::Form.new(address: @address)
               end
             end
           end
@@ -105,7 +105,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
               

@@ -2,7 +2,7 @@
 
 module Views
   module Auth
-    class SignUp < Views::Base
+    class SignUp < ::Views::Base
       def initialize(resource:, resource_name:, minimum_password_length:)
         @resource = resource
         @resource_name = resource_name

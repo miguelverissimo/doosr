@@ -17,7 +17,7 @@ class ReusableItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "item_form_errors",
-            Views::Items::Errors.new(item: @item)
+            ::Views::Items::Errors.new(item: @item)
           )
         end
         format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
@@ -55,7 +55,7 @@ class ReusableItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "item_form_errors",
-            Views::Items::Errors.new(item: @item)
+            ::Views::Items::Errors.new(item: @item)
           )
         end
         format.html { redirect_back(fallback_location: root_path, alert: "Failed to create item") }
@@ -90,7 +90,7 @@ class ReusableItemsController < ApplicationController
         if params[:from_edit_form] == "true"
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            Views::Items::ActionsSheetContent.new(
+            ::Views::Items::ActionsSheetContent.new(
               item: @item,
               day: nil,
               list: @list,
@@ -103,7 +103,7 @@ class ReusableItemsController < ApplicationController
         else
           # Coming from clicking item - append to body to open drawer
           component_html = render_to_string(
-            Views::Items::ActionsSheet.new(
+            ::Views::Items::ActionsSheet.new(
               item: @item,
               day: nil,
               list: @list,
@@ -127,7 +127,7 @@ class ReusableItemsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          Views::Items::EditForm.new(item: @item, list: @list, day: nil)
+          ::Views::Items::EditForm.new(item: @item, list: @list, day: nil)
         )
       end
     end
@@ -158,7 +158,7 @@ class ReusableItemsController < ApplicationController
         streams = []
 
         # Stream 1: Update the item in the list view
-        streams << turbo_stream.replace("item_#{@item.id}", Views::Items::Item.new(item: @item, day: nil, list: @list))
+        streams << turbo_stream.replace("item_#{@item.id}", ::Views::Items::Item.new(item: @item, day: nil, list: @list))
 
         # Stream 2: Update action sheet buttons if drawer is open
         # Recalculate position for move buttons
@@ -174,7 +174,7 @@ class ReusableItemsController < ApplicationController
 
           # Choose the appropriate buttons component based on context
           buttons_component = if is_public_list
-            Views::Items::ActionsSheetButtonsListPublic.new(
+            ::Views::Items::ActionsSheetButtonsListPublic.new(
               item: @item,
               list: @list,
               item_index: item_index,
@@ -182,7 +182,7 @@ class ReusableItemsController < ApplicationController
               is_editable: is_editable
             )
           else
-            Views::Items::ActionsSheetButtonsListOwner.new(
+            ::Views::Items::ActionsSheetButtonsListOwner.new(
               item: @item,
               list: @list,
               item_index: item_index,
@@ -251,7 +251,7 @@ class ReusableItemsController < ApplicationController
 
         streams << turbo_stream.replace(
           "action_sheet_buttons_#{@item.id}",
-          Views::Items::ActionsSheetButtonsListOwner.new(
+          ::Views::Items::ActionsSheetButtonsListOwner.new(
             item: @item,
             list: @list,
             item_index: item_index,
@@ -281,7 +281,7 @@ class ReusableItemsController < ApplicationController
           format.turbo_stream do
             render turbo_stream: turbo_stream.update(
               "item_#{@item.id}_errors",
-              Views::Items::Errors.new(item: @item)
+              ::Views::Items::Errors.new(item: @item)
             )
           end
           format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
@@ -312,7 +312,7 @@ class ReusableItemsController < ApplicationController
             streams = [
               turbo_stream.replace(
                 "sheet_content_area",
-                Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContent.new(
                   item: @item,
                   day: nil,
                   list: @list,
@@ -366,7 +366,7 @@ class ReusableItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "item_#{@item.id}_errors",
-            Views::Items::Errors.new(item: @item)
+            ::Views::Items::Errors.new(item: @item)
           )
         end
         format.html { redirect_back(fallback_location: root_path, alert: "Failed to update item") }
@@ -384,7 +384,7 @@ class ReusableItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            Views::Items::DeleteConfirmation.new(
+            ::Views::Items::DeleteConfirmation.new(
               item: @item,
               day: nil,
               list: @list

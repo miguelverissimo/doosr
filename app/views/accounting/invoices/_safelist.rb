@@ -7,7 +7,7 @@
 module Views
   module Accounting
     module Invoices
-      class Safelist < Views::Base
+      class Safelist < ::Views::Base
         def view_template
           # These classes are dynamically generated in InvoiceRow#row_color and InvoiceRow#currency_color
           # They need to be present here so Tailwind's scanner includes them in the bundle

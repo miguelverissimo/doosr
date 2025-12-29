@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class DebugSheet < Views::Base
+    class DebugSheet < ::Views::Base
       def initialize(item:, containing_descendant: nil, owner: nil)
         @item = item
         @containing_descendant = containing_descendant

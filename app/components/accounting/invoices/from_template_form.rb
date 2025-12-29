@@ -1,7 +1,7 @@
 module Components
   module Accounting
     module Invoices
-      class FromTemplateForm < Components::Base
+      class FromTemplateForm < ::Components::Base
         def initialize(invoice_template:)
           @invoice_template = invoice_template
           super()

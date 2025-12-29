@@ -4,7 +4,19 @@ module Accounting
     before_action :set_invoice, only: [ :destroy, :preview, :pdf ]
 
     def index
-      @invoices = current_user.invoices
+      filter = params[:filter] || "unpaid"
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "invoices_content",
+            ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)
+          )
+        end
+        format.html do
+          render ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)
+        end
+      end
     end
 
     def preview
@@ -15,7 +27,7 @@ module Accounting
           invoice_template: [ :accounting_logo ]
         )
         .find(params[:id])
-      render Views::Accounting::Invoices::Preview.new(invoice: @invoice), layout: false
+      render ::Views::Accounting::Invoices::Preview.new(invoice: @invoice), layout: false
     end
 
     def pdf
@@ -29,7 +41,7 @@ module Accounting
 
       # Render the Phlex component to HTML
       html = render_to_string(
-        Views::Accounting::Invoices::Preview.new(invoice: @invoice),
+        ::Views::Accounting::Invoices::Preview.new(invoice: @invoice),
         layout: false
       )
 
@@ -240,12 +252,13 @@ module Accounting
 
     def destroy
       @invoice = current_user.invoices.find(params[:id])
+      filter = params[:filter] || "unpaid"
 
       respond_to do |format|
         if @invoice.destroy
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("invoices_list", Views::Accounting::Invoices::ListContent.new(user: current_user)),
+              turbo_stream.replace("invoices_content", ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice deleted successfully', { type: 'success' });</script>")
             ]
           end
@@ -262,6 +275,7 @@ module Accounting
 
     def update
       @invoice = current_user.invoices.find(params[:id])
+      filter = params[:filter] || "unpaid"
 
       new_state = params[:state]
 
@@ -275,10 +289,10 @@ module Accounting
               'paid' => 'Invoice marked as paid'
             }
             message = state_messages[new_state] || 'Invoice updated successfully'
-            
+
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("invoices_list", Views::Accounting::Invoices::ListContent.new(user: current_user)),
+                turbo_stream.replace("invoices_content", ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'success' });</script>")
               ]
             end
@@ -360,7 +374,7 @@ module Accounting
           if success
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("invoices_list", Views::Accounting::Invoices::ListContent.new(user: current_user)),
+                turbo_stream.update("invoices_list", ::Views::Accounting::Invoices::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Invoice updated successfully', { type: 'success' });</script>")
               ]
             end

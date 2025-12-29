@@ -1,7 +1,7 @@
 module Components
   module Accounting
     module Customers
-      class Form < Components::Base
+      class Form < ::Components::Base
         def initialize(customer: nil)
           @customer = customer || ::Accounting::Customer.new
           @is_new_record = @customer.new_record?

@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class Edit < Views::Base
+    class Edit < ::Views::Base
       def initialize(list:)
         @list = list
       end

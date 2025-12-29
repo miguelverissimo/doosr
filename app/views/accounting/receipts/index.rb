@@ -1,15 +1,16 @@
 module Views
   module Accounting
     module Receipts
-      class Index < Views::Base
-        def initialize
+      class Index < ::Views::Base
+        def initialize(user:)
+          @user = user
         end
 
         def view_template
           div(class: "flex h-full flex-col") do
             tabs_data = [
-              {value: "receipts", label: "Receipts"},
-              {value: "receipt_items", label: "Receipt Items"},
+              { value: "receipts", label: "Receipts" },
+              { value: "receipt_items", label: "Receipt Items" }
             ]
             Tabs(default_value: "receipts") do
               render RubyUI::ResponsiveTabsList.new(
@@ -25,7 +26,9 @@ module Views
                       render_receipt_form_dialog
                     end
                   end
-                  render Views::Accounting::Receipts::List.new(user: view_context.current_user)
+                  div(id: "receipts_list") do
+                    render ::Views::Accounting::Receipts::ListContent.new(user: @user)
+                  end
                 end
               end
 
@@ -35,7 +38,9 @@ module Views
                     h3(class: "text-lg font-semibold") { "Receipt Items" }
                     render_receipt_item_form_dialog
                   end
-                  render Views::Accounting::Receipts::ReceiptItems::List.new(user: view_context.current_user)
+                  div(id: "receipt_items_list") do
+                    render ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: @user)
+                  end
                 end
               end
             end
@@ -55,7 +60,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::FormWithCalculator.new(receipt: receipt)
+                render ::Components::Accounting::Receipts::FormWithCalculator.new(receipt: receipt)
               end
             end
           end
@@ -74,7 +79,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::Form.new(receipt: receipt)
+                render ::Components::Accounting::Receipts::Form.new(receipt: receipt)
               end
             end
           end
@@ -93,7 +98,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::ReceiptItemForm.new(receipt_item: receipt_item)
+                render ::Components::Accounting::Receipts::ReceiptItemForm.new(receipt_item: receipt_item)
               end
             end
           end

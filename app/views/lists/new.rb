@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class New < Views::Base
+    class New < ::Views::Base
       def initialize(list:)
         @list = list
       end

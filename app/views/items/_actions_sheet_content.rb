@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class ActionsSheetContent < Views::Base
+    class ActionsSheetContent < ::Views::Base
       def initialize(item:, day: nil, list: nil, item_index: nil, total_items: nil, is_public_list: false, is_editable: false)
         @item = item
         @day = day
@@ -22,7 +22,7 @@ module Views
               div { "#{@item.item_type.titleize} • #{@item.state.titleize}" }
               if @item.has_recurrence?
                 div(class: "flex items-center gap-1 text-blue-500") do
-                  render Components::Icon.new(name: :recycle, size: "12", class: "shrink-0")
+                  render ::Components::Icon.new(name: :recycle, size: "12", class: "shrink-0")
                   plain format_recurrence_rule(@item.recurrence_rule)
                 end
               end
@@ -50,7 +50,7 @@ module Views
           # List context - use list-specific buttons
           if @is_public_list
             # Public list view - limited actions
-            render Views::Items::ActionsSheetButtonsListPublic.new(
+            render ::Views::Items::ActionsSheetButtonsListPublic.new(
               item: @item,
               list: @list,
               item_index: @item_index,
@@ -59,7 +59,7 @@ module Views
             )
           else
             # Owner view - full actions
-            render Views::Items::ActionsSheetButtonsListOwner.new(
+            render ::Views::Items::ActionsSheetButtonsListOwner.new(
               item: @item,
               list: @list,
               item_index: @item_index,
@@ -68,7 +68,7 @@ module Views
           end
         else
           # Day context - use original day buttons
-          render Views::Items::ActionsSheetButtons.new(
+          render ::Views::Items::ActionsSheetButtons.new(
             item: @item,
             day: @day,
             item_index: @item_index,
@@ -183,7 +183,7 @@ module Views
               active_item_ids.each_with_index do |item_id, index|
                 item = items[item_id]
                 next unless item
-                render Views::Items::DrawerChildItem.new(
+                render ::Views::Items::DrawerChildItem.new(
                   item: item,
                   parent_item: @item,
                   day: @day,
@@ -196,7 +196,7 @@ module Views
               inactive_item_ids.each do |item_id|
                 item = items[item_id]
                 next unless item
-                render Views::Items::Item.new(item: item, day: @day)
+                render ::Views::Items::Item.new(item: item, day: @day)
               end
             end
           end

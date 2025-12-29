@@ -4,6 +4,10 @@ module Accounting
       before_action :authenticate_user!
       before_action :set_address, only: [:update, :destroy, :activate]
 
+      def index
+        render ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)
+      end
+
       def create
         @address = ::Address.new(address_params.except(:fiscal_number))
         @address.user = current_user
@@ -15,7 +19,7 @@ module Accounting
             
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("addresses_list", Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
+                turbo_stream.update("addresses_content", ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Address created successfully', { type: 'success' });</script>")
               ]
             end
@@ -35,8 +39,8 @@ module Accounting
           
           render turbo_stream: [
             turbo_stream.update(
-              "addresses_list",
-              Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)
+              "addresses_content",
+              ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)
             ),
             turbo_stream.append(
               "body",
@@ -58,7 +62,7 @@ module Accounting
             message = new_state == :active ? "Address activated successfully" : "Address deactivated successfully"
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("addresses_list", Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
+                turbo_stream.update("addresses_content", ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'success' });</script>")
               ]
             end
@@ -78,7 +82,7 @@ module Accounting
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("addresses_list", Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
+              turbo_stream.update("addresses_content", ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Address deleted successfully', { type: 'success' });</script>")
             ]
           end

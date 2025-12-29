@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class ItemWithChildren < Views::Base
+    class ItemWithChildren < ::Views::Base
       def initialize(item:, day: nil, context: nil, depth: 0, public_view: false, is_editable: false)
         @item = item
         @day = day
@@ -16,7 +16,7 @@ module Views
         # Wrap in a container div so we can replace the entire item+children structure
         div(id: "item_with_children_#{@item.id}") do
           # Render the item itself
-          render Views::Items::Item.new(
+          render ::Views::Items::Item.new(
             item: @item,
             day: @day,
             list: @list,
@@ -51,7 +51,7 @@ module Views
             next unless item
 
             # Recursively render child with increased depth
-            render Views::Items::ItemWithChildren.new(
+            render ::Views::Items::ItemWithChildren.new(
               item: item,
               day: @day,
               context: @list,
@@ -67,7 +67,7 @@ module Views
             next unless item
 
             # Recursively render child with increased depth
-            render Views::Items::ItemWithChildren.new(
+            render ::Views::Items::ItemWithChildren.new(
               item: item,
               day: @day,
               context: @list,

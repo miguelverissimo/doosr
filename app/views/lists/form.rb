@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class Form < Views::Base
+    class Form < ::Views::Base
       def initialize(list:, action:)
         @list = list
         @action = action

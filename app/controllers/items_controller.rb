@@ -119,7 +119,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                Views::Items::Item.new(item: @item)
+                ::Views::Items::Item.new(item: @item)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -141,7 +141,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                Views::Items::Item.new(item: @item)
+                ::Views::Items::Item.new(item: @item)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -154,7 +154,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                Views::Items::Item.new(item: @item)
+                ::Views::Items::Item.new(item: @item)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -173,7 +173,7 @@ class ItemsController < ApplicationController
 
           render turbo_stream: turbo_stream.update(
             error_target,
-            Views::Items::Errors.new(item: @item)
+            ::Views::Items::Errors.new(item: @item)
           )
         end
         format.html { redirect_back(fallback_location: root_path, alert: "Failed to create item") }
@@ -195,7 +195,7 @@ class ItemsController < ApplicationController
           format.turbo_stream do
             render turbo_stream: turbo_stream.update(
               "item_#{@item.id}_errors",
-              Views::Items::Errors.new(item: @item)
+              ::Views::Items::Errors.new(item: @item)
             )
           end
           format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
@@ -236,7 +236,7 @@ class ItemsController < ApplicationController
             streams = [
               turbo_stream.replace(
                 "sheet_content_area",
-                Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContent.new(
                   item: @item,
                   day: @day,
                   list: @list,
@@ -269,7 +269,7 @@ class ItemsController < ApplicationController
             else
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
-                Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
+                ::Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
               )
             end
 
@@ -296,7 +296,7 @@ class ItemsController < ApplicationController
             else
               stream = turbo_stream.replace(
                 "item_#{@item.id}",
-                Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
+                ::Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
               )
             end
 
@@ -310,7 +310,7 @@ class ItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "item_#{@item.id}_errors",
-            Views::Items::Errors.new(item: @item)
+            ::Views::Items::Errors.new(item: @item)
           )
         end
         format.html { redirect_back(fallback_location: root_path, alert: "Failed to update item") }
@@ -331,7 +331,7 @@ class ItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            Views::Items::DeleteConfirmation.new(
+            ::Views::Items::DeleteConfirmation.new(
               item: @item,
               day: @day,
               list: @list
@@ -428,7 +428,7 @@ class ItemsController < ApplicationController
         if params[:from_edit_form] == "true"
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            Views::Items::ActionsSheetContent.new(
+            ::Views::Items::ActionsSheetContent.new(
               item: @item,
               day: @day,
               list: @list,
@@ -441,7 +441,7 @@ class ItemsController < ApplicationController
         else
           # Coming from clicking item - append to body to open drawer
           component_html = render_to_string(
-            Views::Items::ActionsSheet.new(
+            ::Views::Items::ActionsSheet.new(
               item: @item,
               day: @day,
               list: @list,
@@ -468,7 +468,7 @@ class ItemsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          Views::Items::EditForm.new(item: @item, list: @list, day: @day)
+          ::Views::Items::EditForm.new(item: @item, list: @list, day: @day)
         )
       end
     end
@@ -482,7 +482,7 @@ class ItemsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          Views::Items::DeferOptions.new(item: @item, day: @day)
+          ::Views::Items::DeferOptions.new(item: @item, day: @day)
         )
       end
     end
@@ -496,7 +496,7 @@ class ItemsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          Views::Items::RecurrenceOptions.new(item: @item, day: @day)
+          ::Views::Items::RecurrenceOptions.new(item: @item, day: @day)
         )
       end
     end
@@ -522,7 +522,7 @@ class ItemsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          Views::Items::ActionsSheet.new(item: @item, day: @day)
+          ::Views::Items::ActionsSheet.new(item: @item, day: @day)
         )
       end
     end
@@ -546,7 +546,7 @@ class ItemsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
-        stream = turbo_stream.replace("item_#{@item.id}", Views::Items::Item.new(item: @item, day: find_day, list: @list))
+        stream = turbo_stream.replace("item_#{@item.id}", ::Views::Items::Item.new(item: @item, day: find_day, list: @list))
 
         # Broadcast to list if this is a list item
         broadcast_list_update(@list, [stream]) if @list
@@ -616,7 +616,7 @@ class ItemsController < ApplicationController
 
           streams << turbo_stream.replace(
             "action_sheet_buttons_#{@item.id}",
-            Views::Items::ActionsSheetButtonsListOwner.new(
+            ::Views::Items::ActionsSheetButtonsListOwner.new(
               item: @item,
               list: @list,
               item_index: item_index,
@@ -647,7 +647,7 @@ class ItemsController < ApplicationController
 
           streams << turbo_stream.replace(
             "action_sheet_buttons_#{@item.id}",
-            Views::Items::ActionsSheetButtons.new(
+            ::Views::Items::ActionsSheetButtons.new(
               item: @item,
               day: @day,
               item_index: item_index,
@@ -681,7 +681,7 @@ class ItemsController < ApplicationController
 
           streams << turbo_stream.replace(
             "action_sheet_buttons_#{@item.id}",
-            Views::Items::ActionsSheetButtons.new(
+            ::Views::Items::ActionsSheetButtons.new(
               item: @item,
               day: @day,
               item_index: item_index,
@@ -815,7 +815,7 @@ class ItemsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            Views::Items::DeferConfirmation.new(
+            ::Views::Items::DeferConfirmation.new(
               item: @item,
               target_date: target_date,
               target_date_param: target_date_param,
@@ -876,7 +876,7 @@ class ItemsController < ApplicationController
               turbo_stream.update("items_list", rendered_items),
               turbo_stream.replace(
                 "sheet_content_area",
-                Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContent.new(
                   item: @item,
                   day: @day,
                   item_index: item_index,
@@ -950,7 +950,7 @@ class ItemsController < ApplicationController
               turbo_stream.update("items_list", rendered_items),
               turbo_stream.replace(
                 "action_sheet_buttons_#{@item.id}",
-                Views::Items::ActionsSheetButtons.new(
+                ::Views::Items::ActionsSheetButtons.new(
                   item: @item,
                   day: @day,
                   item_index: item_index,

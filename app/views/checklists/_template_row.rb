@@ -1,6 +1,6 @@
 module Views
   module Checklists
-    class TemplateRow < Views::Base
+    class TemplateRow < ::Views::Base
       def initialize(checklist:)
         @checklist = checklist
       end
@@ -30,7 +30,7 @@ module Views
               render RubyUI::Dialog.new do
                 render RubyUI::DialogTrigger.new do
                   Button(variant: :outline, icon: true) do
-                    render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                    render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                   end
                 end
                 render_edit_dialog
@@ -107,7 +107,7 @@ module Views
           end
 
           render RubyUI::DialogMiddle.new do
-            render Components::Checklists::Form.new(checklist_template: @checklist)
+            render ::Components::Checklists::Form.new(checklist_template: @checklist)
           end
         end
       end
@@ -116,7 +116,7 @@ module Views
         render RubyUI::AlertDialog.new do
           render RubyUI::AlertDialogTrigger.new do
             Button(variant: :destructive, icon: true) do
-              render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+              render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
             end
           end
 

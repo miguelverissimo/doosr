@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class RecurrenceOptions < Views::Base
+    class RecurrenceOptions < ::Views::Base
       def initialize(item:, day: nil)
         @item = item
         @day = day

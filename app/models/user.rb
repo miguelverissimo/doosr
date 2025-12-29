@@ -28,7 +28,6 @@ class User < ApplicationRecord
   has_many :bank_infos, class_name: "Accounting::BankInfo", dependent: :destroy
   has_many :receipts, class_name: "Accounting::Receipt", dependent: :destroy
   has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
-  has_many :receipt_items, through: :receipt_receipt_items, source: :receipt_item, class_name: "Accounting::ReceiptItem"
 
   # Settings defaults
   SETTINGS_DEFAULTS = {

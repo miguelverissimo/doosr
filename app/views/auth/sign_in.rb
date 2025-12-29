@@ -2,7 +2,7 @@
 
 module Views
   module Auth
-    class SignIn < Views::Base
+    class SignIn < ::Views::Base
       def initialize(resource:, resource_name:, devise_mapping:)
         @resource = resource
         @resource_name = resource_name

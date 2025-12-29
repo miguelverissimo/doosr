@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Customers
-      class CustomerRow < Views::Base
+      class CustomerRow < ::Views::Base
         def initialize(customer:)
           @customer = customer
         end
@@ -20,7 +20,7 @@ module Views
                 render RubyUI::Dialog.new do
                   render RubyUI::DialogTrigger.new do
                     Button(variant: :outline, icon: true) do
-                      render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                      render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                     end
                   end
                   render_edit_dialog
@@ -57,15 +57,15 @@ module Views
                 h3(class: "text-sm font-bold") { "Contact Information" }
                 div(class: "flex flex-col gap-1 text-sm") do
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :user, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :user, size: "16", class: "shrink-0")
                     span { @customer.contact_name }
                   end
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :email, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :email, size: "16", class: "shrink-0")
                     span { @customer.contact_email }
                   end
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :phone, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :phone, size: "16", class: "shrink-0")
                     if @customer.telephone.present?
                       span { @customer.telephone }
                     else
@@ -80,15 +80,15 @@ module Views
                 h3(class: "text-sm font-bold") { "Billing Information" }
                 div(class: "flex flex-col gap-1 text-sm") do
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :user, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :user, size: "16", class: "shrink-0")
                     span { @customer.billing_contact_name }
                   end
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :email, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :email, size: "16", class: "shrink-0")
                     span { @customer.billing_email }
                   end
                   div(class: "flex items-center gap-2") do
-                    render Components::Icon.new(name: :phone, size: "16", class: "shrink-0")
+                    render ::Components::Icon.new(name: :phone, size: "16", class: "shrink-0")
                     if @customer.billing_phone.present?
                       span { @customer.billing_phone }
                     else
@@ -109,7 +109,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Customers::Form.new(customer: @customer)
+              render ::Components::Accounting::Customers::Form.new(customer: @customer)
             end
           end
         end
@@ -118,7 +118,7 @@ module Views
           render RubyUI::AlertDialog.new do
             render RubyUI::AlertDialogTrigger.new do
               Button(variant: :destructive, icon: true) do
-                render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
               end
             end
 

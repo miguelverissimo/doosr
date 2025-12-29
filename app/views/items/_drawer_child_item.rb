@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class DrawerChildItem < Views::Base
+    class DrawerChildItem < ::Views::Base
       def initialize(item:, parent_item:, day: nil, item_index: nil, total_items: nil)
         @item = item
         @parent_item = parent_item

@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class DeleteConfirmation < Views::Base
+    class DeleteConfirmation < ::Views::Base
       def initialize(item:, day: nil, list: nil)
         @item = item
         @day = day

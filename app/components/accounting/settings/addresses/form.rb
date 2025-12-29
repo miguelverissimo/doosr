@@ -2,7 +2,7 @@ module Components
   module Accounting
     module Settings
       module Addresses
-        class Form < Components::Base
+        class Form < ::Components::Base
           def initialize(address: nil)
             @address = address || ::Address.new(address_type: :user)
             @is_new_record = @address.new_record?

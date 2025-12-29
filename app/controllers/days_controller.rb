@@ -2,7 +2,7 @@ class DaysController < ApplicationController
   before_action :authenticate_user!
   before_action :set_date, only: [:show, :create, :import]
   before_action :set_day, only: [:close, :reopen]
-  layout -> { Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day, latest_importable_day: @latest_importable_day) }
+  layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day, latest_importable_day: @latest_importable_day) }
 
   def show
     # Never auto-creates days - days only created when user explicitly requests
@@ -20,7 +20,7 @@ class DaysController < ApplicationController
       @inactive_items = items_data[:inactive_items]
     end
 
-    render Views::Days::Show.new(
+    render ::Views::Days::Show.new(
       day: @day,
       date: @date,
       is_today: @is_today,

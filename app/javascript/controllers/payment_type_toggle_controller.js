@@ -8,7 +8,7 @@ export default class extends Controller {
     // Find all payment type radio buttons in the form
     const totalRadio = this.element.querySelector('input[type="radio"][value="total"][name*="payment_type"]')
     const partialRadio = this.element.querySelector('input[type="radio"][value="partial"][name*="payment_type"]')
-    
+
     // Find container - try target first, then fallback to querySelector
     let container = null
     if (this.hasContainerTarget) {
@@ -19,31 +19,34 @@ export default class extends Controller {
 
     if (!totalRadio || !partialRadio || !container) return
 
-    // Set initial state based on which radio is checked
-    this.toggleSwitch(partialRadio.checked, container)
+    // Set initial state based on which radio is checked (preserve checked state on initial load)
+    this.toggleSwitch(partialRadio.checked, container, true)
 
     // Listen for changes on both radio buttons
     const handleChange = () => {
-      this.toggleSwitch(partialRadio.checked, container)
+      this.toggleSwitch(partialRadio.checked, container, false)
     }
 
     totalRadio.addEventListener('change', handleChange)
     partialRadio.addEventListener('change', handleChange)
   }
 
-  toggleSwitch(isPartial, container) {
+  toggleSwitch(isPartial, container, isInitialLoad = false) {
     if (!container) return
-    
+
     // Find the switch checkbox (Switch component uses a hidden checkbox)
     const checkbox = container.querySelector('input[type="checkbox"]')
     const switchLabel = container.querySelector('label[role="switch"]')
-    
+
     if (!checkbox || !switchLabel) return
-    
+
     if (isPartial) {
-      // Enable the switch and uncheck it when partial is selected
+      // Enable the switch when partial is selected
       checkbox.disabled = false
-      checkbox.checked = false
+      // Only uncheck on user interaction, not on initial load (preserve database value)
+      if (!isInitialLoad) {
+        checkbox.checked = false
+      }
       switchLabel.classList.remove('has-disabled')
       switchLabel.removeAttribute('aria-disabled')
       // Trigger change event to update the switch visual state

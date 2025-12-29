@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class EditForm < Views::Base
+    class EditForm < ::Views::Base
       def initialize(item:, list: nil, day: nil)
         @item = item
         @list = list

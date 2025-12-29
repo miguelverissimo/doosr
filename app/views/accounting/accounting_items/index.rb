@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module AccountingItems
-      class Index < Views::Base
+      class Index < ::Views::Base
         def initialize
         end
 
@@ -15,7 +15,7 @@ module Views
                 end
               end
 
-              render Views::Accounting::AccountingItems::List.new(user: view_context.current_user)
+              render ::Views::Accounting::AccountingItems::List.new(user: view_context.current_user)
               render_accounting_item_form_dialog
             end
           end
@@ -28,7 +28,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::AccountingItems::Form.new(accounting_item: accounting_item)
+              render ::Components::Accounting::AccountingItems::Form.new(accounting_item: accounting_item)
             end
           end
         end

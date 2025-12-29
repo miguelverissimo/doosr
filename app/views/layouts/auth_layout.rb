@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Views::Layouts::AuthLayout < Views::Base
+class ::Views::Layouts::AuthLayout < ::Views::Base
   include Phlex::Rails::Layout
 
   private
@@ -110,7 +110,7 @@ class Views::Layouts::AuthLayout < Views::Base
       end
 
       body(data: { controller: "pwa" }, class: "dark") do
-        render Components::Toast.new
+        render ::Components::Toast.new
 
         # Main content area with padding
         div(class: "mx-auto max-w-4xl px-4 py-8") do

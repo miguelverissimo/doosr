@@ -2,19 +2,17 @@ module Views
   module Accounting
     module Settings
       module TaxBrackets
-        class List < Views::Base
+        class List < ::Views::Base
           def initialize(user:)
             @user = user
           end
 
           def view_template
-            # Use turbo-frame element for Turbo Stream updates
-            # Render the turbo-frame using Rails helper to ensure it's a proper HTML element
-            content_html = view_context.capture do
-              render Views::Accounting::Settings::TaxBrackets::ListContent.new(user: @user)
+            div(id: "tax_brackets_list") do
+              turbo_frame_tag "tax_brackets_content", data: { lazy_tab_target: "frame", src: settings_tax_brackets_path } do
+                render ::Components::Shared::LoadingSpinner.new(message: "Loading tax brackets...")
+              end
             end
-            turbo_frame_html = view_context.content_tag("turbo-frame", content_html.html_safe, id: "tax_brackets_list")
-            raw turbo_frame_html
           end
         end
       end

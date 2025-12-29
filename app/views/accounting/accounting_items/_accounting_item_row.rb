@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module AccountingItems
-      class AccountingItemRow < Views::Base
+      class AccountingItemRow < ::Views::Base
         include Phlex::Rails::Helpers::NumberToCurrency
 
         def initialize(accounting_item:)
@@ -27,9 +27,9 @@ module Views
 
                 div(class: "flex flex-row items-center gap-2") do
                   if @accounting_item.convert_currency
-                    span(class: "text-lime-500") { render Components::Icon.new(name: :convert_currency, size: "12", class: "w-5 h-5") }
+                    span(class: "text-lime-500") { render ::Components::Icon.new(name: :convert_currency, size: "12", class: "w-5 h-5") }
                   else
-                    span(class: "text-red-500") { render Components::Icon.new(name: :no_currency_conversion, size: "12", class: "w-5 h-5") }
+                    span(class: "text-red-500") { render ::Components::Icon.new(name: :no_currency_conversion, size: "12", class: "w-5 h-5") }
                   end
                 end
               end
@@ -38,7 +38,7 @@ module Views
                 render RubyUI::Dialog.new do
                   render RubyUI::DialogTrigger.new do
                     Button(variant: :outline, icon: true) do
-                      render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                      render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                     end
                   end
                   render_edit_dialog
@@ -58,7 +58,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::AccountingItems::Form.new(accounting_item: @accounting_item)
+              render ::Components::Accounting::AccountingItems::Form.new(accounting_item: @accounting_item)
             end
           end
         end
@@ -67,7 +67,7 @@ module Views
           render RubyUI::AlertDialog.new do
             render RubyUI::AlertDialogTrigger.new do
               Button(variant: :destructive, icon: true) do
-                render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
               end
             end
             

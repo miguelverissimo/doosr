@@ -1,6 +1,6 @@
 module Views
   module Accounting
-    class Index < Views::Base
+    class Index < ::Views::Base
       def initialize
       end
 
@@ -22,22 +22,24 @@ module Views
             )
             TabsContent(value: "invoicing") do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::Invoices::Index.new
+                render ::Views::Accounting::Invoices::Index.new
               end
             end
-            TabsContent(value: "receipts") do
+            TabsContent(value: "receipts", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::Receipts::Index.new
+                turbo_frame_tag "receipts_index_content", data: { lazy_tab_target: "frame", src: view_context.receipts_path } do
+                  render ::Components::Shared::LoadingSpinner.new(message: "Loading receipts...")
+                end
               end
             end
-            TabsContent(value: "customers") do
+            TabsContent(value: "customers", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::Customers::Index.new
+                render ::Views::Accounting::Customers::Index.new
               end
             end
-            TabsContent(value: "items") do
+            TabsContent(value: "items", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::AccountingItems::Index.new
+                render ::Views::Accounting::AccountingItems::Index.new
               end
             end
             TabsContent(value: "automations") do
@@ -45,9 +47,9 @@ module Views
                 plain "Automations"
               end
             end
-            TabsContent(value: "settings") do
+            TabsContent(value: "settings", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render Views::Accounting::Settings::Index.new
+                render ::Views::Accounting::Settings::Index.new
               end
             end
           end

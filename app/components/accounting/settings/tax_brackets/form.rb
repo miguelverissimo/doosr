@@ -2,7 +2,7 @@ module Components
   module Accounting
     module Settings
       module TaxBrackets
-        class Form < Components::Base
+        class Form < ::Components::Base
           def initialize(tax_bracket: nil)
             @tax_bracket = tax_bracket || ::Accounting::TaxBracket.new
             @is_new_record = @tax_bracket.new_record?

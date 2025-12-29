@@ -2,7 +2,7 @@ module Components
   module Accounting
     module Settings
       module Logos
-        class Form < Components::Base
+        class Form < ::Components::Base
           def initialize(accounting_logo: nil, **attrs)
             @accounting_logo = accounting_logo || ::Accounting::AccountingLogo.new
             @is_new_record = @accounting_logo.new_record?

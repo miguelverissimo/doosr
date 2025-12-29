@@ -2,15 +2,15 @@ module Views
   module Accounting
     module Receipts
       module ReceiptItems
-        class ReceiptItemRow < Views::Base
+        class ReceiptItemRow < ::Views::Base
           def initialize(receipt_item:)
             @receipt_item = receipt_item
           end
 
           def view_template
             div(
-              id: "receipt_item_#{@receipt_item.id}_div", 
-              class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50"
+              id: "receipt_item_#{@receipt_item.id}_div",
+              class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50 mt-2"
             ) do
               div(class: "flex flex-row items-center justify-between gap-2") do
                 div(class: "text-md font-semibold mt-1") { @receipt_item.description }
@@ -31,7 +31,7 @@ module Views
               render RubyUI::Dialog.new do
                 render RubyUI::DialogTrigger.new do
                   Button(variant: :outline, icon: true) do
-                    render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                    render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                   end
                 end
                 render_edit_dialog
@@ -49,7 +49,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::ReceiptItemForm.new(receipt_item: @receipt_item)
+                render ::Components::Accounting::Receipts::ReceiptItemForm.new(receipt_item: @receipt_item)
               end
             end
           end
@@ -58,7 +58,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
               

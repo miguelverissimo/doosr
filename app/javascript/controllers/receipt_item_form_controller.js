@@ -7,6 +7,30 @@ export default class extends Controller {
   connect() {
     this.updateExemptionMotiveField()
     this.calculateUnitPriceWithTax()
+    this.isSubmitting = false
+  }
+
+  submit(event) {
+    if (this.isSubmitting) {
+      event.preventDefault()
+      return
+    }
+    this.isSubmitting = true
+
+    // Find submit button and disable it
+    const submitButton = this.element.querySelector('button[type="submit"]')
+    if (submitButton) {
+      submitButton.disabled = true
+    }
+  }
+
+  // Reset on turbo:submit-end to allow retry if there's an error
+  reset() {
+    this.isSubmitting = false
+    const submitButton = this.element.querySelector('button[type="submit"]')
+    if (submitButton) {
+      submitButton.disabled = false
+    }
   }
 
   onTaxBracketChange() {

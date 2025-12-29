@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Components::Toast < Components::Base
+class ::Components::Toast < ::Components::Base
   def initialize(position: "top-center", layout: "default", gap: 14, auto_dismiss_duration: 4000, limit: 3)
     @position = position
     @layout = layout

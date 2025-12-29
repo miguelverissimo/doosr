@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class ActionsSheetButtons < Views::Base
+    class ActionsSheetButtons < ::Views::Base
       def initialize(item:, day: nil, item_index: nil, total_items: nil)
         @item = item
         @day = day
@@ -78,7 +78,7 @@ module Views
               data: { turbo_stream: true },
               class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
             ) do
-              render Components::Icon.new(name: :clock, size: "20")
+              render ::Components::Icon.new(name: :clock, size: "20")
             end
           end
         end
@@ -101,7 +101,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: :edit, size: "20")
+            render ::Components::Icon.new(name: :edit, size: "20")
           end
         else
           a(
@@ -109,7 +109,7 @@ module Views
             data: { turbo_stream: true },
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
           ) do
-            render Components::Icon.new(name: :edit, size: "20")
+            render ::Components::Icon.new(name: :edit, size: "20")
           end
         end
 
@@ -120,7 +120,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: :recycle, size: "20")
+            render ::Components::Icon.new(name: :recycle, size: "20")
           end
         else
           a(
@@ -128,7 +128,7 @@ module Views
             data: { turbo_stream: true },
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
           ) do
-            render Components::Icon.new(name: :recycle, size: "20")
+            render ::Components::Icon.new(name: :recycle, size: "20")
           end
         end
       end
@@ -141,7 +141,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: :move, size: "20")
+            render ::Components::Icon.new(name: :move, size: "20")
           end
         else
           button(
@@ -154,7 +154,7 @@ module Views
               action: "click->item-move#startMoving"
             }
           ) do
-            render Components::Icon.new(name: :move, size: "20")
+            render ::Components::Icon.new(name: :move, size: "20")
           end
         end
 
@@ -190,7 +190,7 @@ module Views
             action: "click->item#openDebug"
           }
         ) do
-          render Components::Icon.new(name: :bug, size: "20")
+          render ::Components::Icon.new(name: :bug, size: "20")
         end
       end
 
@@ -202,7 +202,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: :edit, size: "20")
+            render ::Components::Icon.new(name: :edit, size: "20")
           end
         else
           a(
@@ -210,7 +210,7 @@ module Views
             data: { turbo_stream: true },
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
           ) do
-            render Components::Icon.new(name: :edit, size: "20")
+            render ::Components::Icon.new(name: :edit, size: "20")
           end
         end
 
@@ -236,7 +236,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: :move, size: "20")
+            render ::Components::Icon.new(name: :move, size: "20")
           end
         else
           button(
@@ -249,7 +249,7 @@ module Views
               action: "click->item-move#startMoving"
             }
           ) do
-            render Components::Icon.new(name: :move, size: "20")
+            render ::Components::Icon.new(name: :move, size: "20")
           end
         end
 
@@ -285,7 +285,7 @@ module Views
             action: "click->item#openDebug"
           }
         ) do
-          render Components::Icon.new(name: :bug, size: "20")
+          render ::Components::Icon.new(name: :bug, size: "20")
         end
       end
 
@@ -305,7 +305,7 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render Components::Icon.new(name: icon, size: "20")
+            render ::Components::Icon.new(name: icon, size: "20")
           end
         else
           form(
@@ -329,14 +329,14 @@ module Views
               type: "submit",
               class: button_classes
             ) do
-              render Components::Icon.new(name: icon, size: "20")
+              render ::Components::Icon.new(name: icon, size: "20")
             end
           end
         end
       end
 
       def render_icon(name, size: "24")
-        render Components::Icon.new(name: name, size: size)
+        render ::Components::Icon.new(name: name, size: size)
       end
     end
   end

@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Invoices
-      class Index < Views::Base
+      class Index < ::Views::Base
         def initialize
         end
 
@@ -16,12 +16,12 @@ module Views
                 tabs: tabs_data,
                 current_value: "invoices"
               )
-              TabsContent(value: "invoices") do
+              TabsContent(value: "invoices", data: { controller: "lazy-tab" }) do
                 div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                  render Views::Accounting::Invoices::List.new(user: view_context.current_user)
+                  render ::Views::Accounting::Invoices::List.new(user: view_context.current_user)
                 end
               end
-              TabsContent(value: "templates") do
+              TabsContent(value: "templates", data: { controller: "lazy-tab" }) do
                 div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
                   render RubyUI::Dialog.new do
                     div(class: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2") do
@@ -30,7 +30,7 @@ module Views
                         Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Invoice Template" }
                       end
                     end
-                    render Views::Accounting::Invoices::Templates::List.new(user: view_context.current_user)
+                    render ::Views::Accounting::Invoices::Templates::List.new(user: view_context.current_user)
                     render_invoice_template_form_dialog
                   end
                 end
@@ -46,7 +46,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Invoices::Templates::Form.new(invoice_template: invoice_template, user: view_context.current_user)
+              render ::Components::Accounting::Invoices::Templates::Form.new(invoice_template: invoice_template, user: view_context.current_user)
             end
           end
         end

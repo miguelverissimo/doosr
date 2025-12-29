@@ -2,7 +2,7 @@
 
 module Components
   module Settings
-    class MigrationSettingsForm < Components::Base
+    class MigrationSettingsForm < ::Components::Base
       def initialize(settings: {}, **attrs)
         @settings = settings
         super(**attrs)

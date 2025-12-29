@@ -1,7 +1,7 @@
 module Components
   module Accounting
     module Invoices
-      class Form < Components::Base
+      class Form < ::Components::Base
         def initialize(invoice:)
           @invoice = invoice
           super()

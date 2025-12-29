@@ -2,7 +2,7 @@
 
 module Views
   module Ephemeries
-    class List < Views::Base
+    class List < ::Views::Base
       def initialize(ephemeries:, selected_date:)
         @ephemeries = ephemeries
         @selected_date = selected_date

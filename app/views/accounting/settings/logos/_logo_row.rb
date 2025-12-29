@@ -2,7 +2,7 @@ module Views
   module Accounting
     module Settings
       module Logos
-        class LogoRow < Views::Base
+        class LogoRow < ::Views::Base
           def initialize(accounting_logo:)
             @accounting_logo = accounting_logo
           end
@@ -40,7 +40,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                        render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                       end
                     end
                     render_edit_dialog
@@ -60,7 +60,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Settings::Logos::Form.new(accounting_logo: @accounting_logo)
+                render ::Components::Accounting::Settings::Logos::Form.new(accounting_logo: @accounting_logo)
               end
             end
           end
@@ -69,7 +69,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
 

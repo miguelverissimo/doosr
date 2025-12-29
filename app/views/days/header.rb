@@ -2,7 +2,7 @@
 
 module Views
   module Days
-    class Header < Views::Base
+    class Header < ::Views::Base
       def initialize(date:, day: nil, latest_importable_day: nil)
         @date = date
         @day = day

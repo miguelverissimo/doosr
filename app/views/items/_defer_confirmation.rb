@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class DeferConfirmation < Views::Base
+    class DeferConfirmation < ::Views::Base
       def initialize(item:, target_date:, target_date_param:, day: nil)
         @item = item
         @target_date = target_date

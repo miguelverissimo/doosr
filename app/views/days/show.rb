@@ -2,7 +2,7 @@
 
 module Views
   module Days
-    class Show < Views::Base
+    class Show < ::Views::Base
       def initialize(day:, date:, is_today:, all_items: nil, active_items: nil, inactive_items: nil)
         @day = day
         @date = date
@@ -116,13 +116,13 @@ module Views
               # Render active items first
               @active_items.each do |item|
                 # Use nested rendering to show items with their children
-                render Views::Items::ItemWithChildren.new(item: item, day: @day)
+                render ::Views::Items::ItemWithChildren.new(item: item, day: @day)
               end
 
               # Render inactive items after (done, dropped, deferred)
               @inactive_items.each do |item|
                 # Use nested rendering to show items with their children
-                render Views::Items::ItemWithChildren.new(item: item, day: @day)
+                render ::Views::Items::ItemWithChildren.new(item: item, day: @day)
               end
             else
               # Day doesn't exist yet - show message

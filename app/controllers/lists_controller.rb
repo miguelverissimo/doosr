@@ -1,11 +1,11 @@
 class ListsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_list, only: [:show, :edit, :update, :destroy]
-  layout -> { Views::Layouts::AppLayout.new(pathname: request.path, list: @list) }
+  layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, list: @list) }
 
   def index
     @lists = current_user.lists.order(created_at: :desc)
-    render Views::Lists::Index.new(lists: @lists)
+    render ::Views::Lists::Index.new(lists: @lists)
   end
 
   def show
@@ -22,7 +22,7 @@ class ListsController < ApplicationController
       @item_titles = []
     end
 
-    render Views::Lists::Show.new(
+    render ::Views::Lists::Show.new(
       list: @list,
       tree: @tree,
       item_titles: @item_titles,
@@ -32,7 +32,7 @@ class ListsController < ApplicationController
 
   def new
     @list = List.new
-    render Views::Lists::New.new(list: @list)
+    render ::Views::Lists::New.new(list: @list)
   end
 
   def create
@@ -41,19 +41,19 @@ class ListsController < ApplicationController
     if @list.save
       redirect_to @list, notice: "List created successfully"
     else
-      render Views::Lists::New.new(list: @list), status: :unprocessable_entity
+      render ::Views::Lists::New.new(list: @list), status: :unprocessable_entity
     end
   end
 
   def edit
-    render Views::Lists::Edit.new(list: @list)
+    render ::Views::Lists::Edit.new(list: @list)
   end
 
   def update
     if @list.update(list_params)
       redirect_to @list, notice: "List updated successfully"
     else
-      render Views::Lists::Edit.new(list: @list), status: :unprocessable_entity
+      render ::Views::Lists::Edit.new(list: @list), status: :unprocessable_entity
     end
   end
 

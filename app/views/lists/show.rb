@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class Show < Views::Base
+    class Show < ::Views::Base
       def initialize(list:, tree: nil, item_titles: nil, is_owner: false)
         @list = list
         @tree = tree
@@ -161,7 +161,7 @@ module Views
             # Render tree nodes from the pre-built tree
             if @tree && @tree.children.any?
               @tree.children.each do |node|
-                render Views::Items::TreeNode.new(node: node, context: @list)
+                render ::Views::Items::TreeNode.new(node: node, context: @list)
               end
             else
               # Show empty state if no items

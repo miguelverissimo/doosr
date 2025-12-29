@@ -3,7 +3,7 @@
 module Views
   module Accounting
     module Invoices
-      class Preview < Views::Base
+      class Preview < ::Views::Base
         def initialize(invoice:)
           @invoice = invoice
         end

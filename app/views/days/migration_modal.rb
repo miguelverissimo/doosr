@@ -2,7 +2,7 @@
 
 module Views
   module Days
-    class MigrationModal < Views::Base
+    class MigrationModal < ::Views::Base
       def initialize(date:, latest_importable_day:, migration_settings: {})
         @date = date
         @latest_importable_day = latest_importable_day

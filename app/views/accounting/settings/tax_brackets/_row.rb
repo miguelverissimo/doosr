@@ -2,7 +2,7 @@ module Views
   module Accounting
     module Settings
       module TaxBrackets
-        class Row < Views::Base
+        class Row < ::Views::Base
           def initialize(tax_bracket:)
             @tax_bracket = tax_bracket
           end
@@ -21,7 +21,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                        render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                       end
                     end
                     
@@ -43,7 +43,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Settings::TaxBrackets::Form.new(tax_bracket: @tax_bracket)
+                render ::Components::Accounting::Settings::TaxBrackets::Form.new(tax_bracket: @tax_bracket)
               end
             end
           end
@@ -52,7 +52,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
               

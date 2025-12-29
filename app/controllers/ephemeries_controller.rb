@@ -8,7 +8,7 @@ class EphemeriesController < ApplicationController
     respond_to do |format|
       format.turbo_stream do
         component_html = render_to_string(
-          Views::Ephemeries::List.new(
+          ::Views::Ephemeries::List.new(
             ephemeries: @ephemeries,
             selected_date: @date
           )
@@ -17,7 +17,7 @@ class EphemeriesController < ApplicationController
         render turbo_stream: turbo_stream.append("body", component_html)
       end
       format.html do
-        render Views::Ephemeries::List.new(
+        render ::Views::Ephemeries::List.new(
           ephemeries: @ephemeries,
           selected_date: @date
         )

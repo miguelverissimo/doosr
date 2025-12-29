@@ -2,7 +2,7 @@ module Views
   module Accounting
     module Settings
       module BankInfos
-        class BankInfoRow < Views::Base
+        class BankInfoRow < ::Views::Base
           def initialize(bank_info:)
             @bank_info = bank_info
           end
@@ -42,7 +42,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
+                        render ::Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
                       end
                     end
                     render_edit_dialog
@@ -64,7 +64,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Settings::BankInfos::Form.new(bank_info: @bank_info)
+                render ::Components::Accounting::Settings::BankInfos::Form.new(bank_info: @bank_info)
               end
             end
           end
@@ -73,7 +73,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4")
                 end
               end
 

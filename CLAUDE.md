@@ -210,7 +210,7 @@ def defer_options  # or recurrence_options, edit_form, etc.
     format.turbo_stream do
       render turbo_stream: turbo_stream.replace(
         "sheet_content_area",
-        Views::Items::DeferOptions.new(item: @item, day: @day)
+        ::Views::Items::DeferOptions.new(item: @item, day: @day)
       )
     end
   end

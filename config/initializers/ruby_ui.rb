@@ -9,7 +9,7 @@ Rails.autoloaders.main.inflector.inflect(
   "ruby_ui" => "RubyUI"
 )
 
-# Allow using RubyUI::ComponentName instead Components::RubyUI::ComponentName
+# Allow using RubyUI::ComponentName instead ::Components::RubyUI::ComponentName
 Rails.autoloaders.main.push_dir(
   Rails.root.join("app/components/ruby_ui"), namespace: RubyUI
 )

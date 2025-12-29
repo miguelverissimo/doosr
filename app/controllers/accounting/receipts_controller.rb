@@ -4,7 +4,18 @@ module Accounting
     before_action :set_receipt, only: [:update, :destroy]
 
     def index
-      render Views::Accounting::Receipts::Index.new
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "receipts_content",
+            ::Views::Accounting::Receipts::ListContent.new(user: current_user)
+          )
+        end
+        format.html do
+          # Wrap in turbo frame for lazy loading from the outer accounting tab
+          render ::Views::Accounting::Receipts::IndexWithFrame.new(user: current_user)
+        end
+      end
     end
 
     def create
@@ -26,20 +37,28 @@ module Accounting
       # Set payment_type from receipt_params (defaults to "total" if not provided)
       receipt_params_hash[:payment_type] ||= "total"
 
+      # Determine if this receipt completes the payment
+      mark_fully_paid = params[:mark_fully_paid] == "1"
+      if receipt_params_hash[:payment_type] == "total"
+        receipt_params_hash[:completes_payment] = true
+      elsif receipt_params_hash[:payment_type] == "partial" && mark_fully_paid
+        receipt_params_hash[:completes_payment] = true
+      else
+        receipt_params_hash[:completes_payment] = false
+      end
+
       @receipt = ::Accounting::Receipt.new(receipt_params_hash)
       @receipt.user = current_user
 
       if @receipt.save
         # Handle invoice state update based on payment type
         if @receipt.invoice.present?
-          mark_fully_paid = params[:mark_fully_paid] == "1"
-
           if @receipt.payment_type == "total"
             # Total payment: mark invoice as paid immediately
             @receipt.invoice.update(state: :paid)
           elsif @receipt.payment_type == "partial"
             # Partial payment: mark as partial, or paid if checkbox is checked
-            if mark_fully_paid
+            if @receipt.completes_payment
               @receipt.invoice.update(state: :paid)
             else
               @receipt.invoice.update(state: :partial)
@@ -77,9 +96,9 @@ module Accounting
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update(
-                "receipts_list",
-                render_to_string(Views::Accounting::Receipts::ListContent.new(user: current_user))
+              turbo_stream.replace(
+                "receipts_content",
+                ::Views::Accounting::Receipts::ListContent.new(user: current_user)
               ),
               turbo_stream.append(
                 "body",
@@ -105,7 +124,7 @@ module Accounting
 
     def update
       receipt_params_hash = receipt_params.to_h
-      
+
       # Convert value to cents
       if receipt_params_hash[:value].present?
         receipt_params_hash[:value] = (receipt_params_hash[:value].to_f * 100).round
@@ -121,6 +140,16 @@ module Accounting
 
       # Set payment_type from receipt_params (defaults to "total" if not provided)
       receipt_params_hash[:payment_type] ||= @receipt.payment_type || "total"
+
+      # Determine if this receipt completes the payment
+      mark_fully_paid = params[:mark_fully_paid] == "1"
+      if receipt_params_hash[:payment_type] == "total"
+        receipt_params_hash[:completes_payment] = true
+      elsif receipt_params_hash[:payment_type] == "partial" && mark_fully_paid
+        receipt_params_hash[:completes_payment] = true
+      else
+        receipt_params_hash[:completes_payment] = false
+      end
 
       if @receipt.update(receipt_params_hash)
         # Handle invoice state update based on payment type (for updates)
@@ -170,9 +199,9 @@ module Accounting
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update(
-                "receipts_list",
-                render_to_string(Views::Accounting::Receipts::ListContent.new(user: current_user))
+              turbo_stream.replace(
+                "receipts_content",
+                ::Views::Accounting::Receipts::ListContent.new(user: current_user)
               ),
               turbo_stream.append(
                 "body",
@@ -197,6 +226,17 @@ module Accounting
     end
 
     def destroy
+      @receipt.destroy
+
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: [
+            turbo_stream.replace("receipts_content", ::Views::Accounting::Receipts::ListContent.new(user: current_user)),
+            turbo_stream.append("body", "<script>(function() { if (window.toast) { window.toast('Receipt deleted successfully', { type: 'success' }); } })();</script>")
+          ]
+        end
+        format.html { redirect_to accounting_index_path, notice: "Receipt deleted successfully." }
+      end
     end
 
     private

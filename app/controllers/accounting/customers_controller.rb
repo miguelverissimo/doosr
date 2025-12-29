@@ -4,7 +4,7 @@ module Accounting
     before_action :set_customer, only: [:update, :destroy]
 
     def index
-      @customers = ::Accounting::Customer.where(user: current_user)
+      render ::Views::Accounting::Customers::ListContent.new(user: current_user)
     end
 
     def create
@@ -37,7 +37,7 @@ module Accounting
             
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("customers_list", Views::Accounting::Customers::ListContent.new(user: current_user)),
+                turbo_stream.update("customers_content", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Customer created successfully', { type: 'success' });</script>")
               ]
             end
@@ -82,8 +82,8 @@ module Accounting
         
         render turbo_stream: [
           turbo_stream.update(
-            "customers_list",
-            Views::Accounting::Customers::ListContent.new(user: current_user)
+            "customers_content",
+            ::Views::Accounting::Customers::ListContent.new(user: current_user)
           ),
           turbo_stream.append(
             "body",
@@ -104,7 +104,7 @@ module Accounting
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.update("customers_list", Views::Accounting::Customers::ListContent.new(user: current_user)),
+            turbo_stream.update("customers_content", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Customer deleted successfully', { type: 'success' });</script>")
           ]
         end

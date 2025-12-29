@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Invoices
-      class InvoiceRow < Views::Base
+      class InvoiceRow < ::Views::Base
         def initialize(invoice:, receipt_items: {}, available_invoices: [])
           @invoice = invoice
           @receipt_items = receipt_items
@@ -10,8 +10,8 @@ module Views
 
         def view_template
           div(
-            id: "invoice_#{@invoice.id}_div", 
-            class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50",
+            id: "invoice_#{@invoice.id}_div",
+            class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50 mt-2",
             data: { controller: "mark-invoice-paid" }
           ) do
             div(class: "flex flex-col gap-2") do
@@ -24,11 +24,11 @@ module Views
               end
               div(class: "flex flex-row items-center justify-between w-full gap-2") do
                 div(class: "flex flex-row items-center gap-2") do
-                  render Components::Icon.new(name: :created_date, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :created_date, size: "12", class: "w-5 h-5")
                   div(class: "text-sm font-bold") { @invoice.created_at.strftime("%d/%m/%Y") }
                 end
                 div(class: "flex flex-row items-center gap-2") do
-                  render Components::Icon.new(name: :due_date, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon.new(name: :due_date, size: "12", class: "w-5 h-5")
                   div(class: "text-sm font-bold") { @invoice.due_at.strftime("%d/%m/%Y") }
                   if @invoice.state != "paid"
                     if @invoice.overdue?
@@ -113,7 +113,7 @@ module Views
                 type: :submit,
                 icon: true,
                 disabled: @invoice.state == "draft"
-              ) { render Components::Icon.new(name: :draft, size: "12", class: "w-4 h-4") }
+              ) { render ::Components::Icon.new(name: :draft, size: "12", class: "w-4 h-4") }
             end
 
             # Mark as sent (only if currently draft)
@@ -137,7 +137,7 @@ module Views
                 type: :submit,
                 icon: true,
                 disabled: @invoice.state != "draft"
-              ) { render Components::Icon.new(name: :send, size: "12", class: "w-4 h-4") }
+              ) { render ::Components::Icon.new(name: :send, size: "12", class: "w-4 h-4") }
             end
 
             # Mark as paid (only if currently sent) - with receipt prompt
@@ -157,7 +157,7 @@ module Views
                 type: :submit,
                 icon: true,
                 disabled: @invoice.state != "sent"
-              ) { render Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
+              ) { render ::Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
             end
 
             # Preview button (always active) - opens preview in new tab
@@ -174,7 +174,7 @@ module Views
                 type: :button,
                 icon: true
               ) do
-                render Components::Icon.new(name: :eye, size: "12", class: "w-4 h-4")
+                render ::Components::Icon.new(name: :eye, size: "12", class: "w-4 h-4")
               end
             end
 
@@ -194,7 +194,7 @@ module Views
                   icon: true,
                   data: { pdf_download_target: "button" }
                 ) do
-                  render Components::Icon.new(name: :download, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon.new(name: :download, size: "12", class: "w-4 h-4")
                 end
               end
             end
@@ -209,7 +209,7 @@ module Views
                   icon: true,
                   disabled: @invoice.state != "draft"
                 ) do
-                  render Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
                 end
               end
 
@@ -219,7 +219,7 @@ module Views
                 end
 
                 render RubyUI::DialogMiddle.new do
-                  render Components::Accounting::Invoices::Form.new(invoice: @invoice)
+                  render ::Components::Accounting::Invoices::Form.new(invoice: @invoice)
                 end
               end
             end
@@ -234,7 +234,7 @@ module Views
                   icon: true,
                   disabled: @invoice.receipts.empty?
                 ) do
-                  render Components::Icon.new(name: :list, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon.new(name: :list, size: "12", class: "w-4 h-4")
                 end
               end
 
@@ -247,7 +247,7 @@ module Views
                 end
 
                 render RubyUI::DialogMiddle.new do
-                  render Views::Accounting::Invoices::ReceiptsList.new(invoice: @invoice)
+                  render ::Views::Accounting::Invoices::ReceiptsList.new(invoice: @invoice)
                 end
               end
             end
@@ -259,7 +259,7 @@ module Views
                   variant: :destructive, 
                   size: :md, 
                   icon: true
-                ) { render Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4") }
+                ) { render ::Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4") }
               end
 
               render RubyUI::AlertDialogContent.new do
@@ -378,7 +378,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::FormWithCalculator.new(
+                render ::Components::Accounting::Receipts::FormWithCalculator.new(
                   invoice: @invoice,
                   receipt_items: @receipt_items,
                   available_invoices: @available_invoices
@@ -398,7 +398,7 @@ module Views
               end
 
               render RubyUI::DialogMiddle.new do
-                render Components::Accounting::Receipts::Form.new(
+                render ::Components::Accounting::Receipts::Form.new(
                   invoice: @invoice,
                   receipt_items: @receipt_items,
                   available_invoices: @available_invoices
@@ -428,11 +428,11 @@ module Views
         def render_currency_icon(size: "12")
           case @invoice.currency
           when "EUR"
-            render Components::Icon.new(name: :currency_euro, size: size, class: "w-5 h-5")
+            render ::Components::Icon.new(name: :currency_euro, size: size, class: "w-5 h-5")
           when "USD"
-            render Components::Icon.new(name: :currency_usd, size: size, class: "w-5 h-5")
+            render ::Components::Icon.new(name: :currency_usd, size: size, class: "w-5 h-5")
           when "CAD"
-            render Components::Icon.new(name: :currency_cad, size: size, class: "w-5 h-5")
+            render ::Components::Icon.new(name: :currency_cad, size: size, class: "w-5 h-5")
           end
         end
 

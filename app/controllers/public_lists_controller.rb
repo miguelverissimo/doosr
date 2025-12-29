@@ -1,6 +1,6 @@
 class PublicListsController < ApplicationController
   before_action :set_list
-  layout -> { Views::Layouts::AuthLayout.new }
+  layout -> { ::Views::Layouts::AuthLayout.new }
 
   def show
     # Only public lists can be viewed via this controller
@@ -25,7 +25,7 @@ class PublicListsController < ApplicationController
     # Check if current user is the owner
     is_owner = user_signed_in? && @list.user_id == current_user.id
 
-    render Views::Lists::PublicShow.new(
+    render ::Views::Lists::PublicShow.new(
       list: @list,
       tree: @tree,
       item_titles: @item_titles,

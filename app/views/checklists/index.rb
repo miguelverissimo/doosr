@@ -1,6 +1,6 @@
 module Views
   module Checklists
-    class Index < Views::Base
+    class Index < ::Views::Base
       def initialize(checklist_templates:)
         @checklist_templates = checklist_templates
       end
@@ -15,7 +15,7 @@ module Views
               end
             end
 
-            render Views::Checklists::List.new(user: view_context.current_user)
+            render ::Views::Checklists::List.new(user: view_context.current_user)
             render_checklist_template_form_dialog
           end
         end
@@ -28,7 +28,7 @@ module Views
           end
 
           render RubyUI::DialogMiddle.new do
-            render Components::Checklists::Form.new(checklist_template: checklist_template)
+            render ::Components::Checklists::Form.new(checklist_template: checklist_template)
           end
         end
       end

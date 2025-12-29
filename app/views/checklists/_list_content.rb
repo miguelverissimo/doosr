@@ -1,6 +1,6 @@
 module Views
   module Checklists
-    class ListContent < Views::Base
+    class ListContent < ::Views::Base
       def initialize(user:, **attrs)
         @user = user
         @checklists = ::Checklist.template.where(user: @user)
@@ -15,7 +15,7 @@ module Views
         else
           @checklists.each do |checklist|
             div(id: "checklist_#{checklist.id}_div", class: "mt-2") do
-              render Views::Checklists::TemplateRow.new(checklist: checklist)
+              render ::Views::Checklists::TemplateRow.new(checklist: checklist)
             end
           end
         end

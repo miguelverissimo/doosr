@@ -1,11 +1,11 @@
 module Components
   module Accounting
     module Receipts
-      class FormWithCalculator < Components::Base
+      class FormWithCalculator < ::Components::Base
         def initialize(receipt: nil, invoice: nil, receipt_items: nil, available_invoices: nil)
-          @receipt = nil # receipt || ::Accounting::Receipt.new
+          @receipt = receipt || ::Accounting::Receipt.new
           @invoice = invoice
-          @is_new_record = true # @receipt.new_record?
+          @is_new_record = @receipt.new_record?
           @action = @is_new_record ? "Create" : "Update"
           @receipt_items_passed = receipt_items
           @available_invoices_passed = available_invoices
@@ -34,13 +34,13 @@ module Components
           # Query or use passed available invoices
           available_invoices = if @available_invoices_passed.present?
             if @invoice.present?
-              (@available_invoices_passed + [@invoice]).uniq
+              (@available_invoices_passed + [ @invoice ]).uniq
             else
               @available_invoices_passed
             end
           elsif user
             # Show only invoices with state "sent" or "partial" (exclude "paid" and "draft")
-            invoices_query = user.invoices.where(state: [:sent, :partial])
+            invoices_query = user.invoices.where(state: [ :sent, :partial ])
 
             if @invoice.present?
               invoices_query = invoices_query.where(
@@ -312,12 +312,12 @@ module Components
                       render RubyUI::Switch.new(
                         name: "mark_fully_paid",
                         id: "mark_fully_paid_calc",
-                        checked: current_payment_type == "total",
+                        checked: @receipt&.completes_payment || current_payment_type == "total",
                         disabled: current_payment_type == "total",
                         data: { payment_type_toggle_target: "switch" }
                       )
                       label(for: "mark_fully_paid_calc", class: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70") do
-                        "Mark invoice as fully paid"
+                        "Completes payment"
                       end
                     end
                   end
@@ -440,4 +440,3 @@ module Components
     end
   end
 end
-

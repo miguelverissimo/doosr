@@ -2,7 +2,7 @@ module Components
   module Accounting
     module Invoices
       module Templates
-        class Form < Components::Base
+        class Form < ::Components::Base
           def initialize(invoice_template: nil, user: nil, **attrs)
             @invoice_template = invoice_template || ::Accounting::InvoiceTemplate.new
             @user = user

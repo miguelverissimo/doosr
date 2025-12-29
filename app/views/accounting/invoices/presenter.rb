@@ -1,4 +1,4 @@
-class Views::Accounting::Invoices::Presenter
+class ::Views::Accounting::Invoices::Presenter
 =begin
 div(class: "grid grid-cols-12 grid-rows-9 gap-2") do
   div(class: "col-span-12") do

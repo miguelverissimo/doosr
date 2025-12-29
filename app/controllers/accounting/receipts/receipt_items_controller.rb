@@ -4,10 +4,24 @@ module Accounting
       before_action :authenticate_user!
       before_action :set_receipt_item, only: [:update, :destroy]
 
+      def index
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.replace(
+              "receipt_items_content",
+              ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)
+            )
+          end
+          format.html do
+            render ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)
+          end
+        end
+      end
+
       def create
         params_hash = receipt_item_params.to_h
         convert_price_to_cents(params_hash)
-        
+
         @receipt_item = ::Accounting::ReceiptItem.new(params_hash)
         @receipt_item.user = current_user
 
@@ -15,7 +29,7 @@ module Accounting
           if @receipt_item.save
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("receipt_items_list", Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)),
+                turbo_stream.replace("receipt_items_content", ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Receipt item created successfully', { type: 'success' });</script>")
               ]
             end
@@ -36,9 +50,9 @@ module Accounting
 
         if @receipt_item.update(params_hash)
           render turbo_stream: [
-            turbo_stream.update(
-              "receipt_items_list",
-              Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)
+            turbo_stream.replace(
+              "receipt_items_content",
+              ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)
             ),
             turbo_stream.append(
               "body",
@@ -60,7 +74,7 @@ module Accounting
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("receipt_items_list", Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)),
+              turbo_stream.replace("receipt_items_content", ::Views::Accounting::Receipts::ReceiptItems::ListContent.new(user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Receipt item deleted successfully', { type: 'success' });</script>")
             ]
           end

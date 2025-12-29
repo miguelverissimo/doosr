@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class Index < Views::Base
+    class Index < ::Views::Base
       def initialize(lists:)
         @lists = lists
       end

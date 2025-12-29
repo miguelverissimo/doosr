@@ -2,7 +2,7 @@
 
 module Components
   module Settings
-    class SectionsList < Components::Base
+    class SectionsList < ::Components::Base
       def initialize(sections: [], **attrs)
         @sections = sections
         super(**attrs)

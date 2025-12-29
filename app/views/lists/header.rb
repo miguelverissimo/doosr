@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class Header < Views::Base
+    class Header < ::Views::Base
       def view_template
         div(class: "flex items-center gap-3 flex-1") do
           # Title display

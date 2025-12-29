@@ -14,7 +14,7 @@ class DayMigrationsController < ApplicationController
       format.turbo_stream do
         render turbo_stream: turbo_stream.update(
           "day_migration_modal",
-          Views::Days::MigrationModal.new(
+          ::Views::Days::MigrationModal.new(
             date: @date,
             latest_importable_day: @latest_importable_day,
             migration_settings: @migration_settings

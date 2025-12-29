@@ -2,7 +2,7 @@
 
 module Components
   module Checklists
-    class Form < Components::Base
+    class Form < ::Components::Base
       def initialize(checklist_template: nil)
         @checklist_template = checklist_template || Checklist.new
         @is_new_record = @checklist_template.new_record?
@@ -158,7 +158,7 @@ module Components
             },
             title: "Drag to reorder"
           ) do
-            render Components::Icon.new(name: :more_vertical, size: "16")
+            render ::Components::Icon.new(name: :more_vertical, size: "16")
           end
 
           # Item title input
@@ -188,7 +188,7 @@ module Components
             title: "Move up",
             disabled: index == 0
           ) do
-            render Components::Icon.new(name: :arrow_up, size: "16")
+            render ::Components::Icon.new(name: :arrow_up, size: "16")
           end
 
           # Move down button
@@ -204,7 +204,7 @@ module Components
             },
             title: "Move down"
           ) do
-            render Components::Icon.new(name: :arrow_down, size: "16")
+            render ::Components::Icon.new(name: :arrow_down, size: "16")
           end
 
           # Remove button
@@ -220,7 +220,7 @@ module Components
             },
             title: "Remove item"
           ) do
-            render Components::Icon.new(name: :x, size: "16")
+            render ::Components::Icon.new(name: :x, size: "16")
           end
         end
       end

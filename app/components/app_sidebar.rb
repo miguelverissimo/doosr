@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Components::AppSidebar < Components::Base
+class ::Components::AppSidebar < ::Components::Base
   def initialize(pathname: "/", selected_date: nil, **attrs)
     @pathname = pathname
     @selected_date = selected_date
@@ -36,7 +36,7 @@ class Components::AppSidebar < Components::Base
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(as: :a, href: authenticated_root_path) do
-                render Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+                render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
                 span(class: "group-data-[collapsible=icon]:hidden") { "Today" }
               end
             end
@@ -48,19 +48,19 @@ class Components::AppSidebar < Components::Base
         SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: "#") do
-              render Components::Icon.new(name: :droplet, size: "16", class: "shrink-0")
+              render ::Components::Icon.new(name: :droplet, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "The Well" }
             end
           end
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.lists_path) do
-              render Components::Icon.new(name: :list, size: "16", class: "shrink-0")
+              render ::Components::Icon.new(name: :list, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.checklists_path) do
-              render Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
+              render ::Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
             end
           end
@@ -69,7 +69,7 @@ class Components::AppSidebar < Components::Base
         SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: view_context.accounting_index_path) do
-              render Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
+              render ::Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
             end
           end
@@ -110,20 +110,20 @@ class Components::AppSidebar < Components::Base
               class: "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
               role: "menuitem"
             ) do
-              render Components::Icon.new(name: :settings, size: "16", class: "shrink-0")
+              render ::Components::Icon.new(name: :settings, size: "16", class: "shrink-0")
               span(class: "ml-2") { "Settings" }
             end
           end
 
           render RubyUI::DropdownMenuItem.new(href: "#") do
-            render Components::Icon.new(name: :user, size: "16", class: "shrink-0")
+            render ::Components::Icon.new(name: :user, size: "16", class: "shrink-0")
             span(class: "ml-2") { "Edit Profile" }
           end
 
           render RubyUI::DropdownMenuSeparator.new
 
           render RubyUI::DropdownMenuItem.new(href: view_context.destroy_user_session_path, data: { turbo_method: :delete }) do
-            render Components::Icon.new(name: :log_out, size: "16", class: "shrink-0")
+            render ::Components::Icon.new(name: :log_out, size: "16", class: "shrink-0")
             span(class: "ml-2 text-destructive") { "Log out" }
           end
         end
@@ -183,7 +183,7 @@ class Components::AppSidebar < Components::Base
               div do
                 label(class: "text-sm font-medium mb-2 block") { "Your Sections" }
                 div(id: "permanent_sections_list") do
-                  render Components::Settings::SectionsList.new(sections: user.permanent_sections)
+                  render ::Components::Settings::SectionsList.new(sections: user.permanent_sections)
                 end
               end
             end
@@ -192,7 +192,7 @@ class Components::AppSidebar < Components::Base
           # Day Migration Tab
           render RubyUI::TabsContent.new(value: "day_migration") do
             div(class: "mt-4") do
-              render Components::Settings::MigrationSettingsForm.new(settings: user.day_migration_settings)
+              render ::Components::Settings::MigrationSettingsForm.new(settings: user.day_migration_settings)
             end
           end
         end
@@ -218,7 +218,7 @@ class Components::AppSidebar < Components::Base
           href: day_path(date: Date.today.to_s),
           class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
         ) do
-          render Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+          render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
           span { "Today" }
         end
       end

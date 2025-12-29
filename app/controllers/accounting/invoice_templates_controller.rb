@@ -4,7 +4,17 @@ module Accounting
     before_action :set_invoice_template, only: [ :update, :destroy ]
 
     def index
-      @invoice_templates = current_user.invoice_templates
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "invoice_templates_content",
+            ::Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)
+          )
+        end
+        format.html do
+          render ::Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)
+        end
+      end
     end
 
     def create
@@ -41,7 +51,7 @@ module Accounting
         if @invoice_template.save
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("invoice_templates_list", Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)),
+              turbo_stream.replace("invoice_templates_content", ::Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice template created successfully', { type: 'success' });</script>")
             ]
           end
@@ -103,7 +113,7 @@ module Accounting
         if success
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.replace("invoice_template_#{@invoice_template.id}_div", Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: @invoice_template)),
+              turbo_stream.replace("invoice_template_#{@invoice_template.id}_div", ::Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: @invoice_template)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice template updated successfully', { type: 'success' });</script>")
             ]
           end
@@ -124,7 +134,7 @@ module Accounting
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.update("invoice_templates_list", Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)),
+            turbo_stream.replace("invoice_templates_content", ::Views::Accounting::Invoices::Templates::ListContent.new(user: current_user)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Invoice template deleted successfully', { type: 'success' });</script>")
           ]
         end

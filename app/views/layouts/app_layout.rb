@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Views::Layouts::AppLayout < Views::Base
+class ::Views::Layouts::AppLayout < ::Views::Base
   include Phlex::Rails::Layout
 
   def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil, list: nil)
@@ -122,10 +122,10 @@ class Views::Layouts::AppLayout < Views::Base
       end
 
       body(data: { controller: "pwa" }, class: "dark") do
-        render Components::Toast.new
+        render ::Components::Toast.new
 
         SidebarWrapper do
-          render Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
+          render ::Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
           SidebarInset(
             data: begin
@@ -142,7 +142,7 @@ class Views::Layouts::AppLayout < Views::Base
               SidebarTrigger(class: "-ml-1")
 
               if @selected_date
-                render Views::Days::Header.new(
+                render ::Views::Days::Header.new(
                   date: @selected_date,
                   day: @day,
                   latest_importable_day: @latest_importable_day
@@ -177,13 +177,13 @@ class Views::Layouts::AppLayout < Views::Base
                 end
               elsif @pathname == "/lists" || @pathname == "/lists/"
                 # Lists index page
-                render Views::Lists::Header.new
+                render ::Views::Lists::Header.new
               elsif @pathname == "/checklists" || @pathname == "/checklists/"
                 # Checklists page
-                render Views::Checklists::Header.new
+                render ::Views::Checklists::Header.new
               elsif @pathname == "/accounting" || @pathname == "/accounting/"
                 # Accounting page
-                render Views::Accounting::Header.new
+                render ::Views::Accounting::Header.new
               end
 
               # Cancel button for moving mode (hidden by default)

@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class Errors < Views::Base
+    class Errors < ::Views::Base
       def initialize(item:)
         @item = item
       end

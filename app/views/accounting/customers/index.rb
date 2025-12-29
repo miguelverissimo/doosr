@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Customers
-      class Index < Views::Base
+      class Index < ::Views::Base
         def initialize
         end
 
@@ -15,7 +15,7 @@ module Views
                 end
               end
 
-              render Views::Accounting::Customers::List.new(user: view_context.current_user)
+              render ::Views::Accounting::Customers::List.new(user: view_context.current_user)
               render_customer_form_dialog
             end
           end
@@ -28,7 +28,7 @@ module Views
             end
 
             render RubyUI::DialogMiddle.new do
-              render Components::Accounting::Customers::Form.new(customer: customer)
+              render ::Components::Accounting::Customers::Form.new(customer: customer)
             end
           end
         end

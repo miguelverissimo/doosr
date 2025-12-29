@@ -33,7 +33,7 @@ module RubyUI
         render DropdownMenuTrigger.new do
           Button(variant: :outline, class: "w-full justify-between") do
             span { current_tab[:label] }
-            render Components::Icon.new(name: :arrow_down, size: "16", class: "ml-2 h-4 w-4")
+            render ::Components::Icon.new(name: :arrow_down, size: "16", class: "ml-2 h-4 w-4")
           end
         end
         

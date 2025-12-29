@@ -2,7 +2,7 @@ module Components
   module Accounting
     module Settings
       module BankInfos
-        class Form < Components::Base
+        class Form < ::Components::Base
           def initialize(bank_info: nil)
             @bank_info = bank_info || ::Accounting::BankInfo.new
             @is_new_record = @bank_info.new_record?

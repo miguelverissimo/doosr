@@ -1,11 +1,11 @@
 class ChecklistsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_checklist, only: [:show, :update, :destroy]
-  layout -> { Views::Layouts::AppLayout.new(pathname: request.path) }
+  layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index
     @checklist_templates = current_user.checklists.template
-    render Views::Checklists::Index.new(checklist_templates: @checklist_templates)
+    render ::Views::Checklists::Index.new(checklist_templates: @checklist_templates)
   end
 
   def show
@@ -20,7 +20,7 @@ class ChecklistsController < ApplicationController
       if @checklist_template.save
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.update("checklists_list", Views::Checklists::ListContent.new(user: current_user)),
+            turbo_stream.update("checklists_list", ::Views::Checklists::ListContent.new(user: current_user)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Checklist template created successfully', { type: 'success' });</script>")
           ]
         end
@@ -40,7 +40,7 @@ class ChecklistsController < ApplicationController
       if @checklist.update(checklist_params)
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.replace("checklist_#{@checklist.id}_div", Views::Checklists::TemplateRow.new(checklist: @checklist)),
+            turbo_stream.replace("checklist_#{@checklist.id}_div", ::Views::Checklists::TemplateRow.new(checklist: @checklist)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Checklist template updated successfully', { type: 'success' });</script>")
           ]
         end

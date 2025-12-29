@@ -1,7 +1,7 @@
 module Components
   module Accounting
     module Receipts
-      class ReceiptItemForm < Components::Base
+      class ReceiptItemForm < ::Components::Base
         def initialize(receipt_item: nil)
           @receipt_item = receipt_item || ::Accounting::ReceiptItem.new
           @is_new_record = @receipt_item.nil? || !@receipt_item.persisted?
@@ -21,9 +21,9 @@ module Components
             action: form_url,
             method: "post",
             class: "space-y-6",
-            data: { 
-              turbo: true, 
-              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss",
+            data: {
+              turbo: true,
+              action: "submit->receipt-item-form#submit turbo:submit-end->receipt-item-form#reset turbo:submit-end@document->ruby-ui--dialog#dismiss",
               controller: "receipt-item-form",
               receipt_item_form_tax_brackets_value: tax_brackets_json
             }

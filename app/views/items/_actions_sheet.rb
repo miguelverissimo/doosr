@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class ActionsSheet < Views::Base
+    class ActionsSheet < ::Views::Base
       def initialize(item:, day: nil, list: nil, item_index: nil, total_items: nil, is_public_list: false, is_editable: false)
         @item = item
         @day = day
@@ -36,7 +36,7 @@ module Views
             data_state: "open",
             class: "fixed pointer-events-auto z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom max-h-[85vh]"
           ) do
-            render Views::Items::ActionsSheetContent.new(
+            render ::Views::Items::ActionsSheetContent.new(
               item: @item,
               day: @day,
               list: @list,

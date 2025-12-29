@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 class Users::SessionsController < Devise::SessionsController
-  layout -> { Views::Layouts::AuthLayout.new }
+  layout -> { ::Views::Layouts::AuthLayout.new }
 
   def new
     self.resource = resource_class.new(sign_in_params)
-    render Views::Auth::SignIn.new(
+    render ::Views::Auth::SignIn.new(
       resource: resource,
       resource_name: resource_name,
       devise_mapping: devise_mapping
@@ -36,7 +36,7 @@ class Users::SessionsController < Devise::SessionsController
 
       format.html do
         flash.now[:alert] = error_message
-        render Views::Auth::SignIn.new(
+        render ::Views::Auth::SignIn.new(
           resource: resource,
           resource_name: resource_name,
           devise_mapping: devise_mapping

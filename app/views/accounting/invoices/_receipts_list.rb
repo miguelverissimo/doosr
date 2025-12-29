@@ -1,7 +1,7 @@
 module Views
   module Accounting
     module Invoices
-      class ReceiptsList < Views::Base
+      class ReceiptsList < ::Views::Base
         def initialize(invoice:)
           @invoice = invoice
           @receipts = invoice.receipts
@@ -19,7 +19,7 @@ module Views
             div(class: "space-y-4") do
               @receipts.each do |receipt|
                 div(id: "receipt_#{receipt.id}_div", class: "mt-2") do
-                  render Views::Accounting::Receipts::ReceiptRow.new(receipt: receipt)
+                  render ::Views::Accounting::Receipts::ReceiptRow.new(receipt: receipt)
                 end
               end
             end

@@ -51,7 +51,7 @@ class SettingsController < ApplicationController
           render turbo_stream: [
             turbo_stream.update(
               "permanent_sections_list",
-              Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
+              ::Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
             ),
             turbo_stream.append("body", "<script>document.querySelector('#add_section_form input[name=section_name]').value = '';</script>")
           ]
@@ -79,7 +79,7 @@ class SettingsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "permanent_sections_list",
-            Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
+            ::Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
           )
         end
         format.json { render json: { sections: current_user.permanent_sections } }
@@ -132,7 +132,7 @@ class SettingsController < ApplicationController
         format.turbo_stream do
           render turbo_stream: turbo_stream.update(
             "permanent_sections_list",
-            Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
+            ::Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
           )
         end
         format.json { render json: { sections: current_user.permanent_sections } }
@@ -165,7 +165,7 @@ class SettingsController < ApplicationController
             format.turbo_stream do
               render turbo_stream: turbo_stream.update(
                 "permanent_sections_list",
-                Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
+                ::Components::Settings::SectionsList.new(sections: current_user.permanent_sections)
               )
             end
             format.json { render json: { sections: current_user.permanent_sections } }

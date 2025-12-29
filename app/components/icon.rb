@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class Components::Icon < Components::Base
+class ::Components::Icon < ::Components::Base
   def initialize(name:, size: "24", class: nil, stroke_width: "2", **attrs)
     @name = name.to_sym
     @size = size.to_s

@@ -2,7 +2,7 @@
 
 module Views
   module Items
-    class DeferOptions < Views::Base
+    class DeferOptions < ::Views::Base
       def initialize(item:, day: nil)
         @item = item
         @day = day

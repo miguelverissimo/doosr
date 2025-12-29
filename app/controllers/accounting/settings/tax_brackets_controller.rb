@@ -4,6 +4,10 @@ module Accounting
       before_action :authenticate_user!
       before_action :set_tax_bracket, only: [:update, :destroy]
 
+      def index
+        render ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
+      end
+
       def create
         @tax_bracket = ::Accounting::TaxBracket.new(tax_bracket_params)
         @tax_bracket.user = current_user
@@ -12,8 +16,8 @@ module Accounting
           if @tax_bracket.save
             format.turbo_stream do
               render turbo_stream: turbo_stream.update(
-                "tax_brackets_list",
-                Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
+                "tax_brackets_content",
+                ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
               )
             end
             format.html { redirect_to accounting_index_path, notice: "Tax bracket created successfully." }
@@ -37,8 +41,8 @@ module Accounting
           if @tax_bracket.update(tax_bracket_params)
             format.turbo_stream do
               render turbo_stream: turbo_stream.update(
-                "tax_brackets_list",
-                Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
+                "tax_brackets_content",
+                ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
               )
             end
             format.html { redirect_to accounting_index_path, notice: "Tax bracket updated successfully." }
@@ -62,7 +66,7 @@ module Accounting
             format.turbo_stream do
               render turbo_stream: [
                 turbo_stream.append("body", "<div data-controller='auto-exec' data-auto-exec-code-value=\"document.querySelector('[data-state=\\\"open\\\"][role=\\\"alertdialog\\\"]')?.querySelector('[data-radix-collection-item]')?.click();\"></div>"),
-                turbo_stream.update("tax_brackets_list", Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user))
+                turbo_stream.update("tax_brackets_list", ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user))
               ]
             end
             format.html { redirect_to accounting_index_path, notice: "Tax bracket deleted successfully." }

@@ -1,7 +1,7 @@
 module Components
   module Accounting
     module AccountingItems
-      class Form < Components::Base
+      class Form < ::Components::Base
         def initialize(accounting_item: nil)
           @accounting_item = accounting_item || ::Accounting::AccountingItem.new
           @is_new_record = @accounting_item.new_record?

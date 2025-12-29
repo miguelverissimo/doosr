@@ -5,7 +5,7 @@ module Accounting
       before_action :set_accounting_logo, only: [:update, :destroy]
 
       def index
-        @accounting_logos = current_user.accounting_logos
+        render ::Views::Accounting::Settings::Logos::ListContents.new(user: current_user)
       end
 
       def create
@@ -15,7 +15,7 @@ module Accounting
           if @accounting_logo.save
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("accounting_logos_list", Views::Accounting::Settings::Logos::ListContents.new(user: current_user)),
+                turbo_stream.update("accounting_logos_content", ::Views::Accounting::Settings::Logos::ListContents.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Logo created successfully', { type: 'success' });</script>")
               ]
             end
@@ -35,7 +35,7 @@ module Accounting
           if @accounting_logo.update(accounting_logo_params)
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.replace("accounting_logo_#{@accounting_logo.id}_div", Views::Accounting::Settings::Logos::LogoRow.new(accounting_logo: @accounting_logo)),
+                turbo_stream.replace("accounting_logo_#{@accounting_logo.id}_div", ::Views::Accounting::Settings::Logos::LogoRow.new(accounting_logo: @accounting_logo)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Logo updated successfully', { type: 'success' });</script>")
               ]
             end
@@ -56,7 +56,7 @@ module Accounting
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("accounting_logos_list", Views::Accounting::Settings::Logos::ListContents.new(user: current_user)),
+              turbo_stream.update("accounting_logos_content", ::Views::Accounting::Settings::Logos::ListContents.new(user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Logo deleted successfully', { type: 'success' });</script>")
             ]
           end

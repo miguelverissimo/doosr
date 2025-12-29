@@ -2,7 +2,7 @@
 
 module Views
   module Lists
-    class PublicShow < Views::Base
+    class PublicShow < ::Views::Base
       def initialize(list:, tree: nil, item_titles: nil, is_owner: false, is_editable: false)
         @list = list
         @tree = tree
@@ -196,7 +196,7 @@ module Views
             # Render tree nodes from the pre-built tree
             if @tree && @tree.children.any?
               @tree.children.each do |node|
-                render Views::Items::TreeNode.new(
+                render ::Views::Items::TreeNode.new(
                   node: node,
                   context: @list,
                   public_view: true,
