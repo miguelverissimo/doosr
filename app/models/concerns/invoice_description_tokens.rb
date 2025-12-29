@@ -21,6 +21,3 @@ module InvoiceDescriptionTokens
       .gsub("{quarter}", quarter)
   end
 end
-
-
-

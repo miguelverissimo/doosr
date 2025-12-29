@@ -89,7 +89,7 @@ class Days::ImportService
     return unless source_day.descendant
 
     source_section_ids = source_day.descendant.extract_active_item_ids
-    source_sections = Item.sections.where(id: source_section_ids).select { |s| s.extra_data&.dig('permanent_section') }
+    source_sections = Item.sections.where(id: source_section_ids).select { |s| s.extra_data&.dig("permanent_section") }
 
     source_sections.each do |source_section|
       # Find matching section on target day by title
@@ -171,7 +171,7 @@ class Days::ImportService
       parent_item_id = item_data[:parent_item_id]
 
       # Check if this is a permanent section that already exists on target day
-      if original_item.section? && original_item.extra_data&.dig('permanent_section')
+      if original_item.section? && original_item.extra_data&.dig("permanent_section")
         existing_section_id = @section_mapping[original_item.id]
         if existing_section_id
           # Don't create a new section, use the existing one

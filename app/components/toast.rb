@@ -28,4 +28,3 @@ class ::Components::Toast < ::Components::Base
     end
   end
 end
-

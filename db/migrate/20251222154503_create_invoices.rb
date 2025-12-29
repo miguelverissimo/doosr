@@ -21,9 +21,9 @@ class CreateInvoices < ActiveRecord::Migration[8.1]
 
       t.timestamps
 
-      t.index [:user_id, :year, :number], unique: true
-      t.index [:user_id, :display_number], unique: true
-      t.index [:user_id, :state]
+      t.index [ :user_id, :year, :number ], unique: true
+      t.index [ :user_id, :display_number ], unique: true
+      t.index [ :user_id, :state ]
     end
   end
 end

@@ -17,4 +17,3 @@ module Views
     end
   end
 end
-

@@ -66,7 +66,7 @@ module Accounting
           base64_image = Base64.strict_encode64(image_data)
           # Create data URI
           data_uri = "data:#{content_type};base64,#{base64_image}"
-          
+
           # Replace the Active Storage URL with the data URI
           html_with_css = html_with_css.gsub(
             /src="[^"]*active_storage[^"]*"/,
@@ -81,7 +81,7 @@ module Accounting
       base_url = "#{request.protocol}#{request.host_with_port}"
       html_final = html_with_css.gsub(/src="(\/[^"]+)"/) do |match|
         url = $1
-        full_url = url.start_with?('http') ? url : "#{base_url}#{url}"
+        full_url = url.start_with?("http") ? url : "#{base_url}#{url}"
         "src=\"#{full_url}\""
       end
 
@@ -89,14 +89,14 @@ module Accounting
       # Launch args for production containers are configured in config/initializers/grover.rb
       pdf = Grover.new(
         html_final,
-        format: 'A4',
+        format: "A4",
         viewport: { width: 1280, height: 1024 },
         print_background: true,
-        wait_until: 'networkidle0'  # Wait for all resources (including images) to load
+        wait_until: "networkidle0"  # Wait for all resources (including images) to load
       ).to_pdf
 
       filename = "Invoice_#{@invoice.display_number.gsub('/', '-')}.pdf"
-      send_data(pdf, filename: filename, type: 'application/pdf', disposition: 'attachment')
+      send_data(pdf, filename: filename, type: "application/pdf", disposition: "attachment")
     end
 
     def create
@@ -125,9 +125,9 @@ module Accounting
                        # Handle both DateTime objects and date strings
                        date = @invoice.issued_at.is_a?(String) ? Date.parse(@invoice.issued_at) : @invoice.issued_at.to_date
                        date.year
-                     else
+      else
                        Date.today.year
-                     end
+      end
       @invoice.year = invoice_year
 
       last_invoice = current_user.invoices
@@ -186,7 +186,7 @@ module Accounting
       elsif invoice_params[:invoice_template_id].present?
         # Fallback: build invoice items from template items if no invoice_item_params provided
         template = current_user.invoice_templates
-          .includes(invoice_template_items: [:item, :tax_bracket])
+          .includes(invoice_template_items: [ :item, :tax_bracket ])
           .find(invoice_params[:invoice_template_id])
         template.invoice_template_items.each do |template_item|
           accounting_item = template_item.item
@@ -284,11 +284,11 @@ module Accounting
           # Simple state transition update
           if Accounting::Invoice.states.key?(new_state) && @invoice.update(state: new_state)
             state_messages = {
-              'draft' => 'Invoice marked as draft',
-              'sent' => 'Invoice marked as sent',
-              'paid' => 'Invoice marked as paid'
+              "draft" => "Invoice marked as draft",
+              "sent" => "Invoice marked as sent",
+              "paid" => "Invoice marked as paid"
             }
-            message = state_messages[new_state] || 'Invoice updated successfully'
+            message = state_messages[new_state] || "Invoice updated successfully"
 
             format.turbo_stream do
               render turbo_stream: [
@@ -299,7 +299,7 @@ module Accounting
             format.html { redirect_to accounting_index_path, notice: message }
           else
             format.turbo_stream do
-              error_message = @invoice.errors.full_messages.any? ? @invoice.errors.full_messages.join(', ') : "Failed to update invoice: invalid state"
+              error_message = @invoice.errors.full_messages.any? ? @invoice.errors.full_messages.join(", ") : "Failed to update invoice: invalid state"
               render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('#{error_message}', { type: 'error' });</script>")
             end
             format.html { redirect_to accounting_index_path, alert: "Failed to update invoice" }

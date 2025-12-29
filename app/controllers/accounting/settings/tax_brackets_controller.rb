@@ -2,7 +2,7 @@ module Accounting
   module Settings
     class TaxBracketsController < ApplicationController
       before_action :authenticate_user!
-      before_action :set_tax_bracket, only: [:update, :destroy]
+      before_action :set_tax_bracket, only: [ :update, :destroy ]
 
       def index
         render ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: current_user)
@@ -106,4 +106,3 @@ module Accounting
     end
   end
 end
-

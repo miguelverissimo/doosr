@@ -20,12 +20,12 @@ class Day < ApplicationRecord
   has_one :descendant, as: :descendable, dependent: :destroy
 
   # Self-referential associations for import tracking
-  belongs_to :imported_from_day, class_name: 'Day', optional: true
-  belongs_to :imported_to_day, class_name: 'Day', optional: true
+  belongs_to :imported_from_day, class_name: "Day", optional: true
+  belongs_to :imported_to_day, class_name: "Day", optional: true
 
   # Inverse associations for import tracking
-  has_many :days_imported_from_this, class_name: 'Day', foreign_key: 'imported_from_day_id', dependent: :nullify
-  has_many :days_that_imported_this, class_name: 'Day', foreign_key: 'imported_to_day_id', dependent: :nullify
+  has_many :days_imported_from_this, class_name: "Day", foreign_key: "imported_from_day_id", dependent: :nullify
+  has_many :days_that_imported_this, class_name: "Day", foreign_key: "imported_to_day_id", dependent: :nullify
 
   # Enums
   enum :state, { open: 0, closed: 1 }, default: :open, validate: true
@@ -64,12 +64,12 @@ class Day < ApplicationRecord
 
   # Check if this Day is open
   def open?
-    state == 'open'
+    state == "open"
   end
 
   # Check if this Day is closed
   def closed?
-    state == 'closed'
+    state == "closed"
   end
 
   # Import from another Day
@@ -121,12 +121,12 @@ class Day < ApplicationRecord
 
   # Human-readable date format
   def formatted_date
-    date.strftime('%B %d, %Y')
+    date.strftime("%B %d, %Y")
   end
 
   # Short date format
   def short_date
-    date.strftime('%b %d, %Y')
+    date.strftime("%b %d, %Y")
   end
 
   private
@@ -174,9 +174,9 @@ class Day < ApplicationRecord
   def track_state_changes
     if state_changed?
       case state
-      when 'closed'
+      when "closed"
         self.closed_at = Time.current if closed_at.nil?
-      when 'open'
+      when "open"
         self.reopened_at = Time.current if reopened_at.nil?
       end
     end

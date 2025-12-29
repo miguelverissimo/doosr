@@ -28,7 +28,7 @@ module RubyUI
 
     def render_mobile_dropdown
       current_tab = @tabs.find { |t| t[:value] == @current_value } || @tabs.first
-      
+
       render DropdownMenu.new do
         render DropdownMenuTrigger.new do
           Button(variant: :outline, class: "w-full justify-between") do
@@ -36,7 +36,7 @@ module RubyUI
             render ::Components::Icon.new(name: :arrow_down, size: "16", class: "ml-2 h-4 w-4")
           end
         end
-        
+
         render DropdownMenuContent.new do
           @tabs.each do |tab|
             button(
@@ -58,4 +58,3 @@ module RubyUI
     end
   end
 end
-

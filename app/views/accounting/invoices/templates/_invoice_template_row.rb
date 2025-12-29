@@ -132,13 +132,13 @@ module Views
                   render RubyUI::AlertDialogCancel.new { "Cancel" }
 
                   form(
-                    action: view_context.invoice_template_path(@invoice_template), 
-                    method: "post", 
-                    data: { 
-                      turbo_method: :delete, 
-                      action: "submit@document->ruby-ui--alert-dialog#dismiss" 
-                    }, 
-                    class: "inline", 
+                    action: view_context.invoice_template_path(@invoice_template),
+                    method: "post",
+                    data: {
+                      turbo_method: :delete,
+                      action: "submit@document->ruby-ui--alert-dialog#dismiss"
+                    },
+                    class: "inline",
                     id: "delete_invoice_template_#{@invoice_template.id}"
                   ) do
                     input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
@@ -179,7 +179,7 @@ module Views
                   render ::Components::Icon.new(name: :new_invoice, size: "12", class: "w-5 h-5")
                 end
               end
-              
+
               render RubyUI::DialogContent.new(size: :lg) do
                 render RubyUI::DialogHeader.new do
                   render RubyUI::DialogTitle.new { "Create Invoice from Template" }

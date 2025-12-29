@@ -49,7 +49,7 @@ module Items
         title: "Weekly task",
         item_type: :completable,
         state: :done,
-        recurrence_rule: { frequency: "weekly", days_of_week: [1, 5] }.to_json
+        recurrence_rule: { frequency: "weekly", days_of_week: [ 1, 5 ] }.to_json
       )
 
       service = ScheduleNextOccurrenceService.new(completed_item: item, user: @user)
@@ -119,7 +119,7 @@ module Items
 
     test "places item in permanent section if source item is in permanent section" do
       # Set up permanent sections for user
-      @user.update!(permanent_sections: ["Morning Routine", "Work"])
+      @user.update!(permanent_sections: [ "Morning Routine", "Work" ])
 
       # Create permanent section on today's day
       morning_section = @user.items.create!(

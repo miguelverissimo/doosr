@@ -157,7 +157,7 @@ module Components
                     )
                     render RubyUI::FormFieldError.new
                   end
-  
+
                   render RubyUI::FormField.new do
                     render RubyUI::FormFieldLabel.new { "Billing Email" }
                     render RubyUI::Input.new(
@@ -168,7 +168,7 @@ module Components
                     )
                     render RubyUI::FormFieldError.new
                   end
-  
+
                   render RubyUI::FormField.new do
                     render RubyUI::FormFieldLabel.new { "Billing Phone" }
                     render RubyUI::Input.new(

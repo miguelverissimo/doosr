@@ -9,7 +9,7 @@ module Accounting
 
     enum :unit, {
       hour: :hour,
-      unit: :unit,
+      unit: :unit
     }, default: :hour, validate: true
 
     enum :kind, {

@@ -77,7 +77,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "creates permanent sections on new target day" do
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     target_date = @today + 3.days
@@ -250,7 +250,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
 
     # Check children were copied
     new_children = Item.where(id: new_child_ids)
-    assert_equal ["Child 1", "Child 2"], new_children.pluck(:title).sort
+    assert_equal [ "Child 1", "Child 2" ], new_children.pluck(:title).sort
   end
 
   test "uses user day_migration_settings for copying" do
@@ -433,7 +433,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "copies extra_data to deferred item" do
-    @item.update!(extra_data: { "priority" => "high", "tags" => ["urgent"] })
+    @item.update!(extra_data: { "priority" => "high", "tags" => [ "urgent" ] })
 
     service = Items::DeferService.new(
       source_item: @item,
@@ -472,7 +472,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: creates permanent sections on NEW target day" do
-    @user.permanent_sections = ["Work", "Personal", "Errands"]
+    @user.permanent_sections = [ "Work", "Personal", "Errands" ]
     @user.save!
 
     target_date = @today + 5.days
@@ -507,7 +507,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: creates permanent sections on EXISTING target day that doesn't have them" do
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     # Create target day WITHOUT permanent sections
@@ -534,7 +534,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: item NOT in permanent section goes to day root on target day" do
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     # Item is at day root (not in any section)
@@ -565,7 +565,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: item IN permanent section goes to SAME section on target day" do
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     # Create a permanent section on source day
@@ -617,7 +617,7 @@ class Items::DeferServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: item in nested position within permanent section stays within that section" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create Work section on source day

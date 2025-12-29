@@ -21,7 +21,7 @@ module Accounting
 
     money_attribute :unit_price, :subtotal, :discount_amount, :tax_amount, :amount
 
-    after_commit :recalculate_invoice_totals, on: [:create, :update, :destroy]
+    after_commit :recalculate_invoice_totals, on: [ :create, :update, :destroy ]
 
     private
 
@@ -35,4 +35,3 @@ module Accounting
     end
   end
 end
-

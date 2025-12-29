@@ -1,7 +1,7 @@
 module Accounting
   class AccountingItemsController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_accounting_item, only: [:update, :destroy]
+    before_action :set_accounting_item, only: [ :update, :destroy ]
 
     def index
       render ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)

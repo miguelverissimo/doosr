@@ -8,8 +8,8 @@ module Views
         def view_template
           div(class: "flex h-full flex-col") do
             tabs_data = [
-              {value: "invoices", label: "Invoices"},
-              {value: "templates", label: "Templates"},
+              { value: "invoices", label: "Invoices" },
+              { value: "templates", label: "Templates" }
             ]
             Tabs(default_value: "invoices") do
               render RubyUI::ResponsiveTabsList.new(

@@ -29,7 +29,7 @@ class List < ApplicationRecord
     return [] if item_ids.empty?
     # Use sanitize_sql to prevent SQL injection
     order_sql = ActiveRecord::Base.sanitize_sql_array(
-      ["array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i)]
+      [ "array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i) ]
     )
     Item.where(id: item_ids).order(Arel.sql(order_sql))
   end
@@ -40,7 +40,7 @@ class List < ApplicationRecord
     return [] if item_ids.empty?
     # Use sanitize_sql to prevent SQL injection
     order_sql = ActiveRecord::Base.sanitize_sql_array(
-      ["array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i)]
+      [ "array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i) ]
     )
     Item.where(id: item_ids).order(Arel.sql(order_sql))
   end
@@ -53,7 +53,7 @@ class List < ApplicationRecord
   private
 
   def generate_slug
-    require 'ulid'
+    require "ulid"
     self.slug = ULID.generate.downcase
   end
 

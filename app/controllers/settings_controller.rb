@@ -217,7 +217,7 @@ class SettingsController < ApplicationController
   private
 
   def settings_params
-    params.require(:user).permit(settings: [:theme, permanent_sections: []])
+    params.require(:user).permit(settings: [ :theme, permanent_sections: [] ])
   end
 
   def parse_migration_settings(settings_params)

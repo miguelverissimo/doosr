@@ -28,7 +28,7 @@ module ItemTree
       return [] if descendant.nil?
 
       if @descendant_stack[descendant.id]
-        return [Node.new(label: "(cycle detected)", children: [])]
+        return [ Node.new(label: "(cycle detected)", children: []) ]
       end
 
       @descendant_stack[descendant.id] = true
@@ -44,7 +44,7 @@ module ItemTree
 
         # Check for item-level cycle (item appears in its own descendant tree)
         if @item_stack[item.id]
-          return [Node.new(label: "(cycle detected)", children: [])]
+          return [ Node.new(label: "(cycle detected)", children: []) ]
         end
 
         @item_stack[item.id] = true

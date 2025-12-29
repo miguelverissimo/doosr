@@ -23,7 +23,7 @@ module Views
 
           # Item title
           div(class: "flex-1 min-w-0") do
-            title_classes = ["text-sm truncate"]
+            title_classes = [ "text-sm truncate" ]
             title_classes << "line-through text-muted-foreground" if @item.done?
             p(class: title_classes.join(" ")) { @item.title }
           end

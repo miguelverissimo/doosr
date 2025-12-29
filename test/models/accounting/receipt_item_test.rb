@@ -7,4 +7,3 @@ module Accounting
     # end
   end
 end
-

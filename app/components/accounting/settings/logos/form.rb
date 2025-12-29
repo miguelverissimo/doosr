@@ -63,7 +63,7 @@ module Components
                   name: "accounting_logo[image]",
                   accept: "image/*",
                   required: @is_new_record
-                ) 
+                )
                 if @accounting_logo.image.attached?
                   AspectRatio(aspect_ratio: "16/9", class: "rounded-md overflow-hidden border shadow-sm") do
                     img(

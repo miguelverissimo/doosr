@@ -50,7 +50,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "creates permanent sections in new target day" do
-    @user.permanent_sections = ["Work", "Personal", "Health"]
+    @user.permanent_sections = [ "Work", "Personal", "Health" ]
     @user.save!
 
     service = Days::DayMigrationService.new(
@@ -69,7 +69,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     sections = Item.where(id: active_item_ids, item_type: :section)
 
     assert_equal 3, sections.count
-    assert_equal ["Health", "Personal", "Work"], sections.pluck(:title).sort
+    assert_equal [ "Health", "Personal", "Work" ], sections.pluck(:title).sort
     sections.each do |section|
       assert section.extra_data&.dig("permanent_section")
     end
@@ -99,7 +99,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     target_active_ids = target_day.descendant.extract_active_item_ids
     target_items = Item.where(id: target_active_ids)
 
-    assert_equal ["Task 1", "Task 2"], target_items.pluck(:title)
+    assert_equal [ "Task 1", "Task 2" ], target_items.pluck(:title)
     # Verify source_item_id linkage
     target_items.each do |item|
       assert_not_nil item.source_item_id
@@ -108,7 +108,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
 
   test "matches permanent sections and merges children" do
     # Set up user with permanent sections
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     # Create permanent sections in source day with items
@@ -157,7 +157,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "does not duplicate permanent sections" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create permanent section in source with items
@@ -359,7 +359,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     assert_equal 0, parent_inactive_ids.length
 
     children = Item.where(id: parent_active_ids)
-    assert_equal ["Child 1"], children.pluck(:title)
+    assert_equal [ "Child 1" ], children.pluck(:title)
   end
 
   test "preserves item order during migration" do
@@ -387,7 +387,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     target_active_ids = target_day.descendant.extract_active_item_ids
     target_items = target_active_ids.map { |id| Item.find(id) }
 
-    assert_equal ["First", "Second", "Third"], target_items.map(&:title)
+    assert_equal [ "First", "Second", "Third" ], target_items.map(&:title)
   end
 
   test "handles empty source day" do
@@ -424,7 +424,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "migrates multiple items to permanent section" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create permanent section with multiple items
@@ -471,11 +471,11 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     assert_equal 0, work_inactive_ids.length
 
     tasks = Item.where(id: work_active_ids)
-    assert_equal ["Task 1", "Task 2"], tasks.pluck(:title).sort
+    assert_equal [ "Task 1", "Task 2" ], tasks.pluck(:title).sort
   end
 
   test "correctly counts migrated items excluding permanent section itself" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     work_section = @user.items.create!(
@@ -505,7 +505,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: NEVER recreates permanent sections on target day" do
-    @user.permanent_sections = ["Work", "Personal"]
+    @user.permanent_sections = [ "Work", "Personal" ]
     @user.save!
 
     # Create source day with permanent sections
@@ -558,7 +558,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: migrates items from multiple permanent sections correctly" do
-    @user.permanent_sections = ["Work", "Personal", "Health"]
+    @user.permanent_sections = [ "Work", "Personal", "Health" ]
     @user.save!
 
     # Create permanent sections in source with items
@@ -606,7 +606,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
       .where("extra_data ->> 'permanent_section' = 'true'")
 
     assert_equal 3, target_permanent_sections.count
-    assert_equal ["Health", "Personal", "Work"], target_permanent_sections.pluck(:title).sort
+    assert_equal [ "Health", "Personal", "Work" ], target_permanent_sections.pluck(:title).sort
 
     # Verify Work section has work task
     work = target_permanent_sections.find_by(title: "Work")
@@ -625,7 +625,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: does not migrate permanent sections to day root" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create permanent section in source
@@ -676,7 +676,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: migrates permanent section with nested sections correctly" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create permanent section with nested section inside
@@ -733,7 +733,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
   end
 
   test "CRITICAL: respects state filtering when migrating permanent section children" do
-    @user.permanent_sections = ["Work"]
+    @user.permanent_sections = [ "Work" ]
     @user.save!
 
     # Create permanent section with mix of todo and non-todo items

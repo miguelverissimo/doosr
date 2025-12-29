@@ -130,7 +130,7 @@ module Components
               div(class: "flex items-center gap-2") do
                 # Hidden field to ensure false is sent when unchecked
                 input(type: :hidden, name: "accounting_item[convert_currency]", value: "false")
-                
+
                 label(class: "relative inline-flex items-center cursor-pointer") do
                   input(
                     type: :checkbox,

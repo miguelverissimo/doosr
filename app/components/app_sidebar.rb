@@ -235,6 +235,4 @@ class ::Components::AppSidebar < ::Components::Base
       end
     end
   end
-
 end
-

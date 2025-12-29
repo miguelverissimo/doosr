@@ -37,7 +37,7 @@ module Views
             if @item.section?
               h3(class: "font-semibold text-sm truncate") { @item.title }
             else
-              title_classes = ["text-sm truncate"]
+              title_classes = [ "text-sm truncate" ]
               title_classes << "line-through text-muted-foreground" if @item.done?
               p(class: title_classes.join(" ")) { @item.title }
             end

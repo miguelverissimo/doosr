@@ -55,5 +55,3 @@ module MoneyPresentable
     end
   end
 end
-
-

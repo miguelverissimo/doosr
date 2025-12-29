@@ -14,4 +14,3 @@ module Accounting
     money_attribute :gross_value, :value_with_tax
   end
 end
-

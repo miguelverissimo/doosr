@@ -17,7 +17,7 @@ class Items::CopyToDescendantServiceTest < ActiveSupport::TestCase
       title: "Test Item",
       item_type: :completable,
       state: :todo,
-      extra_data: { "note" => "Test note", "tags" => ["work"] }
+      extra_data: { "note" => "Test note", "tags" => [ "work" ] }
     )
   end
 
@@ -280,7 +280,7 @@ class Items::CopyToDescendantServiceTest < ActiveSupport::TestCase
 
     # Verify children were copied with correct attributes
     new_children = Item.where(id: new_child_ids)
-    assert_equal ["Child 1", "Child 2"], new_children.pluck(:title).sort
+    assert_equal [ "Child 1", "Child 2" ], new_children.pluck(:title).sort
 
     # Verify source_item_id linkage
     assert_equal child1.id, new_children.find_by(title: "Child 1").source_item_id
@@ -378,7 +378,7 @@ class Items::CopyToDescendantServiceTest < ActiveSupport::TestCase
     assert_equal 0, new_inactive_ids.length
 
     all_items = Item.where(id: new_active_ids)
-    assert_equal ["Active Item", "Section"], all_items.pluck(:title).sort
+    assert_equal [ "Active Item", "Section" ], all_items.pluck(:title).sort
   end
 
   test "sections_with_no_active_items: true skips inactive items but keeps sections" do
@@ -413,7 +413,7 @@ class Items::CopyToDescendantServiceTest < ActiveSupport::TestCase
     assert_equal 0, new_inactive_ids.length
 
     active_items = Item.where(id: new_active_ids)
-    assert_equal ["Active Item", "Section"], active_items.pluck(:title).sort
+    assert_equal [ "Active Item", "Section" ], active_items.pluck(:title).sort
   end
 
   test "sections_with_no_active_items: true copies empty sections" do

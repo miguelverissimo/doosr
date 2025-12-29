@@ -242,7 +242,7 @@ class ReusableItemsController < ApplicationController
           render_to_string(Views::Items::TreeNode.new(node: node, context: @list, public_view: !user_signed_in?, is_editable: @list.visibility_editable?))
         end.join
 
-        streams = [turbo_stream.update("items_list", rendered_items)]
+        streams = [ turbo_stream.update("items_list", rendered_items) ]
 
         # Update action sheet buttons if it's open
         active_item_ids = @list.descendant.extract_active_item_ids
@@ -337,7 +337,7 @@ class ReusableItemsController < ApplicationController
             streams << turbo_stream.update("items_list", rendered_items)
 
             # Broadcast item update to list
-            broadcast_list_update(@list, [streams.last])
+            broadcast_list_update(@list, [ streams.last ])
 
             render turbo_stream: streams
           else
@@ -354,7 +354,7 @@ class ReusableItemsController < ApplicationController
             stream = turbo_stream.update("items_list", rendered_items)
 
             # Broadcast to list
-            broadcast_list_update(@list, [stream])
+            broadcast_list_update(@list, [ stream ])
 
             render turbo_stream: stream
           end
@@ -379,7 +379,7 @@ class ReusableItemsController < ApplicationController
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
     # Check if confirmation is needed (if item has nested items)
-    if @item.has_nested_items? && params[:confirmed] != 'true'
+    if @item.has_nested_items? && params[:confirmed] != "true"
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
@@ -482,7 +482,7 @@ class ReusableItemsController < ApplicationController
         stream = turbo_stream.update("items_list", rendered_items)
 
         # Broadcast to list subscribers
-        broadcast_list_update(@list, [stream])
+        broadcast_list_update(@list, [ stream ])
 
         render turbo_stream: stream
       end
@@ -688,5 +688,4 @@ class ReusableItemsController < ApplicationController
 
     item_ids.uniq
   end
-
 end

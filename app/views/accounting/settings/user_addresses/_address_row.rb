@@ -108,13 +108,13 @@ module Views
                   render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
-              
+
               render RubyUI::AlertDialogContent.new do
                 render RubyUI::AlertDialogHeader.new do
                   render RubyUI::AlertDialogTitle.new { "Are you sure you want to delete #{@address.name}?" }
                   render RubyUI::AlertDialogDescription.new { "This action cannot be undone. This will permanently delete the address." }
                 end
-                
+
                 # Footer actions: single horizontal row, right aligned
                 render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
                   render RubyUI::AlertDialogCancel.new { "Cancel" }
@@ -123,7 +123,7 @@ module Views
                   form(
                     action: view_context.settings_address_path(@address),
                     method: "post",
-                    data: { 
+                    data: {
                       turbo_method: :delete,
                       action: "submit@document->ruby-ui--alert-dialog#dismiss"
                     },

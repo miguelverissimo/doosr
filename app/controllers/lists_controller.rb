@@ -1,6 +1,6 @@
 class ListsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_list, only: [:show, :edit, :update, :destroy]
+  before_action :set_list, only: [ :show, :edit, :update, :destroy ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, list: @list) }
 
   def index

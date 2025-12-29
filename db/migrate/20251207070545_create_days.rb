@@ -35,6 +35,6 @@ class CreateDays < ActiveRecord::Migration[8.1]
     add_index :days, :imported_to_day_id
 
     # Unique constraint: one Day per user per date
-    add_index :days, [:user_id, :date], unique: true, name: 'index_days_on_user_and_date'
+    add_index :days, [ :user_id, :date ], unique: true, name: 'index_days_on_user_and_date'
   end
 end

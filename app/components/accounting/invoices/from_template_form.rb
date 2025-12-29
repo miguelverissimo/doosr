@@ -29,7 +29,7 @@ module Components
             # Display template information (read-only)
             div(class: "space-y-4 p-4 bg-muted rounded-md") do
               div(class: "text-sm font-semibold mb-2") { "Template Information" }
-              
+
               render RubyUI::FormField.new do
                 render RubyUI::FormFieldLabel.new { "Template Name" }
                 div(class: "text-sm text-muted-foreground") { @invoice_template.name }
@@ -146,24 +146,24 @@ module Components
 
         def accounting_items_json
           @user.accounting_items.map do |item|
-            [item.id.to_s, {
+            [ item.id.to_s, {
               id: item.id.to_s,
               name: item.name,
               reference: item.reference,
               # price is stored as integer cents, expose in units for the UI
               price: item.price.to_f / 100.0,
               unit: item.unit
-            }]
+            } ]
           end.to_h.to_json
         end
 
         def tax_brackets_json
           @user.tax_brackets.map do |bracket|
-            [bracket.id.to_s, {
+            [ bracket.id.to_s, {
               id: bracket.id.to_s,
               name: bracket.name,
               percentage: bracket.percentage.to_f
-            }]
+            } ]
           end.to_h.to_json
         end
 

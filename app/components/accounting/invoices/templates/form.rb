@@ -205,24 +205,24 @@ module Components
 
           def accounting_items_json
             user.accounting_items.map do |item|
-              [item.id.to_s, {
+              [ item.id.to_s, {
                 id: item.id.to_s,
                 name: item.name,
                 reference: item.reference,
                 # price is stored as integer cents, expose in units for the UI
                 price: item.price.to_f / 100.0,
                 unit: item.unit
-              }]
+              } ]
             end.to_h.to_json
           end
 
           def tax_brackets_json
             user.tax_brackets.map do |bracket|
-              [bracket.id.to_s, {
+              [ bracket.id.to_s, {
                 id: bracket.id.to_s,
                 name: bracket.name,
                 percentage: bracket.percentage.to_f
-              }]
+              } ]
             end.to_h.to_json
           end
 

@@ -151,7 +151,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     @list.descendant.save!
 
     # Verify initial order with tuples
-    assert_equal [{ "Item" => @item.id }, { "Item" => item2.id }], @list.descendant.active_items
+    assert_equal [ { "Item" => @item.id }, { "Item" => item2.id } ], @list.descendant.active_items
 
     # Move item2 up
     patch move_reusable_item_path(item2), params: {
@@ -164,7 +164,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     @list.reload
 
     # Verify order changed with tuples
-    assert_equal [{ "Item" => item2.id }, { "Item" => @item.id }], @list.descendant.active_items
+    assert_equal [ { "Item" => item2.id }, { "Item" => @item.id } ], @list.descendant.active_items
   end
 
   test "should move item down with tuple format" do
@@ -174,7 +174,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     @list.descendant.save!
 
     # Verify initial order with tuples
-    assert_equal [{ "Item" => @item.id }, { "Item" => item2.id }], @list.descendant.active_items
+    assert_equal [ { "Item" => @item.id }, { "Item" => item2.id } ], @list.descendant.active_items
 
     # Move @item down
     patch move_reusable_item_path(@item), params: {
@@ -187,7 +187,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     @list.reload
 
     # Verify order changed with tuples
-    assert_equal [{ "Item" => item2.id }, { "Item" => @item.id }], @list.descendant.active_items
+    assert_equal [ { "Item" => item2.id }, { "Item" => @item.id } ], @list.descendant.active_items
   end
 
   test "should not move item beyond array bounds" do
@@ -202,7 +202,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     @list.reload
 
     # Verify position unchanged
-    assert_equal [{ "Item" => @item.id }], @list.descendant.active_items
+    assert_equal [ { "Item" => @item.id } ], @list.descendant.active_items
   end
 
   test "should update item" do
@@ -249,7 +249,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
       @item.descendant.add_active_item(nested_item.id)
       @item.descendant.save!
     else
-      Descendant.create!(descendable: @item, active_items: [{ "Item" => nested_item.id }], inactive_items: [])
+      Descendant.create!(descendable: @item, active_items: [ { "Item" => nested_item.id } ], inactive_items: [])
     end
 
     # Delete with confirmation
@@ -345,7 +345,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     parent.descendant.add_inactive_item(child2.id)
     parent.descendant.save!
 
-    @list.descendant.active_items = [{ "Item" => parent.id }]
+    @list.descendant.active_items = [ { "Item" => parent.id } ]
     @list.descendant.save!
 
     # Create a new controller instance to test the private method
@@ -356,7 +356,7 @@ class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
     item_ids = controller.send(:find_all_list_item_ids_recursively, @list)
 
     # Verify all item IDs are extracted correctly (not tuples)
-    assert_equal [parent.id, child1.id, child2.id].sort, item_ids.sort
+    assert_equal [ parent.id, child1.id, child2.id ].sort, item_ids.sort
     assert item_ids.all? { |id| id.is_a?(Integer) }
   end
 

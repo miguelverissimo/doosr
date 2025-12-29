@@ -13,7 +13,7 @@ class CreateDescendants < ActiveRecord::Migration[8.1]
     end
 
     # Composite index for efficient polymorphic lookups
-    add_index :descendants, [:descendable_type, :descendable_id],
+    add_index :descendants, [ :descendable_type, :descendable_id ],
               name: 'index_descendants_on_descendable',
               unique: true
 

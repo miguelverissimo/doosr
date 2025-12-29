@@ -9,6 +9,6 @@ class CreateTaxBrackets < ActiveRecord::Migration[8.1]
       t.timestamps null: false
     end
 
-    add_index :tax_brackets, [:user_id, :name], unique: true
+    add_index :tax_brackets, [ :user_id, :name ], unique: true
   end
 end

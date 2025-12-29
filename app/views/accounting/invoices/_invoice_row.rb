@@ -16,7 +16,7 @@ module Views
           ) do
             div(class: "flex flex-col gap-2") do
               div(class: "flex flex-row items-center justify-between w-full gap-2") do
-                div(class: "text-xl") do 
+                div(class: "text-xl") do
                   span(class: "font-bold") { plain("Invoice # ") }
                   plain(@invoice.display_number)
                 end
@@ -42,7 +42,7 @@ module Views
               div(class: "flex flex-row items-start gap-2") do
                 render_items_table
               end
-              
+
               div(class: "flex flex-row items-center justify-between gap-2") do
                 render_buttons
 
@@ -50,7 +50,7 @@ module Views
                   div(class: "flex flex-row items-center gap-2 #{currency_color}") do
                     render_currency_icon
                     div(class: "text-md font-bold") { @invoice.currency.upcase }
-                  end 
+                  end
                   plain(" ")
                   plain(@invoice.total_formatted_without_currency)
                 end
@@ -256,8 +256,8 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(
-                  variant: :destructive, 
-                  size: :md, 
+                  variant: :destructive,
+                  size: :md,
                   icon: true
                 ) { render ::Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4") }
               end
@@ -337,7 +337,7 @@ module Views
                     variant: :primary,
                     type: :button,
                     class: "w-full",
-                    data: { 
+                    data: {
                       action: "click->mark-invoice-paid#openCalculatorForm",
                       receipt_choice: "calculator"
                     }
@@ -346,7 +346,7 @@ module Views
                     variant: :outline,
                     type: :button,
                     class: "w-full",
-                    data: { 
+                    data: {
                       action: "click->mark-invoice-paid#openSimpleForm",
                       receipt_choice: "simple"
                     }
@@ -358,7 +358,7 @@ module Views
                 Button(
                   variant: :outline,
                   type: :button,
-                  data: { 
+                  data: {
                     action: "click->mark-invoice-paid#cancelChoice",
                     receipt_choice: "cancel"
                   }
@@ -410,18 +410,18 @@ module Views
 
         def render_state_badge
           variant = case @invoice.state
-            when "draft"
+          when "draft"
               :sky
-            when "sent"
+          when "sent"
               :fuchsia
-            when "partial"
+          when "partial"
               :amber
-            when "paid"
+          when "paid"
               :lime
-            else
+          else
               :red
-            end
-          
+          end
+
           render RubyUI::Badge.new(variant: variant, size: :lg) { @invoice.state.capitalize }
         end
 

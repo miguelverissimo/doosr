@@ -228,4 +228,3 @@ class ::Components::Icon < ::Components::Base
     end
   end
 end
-

@@ -222,7 +222,7 @@ class ItemsController < ApplicationController
             item_index = nil
             total_items = nil
             tuple = { "Item" => @item.id }
-            containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
+            containing_descendant = Descendant.where("active_items @> ?", [ tuple ].to_json).first
             if containing_descendant
               active_item_ids = containing_descendant.extract_active_item_ids
               item_index = active_item_ids.index(@item.id)
@@ -265,7 +265,7 @@ class ItemsController < ApplicationController
               streams << turbo_stream.update("items_list", rendered_items)
 
               # Broadcast item update to list
-              broadcast_list_update(@list, [streams.last])
+              broadcast_list_update(@list, [ streams.last ])
             else
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
@@ -292,7 +292,7 @@ class ItemsController < ApplicationController
               stream = turbo_stream.update("items_list", rendered_items)
 
               # Broadcast to list
-              broadcast_list_update(@list, [stream])
+              broadcast_list_update(@list, [ stream ])
             else
               stream = turbo_stream.replace(
                 "item_#{@item.id}",
@@ -325,7 +325,7 @@ class ItemsController < ApplicationController
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
     # Check if confirmation is needed (if item has nested items)
-    if @item.has_nested_items? && params[:confirmed] != 'true'
+    if @item.has_nested_items? && params[:confirmed] != "true"
       # Return a response indicating confirmation is needed
       respond_to do |format|
         format.turbo_stream do
@@ -414,7 +414,7 @@ class ItemsController < ApplicationController
 
     # Find the containing descendant by checking which one has this item in active_items
     tuple = { "Item" => @item.id }
-    containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
+    containing_descendant = Descendant.where("active_items @> ?", [ tuple ].to_json).first
 
     if containing_descendant
       active_item_ids = containing_descendant.extract_active_item_ids
@@ -549,7 +549,7 @@ class ItemsController < ApplicationController
         stream = turbo_stream.replace("item_#{@item.id}", ::Views::Items::Item.new(item: @item, day: find_day, list: @list))
 
         # Broadcast to list if this is a list item
-        broadcast_list_update(@list, [stream]) if @list
+        broadcast_list_update(@list, [ stream ]) if @list
 
         render turbo_stream: stream
       end
@@ -566,7 +566,7 @@ class ItemsController < ApplicationController
 
     # Find which descendant contains this item
     tuple = { "Item" => @item.id }
-    containing_descendant = Descendant.where("active_items @> ?", [tuple].to_json).first
+    containing_descendant = Descendant.where("active_items @> ?", [ tuple ].to_json).first
 
     if containing_descendant
       active_items = containing_descendant.active_items
@@ -586,9 +586,9 @@ class ItemsController < ApplicationController
       end
 
       # Determine the type of descendant
-      is_day_descendant = containing_descendant.descendable_type == 'Day'
-      is_list_descendant = containing_descendant.descendable_type == 'List'
-      parent_item = containing_descendant.descendable if containing_descendant.descendable_type == 'Item'
+      is_day_descendant = containing_descendant.descendable_type == "Day"
+      is_list_descendant = containing_descendant.descendable_type == "List"
+      parent_item = containing_descendant.descendable if containing_descendant.descendable_type == "Item"
     end
 
     respond_to do |format|
@@ -780,7 +780,7 @@ class ItemsController < ApplicationController
           stream = turbo_stream.update("items_list", rendered_items)
 
           # Broadcast to list subscribers
-          broadcast_list_update(@list, [stream])
+          broadcast_list_update(@list, [ stream ])
 
           render turbo_stream: stream
         else
@@ -797,18 +797,18 @@ class ItemsController < ApplicationController
 
     # Parse target date
     target_date = case target_date_param
-    when 'tomorrow'
+    when "tomorrow"
       Item.get_tomorrow_date
-    when 'next_monday'
+    when "next_monday"
       Item.get_next_monday_date
-    when 'next_month'
+    when "next_month"
       Item.get_next_month_first_date
     else
       Date.parse(target_date_param)
     end
 
     # Check if confirmation is needed (if item has nested items)
-    if @item.has_nested_items? && params[:confirmed] != 'true'
+    if @item.has_nested_items? && params[:confirmed] != "true"
       @day = find_day
       # Return a response indicating confirmation is needed
       respond_to do |format|

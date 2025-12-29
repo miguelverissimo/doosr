@@ -91,7 +91,7 @@ class Descendant < ApplicationRecord
   def add_active_record(type, id)
     tuple = build_tuple(type, id)
     return if active_items.include?(tuple)
-    self.active_items = active_items + [tuple]
+    self.active_items = active_items + [ tuple ]
   end
 
   # Add a record to inactive_items (at the end)
@@ -100,7 +100,7 @@ class Descendant < ApplicationRecord
   def add_inactive_record(type, id)
     tuple = build_tuple(type, id)
     return if inactive_items.include?(tuple)
-    self.inactive_items = inactive_items + [tuple]
+    self.inactive_items = inactive_items + [ tuple ]
   end
 
   # Remove a record from active_items
@@ -248,7 +248,7 @@ class Descendant < ApplicationRecord
   # @return [Descendant, nil] The containing descendant or nil
   def self.containing_record(type, id)
     tuple = { type => id }
-    where("active_items @> ? OR inactive_items @> ?", [tuple].to_json, [tuple].to_json).first
+    where("active_items @> ? OR inactive_items @> ?", [ tuple ].to_json, [ tuple ].to_json).first
   end
 
   # Find the descendant containing a specific item (backward compatible)

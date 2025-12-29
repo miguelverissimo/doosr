@@ -8,7 +8,7 @@ class AddDefaultReceiptItems < ActiveRecord::Migration[8.1]
         percentage: 0,
         legal_reference: "a) IVA - autoliquidação - Artigo 6.º n.º 6 alínea a) do CIVA, a contrário"
       )
-      
+
       # Create the 3 default receipt items
       default_items = [
         {
@@ -43,9 +43,9 @@ class AddDefaultReceiptItems < ActiveRecord::Migration[8.1]
           exemption_motive: "a) IVA - autoliquidação - Artigo 6.º n.º 6 alínea a) do CIVA, a contrário",
           unit_price_with_tax: 1, # 1 cent
           active: true
-        },
+        }
       ]
-      
+
       default_items.each do |item_attrs|
         user.receipt_items.find_or_create_by!(reference: item_attrs[:reference]) do |item|
           item.assign_attributes(item_attrs)
@@ -53,9 +53,9 @@ class AddDefaultReceiptItems < ActiveRecord::Migration[8.1]
       end
     end
   end
-  
+
   def down
     # Remove default receipt items
-    Accounting::ReceiptItem.where(reference: ["OUT - MANEV-H", "OUT - MANEV-ON-CALL", "OUT - TOKEN"]).destroy_all
+    Accounting::ReceiptItem.where(reference: [ "OUT - MANEV-H", "OUT - MANEV-ON-CALL", "OUT - TOKEN" ]).destroy_all
   end
 end

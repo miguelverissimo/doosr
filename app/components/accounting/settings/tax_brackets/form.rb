@@ -16,7 +16,7 @@ module Components
             else
               view_context.settings_tax_bracket_path(@tax_bracket)
             end
-          
+
             render RubyUI::Form.new(
               action: form_url,
               method: "post",
@@ -72,7 +72,7 @@ module Components
               end
             end
           end
-        end  
+        end
       end
     end
   end

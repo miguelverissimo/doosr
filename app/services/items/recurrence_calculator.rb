@@ -12,18 +12,18 @@ module Items
     def call
       return nil unless @recurrence_rule
 
-      case @recurrence_rule['frequency']
-      when 'daily'
+      case @recurrence_rule["frequency"]
+      when "daily"
         calculate_daily
-      when 'every_weekday'
+      when "every_weekday"
         calculate_every_weekday
-      when 'every_n_days'
+      when "every_n_days"
         calculate_every_n_days
-      when 'weekly'
+      when "weekly"
         calculate_weekly
-      when 'monthly'
+      when "monthly"
         calculate_monthly
-      when 'yearly'
+      when "yearly"
         calculate_yearly
       else
         nil
@@ -59,7 +59,7 @@ module Items
 
     # Every N days: add interval days
     def calculate_every_n_days
-      interval = @recurrence_rule['interval'].to_i
+      interval = @recurrence_rule["interval"].to_i
       return nil if interval <= 0
 
       (@from_date + interval.days).beginning_of_day
@@ -68,7 +68,7 @@ module Items
     # Weekly: next occurrence on specified days of week
     # days_of_week is an array of integers: 0=Sunday, 1=Monday, ..., 6=Saturday
     def calculate_weekly
-      days_of_week = @recurrence_rule['days_of_week']
+      days_of_week = @recurrence_rule["days_of_week"]
       return nil unless days_of_week.is_a?(Array) && days_of_week.any?
 
       # Sort and ensure valid day numbers (0-6)

@@ -1,7 +1,7 @@
 module Accounting
   class CustomersController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_customer, only: [:update, :destroy]
+    before_action :set_customer, only: [ :update, :destroy ]
 
     def index
       render ::Views::Accounting::Customers::ListContent.new(user: current_user)
@@ -34,7 +34,7 @@ module Accounting
           @customer.address = address
           if @customer.save
             handle_fiscal_info(address, params[:address][:fiscal_number], @customer.name)
-            
+
             format.turbo_stream do
               render turbo_stream: [
                 turbo_stream.update("customers_content", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
@@ -44,14 +44,14 @@ module Accounting
             format.html { redirect_to accounting_index_path, notice: "Customer created successfully." }
           else
             address.destroy # Clean up address if customer save fails
-            error_message = @customer.errors.full_messages.join(', ')
+            error_message = @customer.errors.full_messages.join(", ")
             format.turbo_stream do
               render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create customer: #{error_message}', { type: 'error' });</script>")
             end
             format.html { redirect_to accounting_index_path, alert: "Failed to create customer" }
           end
         else
-          error_message = address.errors.full_messages.join(', ')
+          error_message = address.errors.full_messages.join(", ")
           format.turbo_stream do
             render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create address: #{error_message}', { type: 'error' });</script>")
           end
@@ -65,7 +65,7 @@ module Accounting
       if params[:address].present?
         address_params = params.require(:address).permit(:name, :full_address, :country, :fiscal_number)
         address = @customer.address
-        
+
         # Ensure address name matches customer name
         address_params[:name] = customer_params[:name] if customer_params[:name].present?
 
@@ -79,7 +79,7 @@ module Accounting
         if address.present? && params[:address].present?
           handle_fiscal_info(address, params[:address][:fiscal_number], @customer.name)
         end
-        
+
         render turbo_stream: [
           turbo_stream.update(
             "customers_content",

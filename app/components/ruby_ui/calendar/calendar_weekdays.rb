@@ -5,7 +5,7 @@ module RubyUI
     DAYS = %w[Sunday Monday Tuesday Wednesday Thursday Friday Saturday].freeze
 
     def view_template
-      template(data: {ruby_ui__calendar_target: "weekdaysTemplate"}) do
+      template(data: { ruby_ui__calendar_target: "weekdaysTemplate" }) do
         thead(**attrs) do
           tr(class: "flex") do
             DAYS.each do |day|

@@ -1,6 +1,6 @@
 namespace :ephemeries do
   desc "Import ephemeries from a JSON file"
-  task :import, [:file_path] => :environment do |_t, args|
+  task :import, [ :file_path ] => :environment do |_t, args|
     file_path = args[:file_path] || Rails.root.join("data", "ephemeries.json")
 
     unless File.exist?(file_path)

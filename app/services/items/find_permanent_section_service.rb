@@ -32,7 +32,7 @@ class Items::FindPermanentSectionService
 
       # If descendable is an Item, check if it's a permanent section
       if descendable.is_a?(Item)
-        if descendable.section? && descendable.extra_data&.dig('permanent_section')
+        if descendable.section? && descendable.extra_data&.dig("permanent_section")
           return descendable
         end
 

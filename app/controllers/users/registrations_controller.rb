@@ -63,4 +63,3 @@ class Users::RegistrationsController < Devise::RegistrationsController
     @minimum_password_length ||= resource_class.password_length.min
   end
 end
-

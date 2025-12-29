@@ -24,10 +24,10 @@ module Views
                         render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
                       end
                     end
-                    
+
                     render_edit_dialog
                   end
-                  
+
                   # Delete button with AlertDialog confirmation
                   render_delete_confirmation_dialog
                 end
@@ -55,13 +55,13 @@ module Views
                   render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
                 end
               end
-              
+
               render RubyUI::AlertDialogContent.new do
                 render RubyUI::AlertDialogHeader.new do
                   render RubyUI::AlertDialogTitle.new { "Are you sure you want to delete #{@tax_bracket.name}?" }
                   render RubyUI::AlertDialogDescription.new { "This action cannot be undone. This will permanently delete the tax bracket." }
                 end
-                
+
                 # Footer actions: single horizontal row, right aligned
                 render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
                   render RubyUI::AlertDialogCancel.new { "Cancel" }
@@ -85,8 +85,7 @@ module Views
                 end
               end
             end
-          end  
-
+          end
         end
       end
     end

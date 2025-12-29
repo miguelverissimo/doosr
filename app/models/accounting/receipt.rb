@@ -9,7 +9,7 @@ module Accounting
 
     enum :kind, {
       receipt: :receipt,
-      invoice_receipt: :invoice_receipt,
+      invoice_receipt: :invoice_receipt
     }, default: :receipt, validate: true
 
     enum :payment_type, {

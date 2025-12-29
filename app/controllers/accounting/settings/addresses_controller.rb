@@ -2,7 +2,7 @@ module Accounting
   module Settings
     class AddressesController < ApplicationController
       before_action :authenticate_user!
-      before_action :set_address, only: [:update, :destroy, :activate]
+      before_action :set_address, only: [ :update, :destroy, :activate ]
 
       def index
         render ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)
@@ -16,7 +16,7 @@ module Accounting
         respond_to do |format|
           if @address.save
             handle_fiscal_info(@address, address_params[:fiscal_number])
-            
+
             format.turbo_stream do
               render turbo_stream: [
                 turbo_stream.update("addresses_content", ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: current_user)),
@@ -36,7 +36,7 @@ module Accounting
       def update
         if @address.update(address_params.except(:fiscal_number))
           handle_fiscal_info(@address, address_params[:fiscal_number])
-          
+
           render turbo_stream: [
             turbo_stream.update(
               "addresses_content",

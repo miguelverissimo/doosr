@@ -9,10 +9,10 @@ module Views
 
           def view_template
             div(
-              id: "accounting_logo_#{@accounting_logo.id}_div", 
+              id: "accounting_logo_#{@accounting_logo.id}_div",
               class: "flex flex-col w-full cursor-pointer gap-2 rounded-md p-3 text-left bg-accent hover:bg-accent/50 transition-colors"
             ) do
-              div(class: "flex flex-row items-center justify-between gap-2") do 
+              div(class: "flex flex-row items-center justify-between gap-2") do
                 div(class: "text-sm font-bold mt-1") { @accounting_logo.title }
                 div(class: "text-sm mt-1 text-muted-foreground") { @accounting_logo.description }
               end
@@ -34,7 +34,7 @@ module Views
                 else
                   div(class: "text-sm text-gray-500") { "No image attached" }
                 end
-                
+
                 div(class: "flex items-center gap-2 shrink-0 self-end sm:self-auto") do
                   # Edit button with dialog
                   render RubyUI::Dialog.new do
@@ -83,13 +83,13 @@ module Views
                   render RubyUI::AlertDialogCancel.new { "Cancel" }
 
                   form(
-                    action: view_context.settings_logo_path(@accounting_logo), 
-                    method: "post", 
-                    data: { 
-                      turbo_method: :delete, 
-                      action: "submit@document->ruby-ui--alert-dialog#dismiss" 
-                    }, 
-                    class: "inline", 
+                    action: view_context.settings_logo_path(@accounting_logo),
+                    method: "post",
+                    data: {
+                      turbo_method: :delete,
+                      action: "submit@document->ruby-ui--alert-dialog#dismiss"
+                    },
+                    class: "inline",
                     id: "delete_logo_#{@accounting_logo.id}"
                   ) do
                     input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)

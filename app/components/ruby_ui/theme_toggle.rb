@@ -78,4 +78,3 @@ module RubyUI
     end
   end
 end
-

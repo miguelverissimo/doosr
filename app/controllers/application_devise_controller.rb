@@ -3,4 +3,3 @@
 class ApplicationDeviseController < ActionController::Base
   layout -> { ::Views::Layouts::AuthLayout.new }
 end
-

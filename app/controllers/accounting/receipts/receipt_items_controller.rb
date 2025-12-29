@@ -2,7 +2,7 @@ module Accounting
   module Receipts
     class ReceiptItemsController < ApplicationController
       before_action :authenticate_user!
-      before_action :set_receipt_item, only: [:update, :destroy]
+      before_action :set_receipt_item, only: [ :update, :destroy ]
 
       def index
         respond_to do |format|
@@ -35,7 +35,7 @@ module Accounting
             end
             format.html { redirect_to accounting_index_path, notice: "Receipt item created successfully." }
           else
-            error_message = @receipt_item.errors.full_messages.join(', ')
+            error_message = @receipt_item.errors.full_messages.join(", ")
             format.turbo_stream do
               render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create receipt item: #{error_message}', { type: 'error' });</script>")
             end
@@ -60,7 +60,7 @@ module Accounting
             )
           ]
         else
-          error_message = @receipt_item.errors.full_messages.join(', ')
+          error_message = @receipt_item.errors.full_messages.join(", ")
           render turbo_stream: turbo_stream.append(
             "body",
             "<script>window.toast && window.toast('Failed to update receipt item: #{error_message}', { type: 'error' });</script>"
@@ -108,4 +108,3 @@ module Accounting
     end
   end
 end
-

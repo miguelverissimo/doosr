@@ -14,4 +14,3 @@ module Accounting
     validates :discount_rate, presence: true
   end
 end
-

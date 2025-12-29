@@ -2,7 +2,7 @@
 
 namespace :days do
   desc "Nuke a day and all its items, descendants, and references"
-  task :nuke, [:email, :date] => :environment do |_t, args|
+  task :nuke, [ :email, :date ] => :environment do |_t, args|
     email = args[:email]
     date_str = args[:date]
 
@@ -109,7 +109,7 @@ namespace :days do
     print "Are you sure you want to NUKE this day? This cannot be undone! (y/n): "
     confirmation = STDIN.gets.chomp.downcase
 
-    unless confirmation == 'y'
+    unless confirmation == "y"
       puts "Aborting."
       exit 0
     end
@@ -149,7 +149,7 @@ namespace :days do
   end
 
   desc "Undo import for a specific day"
-  task :undo_import, [:email, :date] => :environment do |_t, args|
+  task :undo_import, [ :email, :date ] => :environment do |_t, args|
     email = args[:email]
     date_str = args[:date]
 
@@ -238,7 +238,7 @@ namespace :days do
     print "Are you sure you want to delete all items and descendants? (y/n): "
     confirmation = STDIN.gets.chomp.downcase
 
-    unless confirmation == 'y'
+    unless confirmation == "y"
       puts "Aborting."
       exit 0
     end

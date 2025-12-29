@@ -21,15 +21,15 @@ class Item < ApplicationRecord
 
   # Polymorphic association - this Item can have nested items via Descendant
   has_one :descendant, as: :descendable, dependent: :destroy
-  belongs_to :descendant_record, class_name: 'Descendant', foreign_key: 'descendant_id', optional: true
+  belongs_to :descendant_record, class_name: "Descendant", foreign_key: "descendant_id", optional: true
 
   # Self-referential associations
-  belongs_to :source_item, class_name: 'Item', optional: true
-  belongs_to :recurring_next_item, class_name: 'Item', optional: true
+  belongs_to :source_item, class_name: "Item", optional: true
+  belongs_to :recurring_next_item, class_name: "Item", optional: true
 
   # Inverse associations
-  has_many :items_imported_from_this, class_name: 'Item', foreign_key: 'source_item_id', dependent: :nullify
-  has_many :recurring_previous_items, class_name: 'Item', foreign_key: 'recurring_next_item_id', dependent: :nullify
+  has_many :items_imported_from_this, class_name: "Item", foreign_key: "source_item_id", dependent: :nullify
+  has_many :recurring_previous_items, class_name: "Item", foreign_key: "recurring_next_item_id", dependent: :nullify
 
   # Enums
   enum :item_type, {
@@ -339,13 +339,13 @@ class Item < ApplicationRecord
   def track_state_changes
     if state_changed?
       case state
-      when 'done'
+      when "done"
         self.done_at = Time.current if done_at.nil?
-      when 'dropped'
+      when "dropped"
         self.dropped_at = Time.current if dropped_at.nil?
-      when 'deferred'
+      when "deferred"
         self.deferred_at = Time.current if deferred_at.nil?
-      when 'todo'
+      when "todo"
         # Clear completion timestamps when returning to todo
         self.done_at = nil
         self.dropped_at = nil

@@ -10,6 +10,6 @@ class CreateEphemeries < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :ephemeries, [:start, :end]
+    add_index :ephemeries, [ :start, :end ]
   end
 end

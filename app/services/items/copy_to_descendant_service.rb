@@ -129,9 +129,9 @@ class Items::CopyToDescendantService
     # - If sections_with_no_active_items is true: always copy the section (will be created as empty if no active todo items)
     # - If sections_with_no_active_items is false: only copy if section has todo items in its tree
     if copy_settings.dig("sections_with_no_active_items") != false
-      return true  # Copy all sections when setting is true
+      true  # Copy all sections when setting is true
     else
-      return section_has_active_items_in_tree?(item)  # Only copy sections with todo items when setting is false
+      section_has_active_items_in_tree?(item)  # Only copy sections with todo items when setting is false
     end
   end
 

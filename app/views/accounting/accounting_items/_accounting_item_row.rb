@@ -10,7 +10,7 @@ module Views
 
         def view_template
           div(
-            id: "accounting_item_#{@accounting_item.id}_div", 
+            id: "accounting_item_#{@accounting_item.id}_div",
             class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50"
           ) do
             div(class: "flex flex-row items-center justify-between gap-2") do
@@ -33,7 +33,7 @@ module Views
                   end
                 end
               end
-              
+
               div(class: "flex gap-2 justify-end") do
                 render RubyUI::Dialog.new do
                   render RubyUI::DialogTrigger.new do
@@ -70,13 +70,13 @@ module Views
                 render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
               end
             end
-            
+
             render RubyUI::AlertDialogContent.new do
               render RubyUI::AlertDialogHeader.new do
                 render RubyUI::AlertDialogTitle.new { "Are you sure you want to delete #{@accounting_item.name}?" }
                 render RubyUI::AlertDialogDescription.new { "This action cannot be undone. This will permanently delete the accounting item." }
               end
-              
+
               # Footer actions: single horizontal row, right aligned
               render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
                 render RubyUI::AlertDialogCancel.new { "Cancel" }
@@ -85,7 +85,7 @@ module Views
                 form(
                   action: view_context.accounting_item_path(@accounting_item),
                   method: "post",
-                  data: { 
+                  data: {
                     turbo_method: :delete,
                     action: "submit@document->ruby-ui--alert-dialog#dismiss"
                   },
@@ -134,7 +134,6 @@ module Views
             Badge(variant: :rose) { "Other" }
           end
         end
-
       end
     end
   end

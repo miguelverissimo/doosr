@@ -1,7 +1,7 @@
 class DaysController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_date, only: [:show, :create, :import]
-  before_action :set_day, only: [:close, :reopen]
+  before_action :set_date, only: [ :show, :create, :import ]
+  before_action :set_day, only: [ :close, :reopen ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day, latest_importable_day: @latest_importable_day) }
 
   def show

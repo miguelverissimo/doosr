@@ -155,7 +155,7 @@ class ItemRecurrenceTest < ActiveSupport::TestCase
         title: "Monday/Friday task",
         item_type: :completable,
         state: :todo,
-        recurrence_rule: { frequency: "weekly", days_of_week: [1, 5] }.to_json
+        recurrence_rule: { frequency: "weekly", days_of_week: [ 1, 5 ] }.to_json
       )
       @today_day.update!(date: Date.today)
       @today_day.descendant.add_active_item(item.id)

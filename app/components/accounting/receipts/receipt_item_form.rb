@@ -173,7 +173,7 @@ module Components
               div(class: "flex items-center gap-2") do
                 # Hidden field to ensure false is sent when unchecked
                 input(type: :hidden, name: "receipt_item[active]", value: "false")
-                
+
                 label(class: "relative inline-flex items-center cursor-pointer") do
                   input(
                     type: :checkbox,
@@ -225,10 +225,10 @@ module Components
 
         def tax_brackets_json
           view_context.current_user.tax_brackets.map do |bracket|
-            [bracket.id.to_s, {
+            [ bracket.id.to_s, {
               id: bracket.id.to_s,
               percentage: bracket.percentage.to_f
-            }]
+            } ]
           end.to_h.to_json
         end
       end

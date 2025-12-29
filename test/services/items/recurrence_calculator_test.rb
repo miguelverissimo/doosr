@@ -66,7 +66,7 @@ module Items
 
     test "weekly with Monday and Friday from Wednesday" do
       from_date = Date.new(2025, 1, 15) # Wednesday
-      rule = { "frequency" => "weekly", "days_of_week" => [1, 5] } # Mon, Fri
+      rule = { "frequency" => "weekly", "days_of_week" => [ 1, 5 ] } # Mon, Fri
 
       calculator = RecurrenceCalculator.new(recurrence_rule: rule, from_date: from_date)
       next_date = calculator.call
@@ -76,7 +76,7 @@ module Items
 
     test "weekly with Monday and Friday from Friday" do
       from_date = Date.new(2025, 1, 17) # Friday
-      rule = { "frequency" => "weekly", "days_of_week" => [1, 5] } # Mon, Fri
+      rule = { "frequency" => "weekly", "days_of_week" => [ 1, 5 ] } # Mon, Fri
 
       calculator = RecurrenceCalculator.new(recurrence_rule: rule, from_date: from_date)
       next_date = calculator.call
@@ -86,7 +86,7 @@ module Items
 
     test "weekly with Sunday" do
       from_date = Date.new(2025, 1, 17) # Friday
-      rule = { "frequency" => "weekly", "days_of_week" => [0] } # Sunday
+      rule = { "frequency" => "weekly", "days_of_week" => [ 0 ] } # Sunday
 
       calculator = RecurrenceCalculator.new(recurrence_rule: rule, from_date: from_date)
       next_date = calculator.call
@@ -96,7 +96,7 @@ module Items
 
     test "weekly with all weekdays" do
       from_date = Date.new(2025, 1, 15) # Wednesday
-      rule = { "frequency" => "weekly", "days_of_week" => [1, 2, 3, 4, 5] } # Mon-Fri
+      rule = { "frequency" => "weekly", "days_of_week" => [ 1, 2, 3, 4, 5 ] } # Mon-Fri
 
       calculator = RecurrenceCalculator.new(recurrence_rule: rule, from_date: from_date)
       next_date = calculator.call

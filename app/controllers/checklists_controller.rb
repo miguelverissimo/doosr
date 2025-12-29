@@ -1,6 +1,6 @@
 class ChecklistsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_checklist, only: [:show, :update, :destroy]
+  before_action :set_checklist, only: [ :show, :update, :destroy ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index
@@ -27,7 +27,7 @@ class ChecklistsController < ApplicationController
         format.html { redirect_to checklists_path, notice: "Checklist template created successfully." }
       else
         format.turbo_stream do
-          error_message = @checklist_template.errors.full_messages.join(', ')
+          error_message = @checklist_template.errors.full_messages.join(", ")
           render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create checklist template: #{error_message}', { type: 'error' });</script>")
         end
         format.html { redirect_to checklists_path, alert: "Failed to create checklist template" }
@@ -47,7 +47,7 @@ class ChecklistsController < ApplicationController
         format.html { redirect_to checklists_path, notice: "Checklist template updated successfully." }
       else
         format.turbo_stream do
-          error_message = @checklist.errors.full_messages.join(', ')
+          error_message = @checklist.errors.full_messages.join(", ")
           render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to update checklist template: #{error_message}', { type: 'error' });</script>")
         end
         format.html { redirect_to checklists_path, alert: "Failed to update checklist template" }

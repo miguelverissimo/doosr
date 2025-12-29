@@ -19,12 +19,12 @@ class ::Views::Layouts::AppLayout < ::Views::Base
     Rails.logger.debug "Flash alert: #{view_context.flash[:alert].inspect}"
     Rails.logger.debug "Flash toast: #{view_context.flash[:toast].inspect}"
     Rails.logger.debug "Flash keys: #{view_context.flash.keys.inspect}"
-    
+
     return unless view_context.flash[:notice].present? || view_context.flash[:alert].present? || view_context.flash[:toast].present?
 
     # Create a unique key for this flash message
     flash_key = "#{view_context.flash[:notice]}#{view_context.flash[:alert]}#{view_context.flash[:toast]}".hash.to_s
-    
+
     script_content = "if (!window.flashToastKeys) { window.flashToastKeys = {}; } "
     script_content += "if (window.flashToastKeys['#{flash_key}']) { } else { "
     script_content += "window.flashToastKeys['#{flash_key}'] = true; "
@@ -35,7 +35,7 @@ class ::Views::Layouts::AppLayout < ::Views::Base
     script_content += "function tryShowToast() { "
     script_content += "attempts++; "
     script_content += "if (typeof window.toast !== 'undefined' && window.toast) { "
-    
+
     # Handle flash[:toast] with full options
     if view_context.flash[:toast].present?
       toast_data = view_context.flash[:toast]
@@ -55,19 +55,19 @@ class ::Views::Layouts::AppLayout < ::Views::Base
         script_content += "window.toast(#{toast_data.to_json}); "
       end
     end
-    
+
     # Handle flash[:notice] as success toast
     if view_context.flash[:notice].present?
       Rails.logger.debug "Processing flash[:notice]: #{view_context.flash[:notice].inspect}"
       script_content += "window.toast(#{view_context.flash[:notice].to_json}, { type: 'success' }); "
     end
-    
+
     # Handle flash[:alert] as danger toast
     if view_context.flash[:alert].present?
       Rails.logger.debug "Processing flash[:alert]: #{view_context.flash[:alert].inspect}"
       script_content += "window.toast(#{view_context.flash[:alert].to_json}, { type: 'danger' }); "
     end
-    
+
     script_content += "} else if (attempts < maxAttempts) { "
     script_content += "setTimeout(tryShowToast, 100); "
     script_content += "} "
@@ -253,4 +253,3 @@ class ::Views::Layouts::AppLayout < ::Views::Base
     end
   end
 end
-

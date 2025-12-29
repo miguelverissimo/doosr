@@ -7,14 +7,14 @@ module Views
       def view_template
         div(class: "flex h-full flex-col") do
           tabs_data = [
-            {value: "invoicing", label: "Invoicing"},
-            {value: "receipts", label: "Receipts"},
-            {value: "customers", label: "Customers"},
-            {value: "items", label: "Items"},
-            {value: "automations", label: "Automations"},
-            {value: "settings", label: "Settings"}
+            { value: "invoicing", label: "Invoicing" },
+            { value: "receipts", label: "Receipts" },
+            { value: "customers", label: "Customers" },
+            { value: "items", label: "Items" },
+            { value: "automations", label: "Automations" },
+            { value: "settings", label: "Settings" }
           ]
-          
+
           Tabs(default_value: "invoicing") do
             render RubyUI::ResponsiveTabsList.new(
               tabs: tabs_data,

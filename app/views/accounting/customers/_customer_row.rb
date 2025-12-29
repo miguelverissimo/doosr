@@ -8,7 +8,7 @@ module Views
 
         def view_template
           div(
-            id: "customer_#{@customer.id}_div", 
+            id: "customer_#{@customer.id}_div",
             class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50"
           ) do
             div(class: "flex flex-row items-center justify-between gap-2") do

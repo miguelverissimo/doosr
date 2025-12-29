@@ -98,7 +98,7 @@ module Days
       active_item_ids = source_day.descendant.extract_active_item_ids
       # Use sanitize_sql to prevent SQL injection
       order_sql = ActiveRecord::Base.sanitize_sql_array(
-        ["array_position(ARRAY[?]::bigint[], id)", active_item_ids.map(&:to_i)]
+        [ "array_position(ARRAY[?]::bigint[], id)", active_item_ids.map(&:to_i) ]
       )
       Item.where(id: active_item_ids).order(Arel.sql(order_sql))
     end

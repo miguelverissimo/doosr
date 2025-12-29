@@ -9,7 +9,7 @@ module Views
 
           def view_template
             div(
-              id: "bank_info_#{@bank_info.id}_div", 
+              id: "bank_info_#{@bank_info.id}_div",
               class: "flex flex-col w-full cursor-pointer gap-2 rounded-md p-3 text-left bg-accent hover:bg-accent/50 transition-colors"
             ) do
               div(class: "flex flex-row items-center justify-between gap-2") do
@@ -18,20 +18,20 @@ module Views
               div(class: "flex flex-row items-start justify-between gap-2") do
                 div(class: "flex flex-col gap-1") do
                   if @bank_info.is_eu?
-                    div(class: "text-sm mt-1") do 
+                    div(class: "text-sm mt-1") do
                       span(class: "font-bold") { "IBAN: " }
                       plain(@bank_info.iban)
                     end
-                    div(class: "text-sm mt-1") do 
+                    div(class: "text-sm mt-1") do
                       span(class: "font-bold") { "SWIFT/BIC: " }
                       plain(@bank_info.swift_bic)
                     end
                   else
-                    div(class: "text-sm mt-1") do 
+                    div(class: "text-sm mt-1") do
                       span(class: "font-bold") { "Account Number: " }
                       plain(@bank_info.account_number)
                     end
-                    div(class: "text-sm mt-1") do 
+                    div(class: "text-sm mt-1") do
                       span(class: "font-bold") { "Routing Number: " }
                       plain(@bank_info.routing_number)
                     end
@@ -87,13 +87,13 @@ module Views
                   render RubyUI::AlertDialogCancel.new { "Cancel" }
 
                   form(
-                    action: view_context.settings_bank_info_path(@bank_info), 
-                    method: "post", 
-                    data: { 
-                      turbo_method: :delete, 
-                      action: "submit@document->ruby-ui--alert-dialog#dismiss" 
-                    }, 
-                    class: "inline", 
+                    action: view_context.settings_bank_info_path(@bank_info),
+                    method: "post",
+                    data: {
+                      turbo_method: :delete,
+                      action: "submit@document->ruby-ui--alert-dialog#dismiss"
+                    },
+                    class: "inline",
                     id: "delete_bank_info_#{@bank_info.id}"
                   ) do
                     input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)

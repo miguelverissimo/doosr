@@ -16,7 +16,7 @@ module Accounting
     enum :currency, {
       CAD: :CAD,
       EUR: :EUR,
-      USD: :USD,
+      USD: :USD
     }, default: :EUR, validate: true
 
     validates :reference, presence: true

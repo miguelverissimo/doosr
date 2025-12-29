@@ -1,7 +1,7 @@
 module Accounting
   class ReceiptsController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_receipt, only: [:update, :destroy]
+    before_action :set_receipt, only: [ :update, :destroy ]
 
     def index
       respond_to do |format|
@@ -20,7 +20,7 @@ module Accounting
 
     def create
       receipt_params_hash = receipt_params.to_h
-      
+
       # Convert value to cents
       if receipt_params_hash[:value].present?
         receipt_params_hash[:value] = (receipt_params_hash[:value].to_f * 100).round
@@ -109,7 +109,7 @@ module Accounting
           format.html { redirect_to accounting_index_path, notice: "Receipt created successfully." }
         end
       else
-        error_message = @receipt.errors.full_messages.join(', ')
+        error_message = @receipt.errors.full_messages.join(", ")
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: turbo_stream.append(
@@ -169,7 +169,7 @@ module Accounting
         # Update items
         if params[:receipt][:items_attributes].present?
           @receipt.items.destroy_all
-          
+
           params[:receipt][:items_attributes].each do |_index, item_params|
             receipt_item = current_user.receipt_items.find_by(id: item_params[:receipt_item_id])
             next unless receipt_item
@@ -212,7 +212,7 @@ module Accounting
           format.html { redirect_to accounting_index_path, notice: "Receipt updated successfully." }
         end
       else
-        error_message = @receipt.errors.full_messages.join(', ')
+        error_message = @receipt.errors.full_messages.join(", ")
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: turbo_stream.append(
@@ -252,4 +252,3 @@ module Accounting
     end
   end
 end
-

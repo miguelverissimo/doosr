@@ -7,7 +7,7 @@ module Views
 
       def view_template
         div(
-          id: "checklist_#{@checklist.id}_div", 
+          id: "checklist_#{@checklist.id}_div",
           class: "flex flex-col w-full gap-2 rounded-md p-3 text-left transition-colors border border-border bg-muted hover:bg-muted/50 mt-2"
         ) do
           div(class: "flex flex-row items-center justify-between gap-2") do
@@ -44,10 +44,10 @@ module Views
           if @checklist.items.any?
             items_count = @checklist.items.count
             items_to_show = @checklist.items.first(9)
-            
+
             # Calculate how many columns we actually need (1, 2, or 3)
-            num_columns = [items_to_show.length, 3].min
-            
+            num_columns = [ items_to_show.length, 3 ].min
+
             # Use appropriate grid class based on number of columns
             grid_class = case num_columns
             when 1
@@ -57,7 +57,7 @@ module Views
             else
               "grid grid-cols-3 gap-2"
             end
-            
+
             div(class: grid_class) do
               # Display items in columns: 0,3,6 | 1,4,7 | 2,5,8
               num_columns.times do |col_index|
@@ -70,7 +70,7 @@ module Views
                         if item_index == 8 && items_count > 9
                           plain "...and #{items_count - 9} more"
                         else
-                          "#{(item_index + 1)}. #{item["title"].to_s}"
+                          "#{(item_index + 1)}. #{item["title"]}"
                         end
                       end
                     end

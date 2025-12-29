@@ -2,7 +2,7 @@ module Accounting
   module Settings
     class LogosController < ApplicationController
       before_action :authenticate_user!
-      before_action :set_accounting_logo, only: [:update, :destroy]
+      before_action :set_accounting_logo, only: [ :update, :destroy ]
 
       def index
         render ::Views::Accounting::Settings::Logos::ListContents.new(user: current_user)
@@ -22,7 +22,7 @@ module Accounting
             format.html { redirect_to accounting_index_path, notice: "Logo created successfully." }
           else
             format.turbo_stream do
-              error_message = @accounting_logo.errors.full_messages.join(', ')
+              error_message = @accounting_logo.errors.full_messages.join(", ")
               render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create logo: #{error_message}', { type: 'error' });</script>")
             end
             format.html { redirect_to accounting_index_path, alert: "Failed to create logo" }
@@ -42,7 +42,7 @@ module Accounting
             format.html { redirect_to accounting_index_path, notice: "Logo updated successfully." }
           else
             format.turbo_stream do
-              error_message = @accounting_logo.errors.full_messages.join(', ')
+              error_message = @accounting_logo.errors.full_messages.join(", ")
               render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to update logo: #{error_message}', { type: 'error' });</script>")
             end
             format.html { redirect_to accounting_index_path, alert: "Failed to update logo" }
