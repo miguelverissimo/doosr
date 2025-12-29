@@ -27,14 +27,22 @@ class List < ApplicationRecord
     return [] unless descendant
     item_ids = descendant.extract_active_item_ids
     return [] if item_ids.empty?
-    Item.where(id: item_ids).order(Arel.sql("array_position(ARRAY[#{item_ids.join(',')}]::integer[], id)"))
+    # Use sanitize_sql to prevent SQL injection
+    order_sql = ActiveRecord::Base.sanitize_sql_array(
+      ["array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i)]
+    )
+    Item.where(id: item_ids).order(Arel.sql(order_sql))
   end
 
   def inactive_items
     return [] unless descendant
     item_ids = descendant.extract_inactive_item_ids
     return [] if item_ids.empty?
-    Item.where(id: item_ids).order(Arel.sql("array_position(ARRAY[#{item_ids.join(',')}]::integer[], id)"))
+    # Use sanitize_sql to prevent SQL injection
+    order_sql = ActiveRecord::Base.sanitize_sql_array(
+      ["array_position(ARRAY[?]::integer[], id)", item_ids.map(&:to_i)]
+    )
+    Item.where(id: item_ids).order(Arel.sql(order_sql))
   end
 
   def public_url
