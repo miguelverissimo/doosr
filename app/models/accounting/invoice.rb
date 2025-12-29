@@ -13,6 +13,7 @@ module Accounting
     enum :state, {
       draft: :draft,
       sent: :sent,
+      partial: :partial,
       paid: :paid
     }, default: :draft, validate: true
 
@@ -33,6 +34,7 @@ module Accounting
     # Associations
     has_many :invoice_items, class_name: "Accounting::InvoiceItem", dependent: :destroy
     has_many :items, class_name: "Accounting::AccountingItem", through: :invoice_items, source: :item
+    has_many :receipts, class_name: "Accounting::Receipt", foreign_key: "invoice_id", dependent: :nullify
 
     money_attribute :subtotal, :discount, :tax, :total
 
@@ -116,6 +118,16 @@ module Accounting
         metadata: new_metadata,
         updated_at: Time.current
       )
+    end
+
+    # Calculate total paid amount from all receipts
+    def total_paid_from_receipts
+      receipts.sum(&:value) || 0
+    end
+
+    # Check if invoice is fully paid based on receipts
+    def fully_paid_from_receipts?
+      total_paid_from_receipts >= total
     end
 
     private

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_26_170108) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_29_063012) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -353,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_26_170108) do
     t.datetime "issue_date"
     t.string "kind"
     t.datetime "payment_date"
+    t.string "payment_type", default: "total", null: false
     t.string "reference"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

@@ -4,7 +4,7 @@ module Views
       class ListContent < Views::Base
         def initialize(user:, **attrs)
           @user = user
-          @invoices = user.invoices.includes(:invoice_items, :items).order(year: :desc, number: :desc)
+          @invoices = user.invoices.includes(:invoice_items, :items, :receipts).order(year: :desc, number: :desc)
 
           # Query receipt items once for all forms
           @receipt_items = {

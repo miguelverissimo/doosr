@@ -224,6 +224,34 @@ module Views
               end
             end
 
+            # View receipts button (disabled if no receipts)
+            render RubyUI::Dialog.new do
+              render RubyUI::DialogTrigger.new do
+                Button(
+                  variant: :outline,
+                  size: :md,
+                  type: :button,
+                  icon: true,
+                  disabled: @invoice.receipts.empty?
+                ) do
+                  render Components::Icon.new(name: :list, size: "12", class: "w-4 h-4")
+                end
+              end
+
+              render RubyUI::DialogContent.new(size: :lg) do
+                render RubyUI::DialogHeader.new do
+                  render RubyUI::DialogTitle.new { "Receipts for Invoice #{@invoice.display_number}" }
+                  render RubyUI::DialogDescription.new do
+                    "All receipts associated with this invoice"
+                  end
+                end
+
+                render RubyUI::DialogMiddle.new do
+                  render Views::Accounting::Invoices::ReceiptsList.new(invoice: @invoice)
+                end
+              end
+            end
+
             # Delete with confirmation (always active)
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
@@ -385,6 +413,8 @@ module Views
             when "draft"
               :sky
             when "sent"
+              :fuchsia
+            when "partial"
               :amber
             when "paid"
               :lime

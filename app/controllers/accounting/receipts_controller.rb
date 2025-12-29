@@ -23,10 +23,29 @@ module Accounting
         receipt_params_hash[:payment_date] = DateTime.parse(receipt_params_hash[:payment_date])
       end
 
+      # Set payment_type from receipt_params (defaults to "total" if not provided)
+      receipt_params_hash[:payment_type] ||= "total"
+
       @receipt = ::Accounting::Receipt.new(receipt_params_hash)
       @receipt.user = current_user
 
       if @receipt.save
+        # Handle invoice state update based on payment type
+        if @receipt.invoice.present?
+          mark_fully_paid = params[:mark_fully_paid] == "1"
+
+          if @receipt.payment_type == "total"
+            # Total payment: mark invoice as paid immediately
+            @receipt.invoice.update(state: :paid)
+          elsif @receipt.payment_type == "partial"
+            # Partial payment: mark as partial, or paid if checkbox is checked
+            if mark_fully_paid
+              @receipt.invoice.update(state: :paid)
+            else
+              @receipt.invoice.update(state: :partial)
+            end
+          end
+        end
         # Create items from calculator values
         if params[:receipt][:items_attributes].present?
           params[:receipt][:items_attributes].each do |_index, item_params|
@@ -100,7 +119,24 @@ module Accounting
         receipt_params_hash[:payment_date] = DateTime.parse(receipt_params_hash[:payment_date])
       end
 
+      # Set payment_type from receipt_params (defaults to "total" if not provided)
+      receipt_params_hash[:payment_type] ||= @receipt.payment_type || "total"
+
       if @receipt.update(receipt_params_hash)
+        # Handle invoice state update based on payment type (for updates)
+        if @receipt.invoice.present?
+          mark_fully_paid = params[:mark_fully_paid] == "1"
+
+          if @receipt.payment_type == "total"
+            @receipt.invoice.update(state: :paid)
+          elsif @receipt.payment_type == "partial"
+            if mark_fully_paid
+              @receipt.invoice.update(state: :paid)
+            else
+              @receipt.invoice.update(state: :partial)
+            end
+          end
+        end
         # Update items
         if params[:receipt][:items_attributes].present?
           @receipt.items.destroy_all
@@ -172,7 +208,7 @@ module Accounting
     end
 
     def receipt_params
-      params.require(:receipt).permit(:reference, :kind, :issue_date, :payment_date, :value, :invoice_id)
+      params.require(:receipt).permit(:reference, :kind, :issue_date, :payment_date, :value, :invoice_id, :payment_type)
     end
   end
 end

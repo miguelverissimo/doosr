@@ -39,7 +39,8 @@ module Components
               @available_invoices_passed
             end
           elsif user
-            invoices_query = user.invoices.where(state: :paid)
+            # Show only invoices with state "sent" or "partial" (exclude "paid" and "draft")
+            invoices_query = user.invoices.where(state: [:sent, :partial])
 
             if @invoice.present?
               invoices_query = invoices_query.where(
@@ -71,7 +72,7 @@ module Components
             data: {
               turbo: true,
               action: "turbo:submit-end@document->ruby-ui--dialog#dismiss",
-              controller: "receipt-calculator form-loading",
+              controller: "receipt-calculator form-loading payment-type-toggle",
               receipt_calculator_manev_h_unit_price_value: manev_h_item&.unit_price_with_tax || 0,
               receipt_calculator_manev_on_call_unit_price_value: manev_on_call_item&.unit_price_with_tax || 0,
               receipt_calculator_token_unit_price_value: token_item&.unit_price_with_tax || 0,
@@ -272,6 +273,55 @@ module Components
                   required: true
                 )
                 render RubyUI::FormFieldError.new
+              end
+
+              # Payment type selection (only show if invoice is selected)
+              if @invoice.present? || available_invoices.any?
+                current_payment_type = @receipt&.payment_type || "total"
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Payment Type" }
+                  div(class: "space-y-3") do
+                    div(class: "flex items-center space-x-2") do
+                      render RubyUI::RadioButton.new(
+                        name: "receipt[payment_type]",
+                        id: "payment_type_total_calc",
+                        value: "total",
+                        checked: current_payment_type == "total"
+                      )
+                      render RubyUI::FormFieldLabel.new(for: "payment_type_total_calc") { "Total Payment" }
+                    end
+                    div(class: "flex items-center space-x-2") do
+                      render RubyUI::RadioButton.new(
+                        name: "receipt[payment_type]",
+                        id: "payment_type_partial_calc",
+                        value: "partial",
+                        checked: current_payment_type == "partial"
+                      )
+                      render RubyUI::FormFieldLabel.new(for: "payment_type_partial_calc") { "Partial Payment" }
+                    end
+                  end
+                end
+
+                # Switch to mark invoice as fully paid (checked and disabled when total is selected)
+                div(
+                  id: "mark_fully_paid_container_calc",
+                  data: { payment_type_toggle_target: "container" }
+                ) do
+                  render RubyUI::FormField.new do
+                    div(class: "flex items-center gap-2") do
+                      render RubyUI::Switch.new(
+                        name: "mark_fully_paid",
+                        id: "mark_fully_paid_calc",
+                        checked: current_payment_type == "total",
+                        disabled: current_payment_type == "total",
+                        data: { payment_type_toggle_target: "switch" }
+                      )
+                      label(for: "mark_fully_paid_calc", class: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70") do
+                        "Mark invoice as fully paid"
+                      end
+                    end
+                  end
+                end
               end
             end
 
