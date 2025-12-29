@@ -9,8 +9,8 @@ module Accounting
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
-            "invoices_content",
-            ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)
+            "invoices_filter_section",
+            ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)
           )
         end
         format.html do
@@ -258,7 +258,7 @@ module Accounting
         if @invoice.destroy
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.replace("invoices_content", ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)),
+              turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice deleted successfully', { type: 'success' });</script>")
             ]
           end
@@ -292,7 +292,7 @@ module Accounting
 
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.replace("invoices_content", ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)),
+                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'success' });</script>")
               ]
             end
@@ -374,7 +374,7 @@ module Accounting
           if success
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("invoices_list", ::Views::Accounting::Invoices::ListContent.new(user: current_user)),
+                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Invoice updated successfully', { type: 'success' });</script>")
               ]
             end

@@ -36,19 +36,17 @@ module Views
         end
 
         def view_template
-          turbo_frame_tag "invoices_content" do
-            if @invoices.empty?
-              div(class: "flex h-full flex-col items-center justify-center") do
-                p(class: "text-sm text-gray-500") { "No invoices found" }
-              end
-            else
-              @invoices.each do |invoice|
-                render ::Views::Accounting::Invoices::InvoiceRow.new(
-                  invoice: invoice,
-                  receipt_items: @receipt_items,
-                  available_invoices: @available_invoices
-                )
-              end
+          if @invoices.empty?
+            div(class: "flex h-full flex-col items-center justify-center") do
+              p(class: "text-sm text-gray-500") { "No invoices found" }
+            end
+          else
+            @invoices.each do |invoice|
+              render ::Views::Accounting::Invoices::InvoiceRow.new(
+                invoice: invoice,
+                receipt_items: @receipt_items,
+                available_invoices: @available_invoices
+              )
             end
           end
         end

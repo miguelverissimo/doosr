@@ -2,68 +2,61 @@ module Views
   module Accounting
     module Invoices
         class List < ::Views::Base
-          def initialize(user:)
+          def initialize(user:, filter: "unpaid")
             @user = user
+            @filter = filter
           end
 
           def view_template
-            div(class: "flex flex-col gap-4") do
+            div(class: "flex flex-col gap-4", id: "invoices_filter_section", data: { controller: "invoice-filter" }) do
               # Filter buttons
               div(class: "flex gap-2") do
-                a(
+                BadgeLink(
                   href: view_context.invoices_path(filter: "unpaid"),
+                  variant: :sky,
+                  active: @filter == "unpaid",
                   data: {
-                    turbo_frame: "invoices_content",
-                    turbo_prefetch: "false",
-                    action: "click->invoice-filter#setActive"
+                    turbo_stream: true,
+                    action: "click->invoice-filter#showSpinner"
                   },
-                  class: "cursor-pointer",
                   id: "filter_unpaid"
-                ) do
-                  Badge(variant: :sky) { "Unpaid" }
-                end
+                ) { "Unpaid" }
 
-                a(
+                BadgeLink(
                   href: view_context.invoices_path(filter: "paid"),
+                  variant: :lime,
+                  active: @filter == "paid",
                   data: {
-                    turbo_frame: "invoices_content",
-                    turbo_prefetch: "false",
-                    action: "click->invoice-filter#setActive"
+                    turbo_stream: true,
+                    action: "click->invoice-filter#showSpinner"
                   },
-                  class: "cursor-pointer",
                   id: "filter_paid"
-                ) do
-                  Badge(variant: :lime) { "Paid" }
-                end
+                ) { "Paid" }
 
-                a(
+                BadgeLink(
                   href: view_context.invoices_path(filter: "all"),
+                  variant: :rose,
+                  active: @filter == "all",
                   data: {
-                    turbo_frame: "invoices_content",
-                    turbo_prefetch: "false",
-                    action: "click->invoice-filter#setActive"
+                    turbo_stream: true,
+                    action: "click->invoice-filter#showSpinner"
                   },
-                  class: "cursor-pointer",
                   id: "filter_all"
-                ) do
-                  Badge(variant: :rose) { "All" }
-                end
+                ) { "All" }
               end
 
-              # Container for Turbo Stream updates
-              div(id: "invoices_list", data: { controller: "invoice-filter" }) do
-                # Pre-rendered loading spinner (hidden by default, shown via JS)
-                div(
-                  id: "invoices_loading_spinner",
-                  class: "hidden",
-                  data: { invoice_filter_target: "spinner" }
-                ) do
-                  render ::Components::Shared::LoadingSpinner.new(message: "Loading invoices...")
-                end
+              # Loading spinner (hidden by default)
+              div(
+                id: "invoices_loading_spinner",
+                class: "hidden",
+                data: { invoice_filter_target: "spinner" }
+              ) do
+                render ::Components::Shared::LoadingSpinner.new(message: "Loading invoices...")
+              end
 
-                turbo_frame_tag "invoices_content", data: { lazy_tab_target: "frame", src: view_context.invoices_path(filter: "unpaid"), invoice_filter_target: "frame" } do
-                  render ::Components::Shared::LoadingSpinner.new(message: "Loading invoices...")
-                end
+              # Invoice content
+              div(data: { invoice_filter_target: "content" }) do
+                render ::Views::Accounting::Invoices::ListContent.new(user: @user, filter: @filter)
               end
             end
           end
