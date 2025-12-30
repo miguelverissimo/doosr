@@ -77,12 +77,12 @@ module Components
             class: "space-y-6",
             data: {
               turbo: true,
-              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss",
-              controller: "receipt-form form-loading payment-type-toggle",
+              controller: "receipt-form payment-type-toggle modal-form",
               receipt_form_manev_h_unit_price_value: manev_h_item&.unit_price_with_tax || 0,
               receipt_form_manev_on_call_unit_price_value: manev_on_call_item&.unit_price_with_tax || 0,
               receipt_form_token_unit_price_value: token_item&.unit_price_with_tax || 0,
-              form_loading_message_value: "Creating receipt..."
+              modal_form_loading_message_value: (@is_new_record ? "Creating receipt..." : "Updating receipt..."),
+              modal_form_success_message_value: (@is_new_record ? "Receipt created successfully" : "Receipt updated successfully")
             }
           ) do
             # Hidden fields for Rails
@@ -162,140 +162,169 @@ module Components
             div(class: "space-y-6 pt-6 border-t") do
               h3(class: "text-lg font-semibold mb-4") { "Receipt Details" }
 
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Reference" }
-                render RubyUI::Input.new(
-                  type: :text,
-                  name: "receipt[reference]",
-                  placeholder: "Enter reference",
-                  value: @receipt&.reference.to_s,
-                  required: true
-                )
-                render RubyUI::FormFieldError.new
-              end
-
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Kind" }
-                select(
-                  name: "receipt[kind]",
-                  class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  required: true
-                ) do
-                  ::Accounting::Receipt.kinds.each_key do |kind|
-                    option(
-                      value: kind,
-                      selected: @receipt&.kind == kind.to_s || "invoice_receipt"
-                    ) { kind.to_s.humanize }
+              div(class: "flex flex-row items-start gap-4") do
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Reference" }
+                    render RubyUI::Input.new(
+                      type: :text,
+                      name: "receipt[reference]",
+                      placeholder: "Enter reference",
+                      value: @receipt&.reference.to_s,
+                      required: true
+                    )
+                    render RubyUI::FormFieldError.new
                   end
                 end
-                render RubyUI::FormFieldError.new
-              end
 
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Invoice" }
-                select(
-                  name: "receipt[invoice_id]",
-                  class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  disabled: @invoice.present? || available_invoices.empty?
-                ) do
-                  option(value: "", selected: @receipt&.invoice_id.nil? && @invoice.nil?) { "None" }
-                  available_invoices.each do |invoice|
-                    option(
-                      value: invoice.id,
-                      selected: (@receipt&.invoice_id == invoice.id) || (@invoice&.id == invoice.id)
-                    ) { invoice.display_number }
-                  end
-                end
-                render RubyUI::FormFieldError.new
-              end
-
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Issue Date" }
-                render RubyUI::Input.new(
-                  type: :date,
-                  name: "receipt[issue_date]",
-                  class: "date-input-icon-light text-primary-foreground",
-                  value: (@receipt&.issue_date || Date.today).strftime("%Y-%m-%d"),
-                  required: true
-                )
-                render RubyUI::FormFieldError.new
-              end
-
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Payment Date" }
-                render RubyUI::Input.new(
-                  type: :date,
-                  name: "receipt[payment_date]",
-                  class: "date-input-icon-light text-primary-foreground",
-                  value: (@receipt&.payment_date || Date.today).strftime("%Y-%m-%d"),
-                  required: true
-                )
-                render RubyUI::FormFieldError.new
-              end
-
-              render RubyUI::FormField.new do
-                render RubyUI::FormFieldLabel.new { "Document (PDF)" }
-                if @receipt&.document&.attached?
-                  div(class: "mb-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md") do
-                    p(class: "text-sm text-yellow-800 dark:text-yellow-200") do
-                      plain "Current file: "
-                      strong { @receipt.document.filename.to_s }
-                      plain " - Uploading a new file will replace this one."
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Document (PDF)" }
+                    if @receipt&.document&.attached?
+                      div(class: "mb-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md") do
+                        p(class: "text-sm text-yellow-800 dark:text-yellow-200") do
+                          plain "Current file: "
+                          strong { @receipt.document.filename.to_s }
+                          plain " - Uploading a new file will replace this one."
+                        end
+                      end
                     end
+                    render RubyUI::Input.new(
+                      type: :file,
+                      name: "receipt[document]",
+                      accept: "application/pdf"
+                    )
+                    p(class: "text-sm text-muted-foreground mt-1") { "Upload a PDF document (max 10MB)" }
+                    render RubyUI::FormFieldError.new
                   end
                 end
-                render RubyUI::Input.new(
-                  type: :file,
-                  name: "receipt[document]",
-                  accept: "application/pdf"
-                )
-                p(class: "text-sm text-muted-foreground mt-1") { "Upload a PDF document (max 10MB)" }
-                render RubyUI::FormFieldError.new
               end
+
+              div(class: "flex flex-row items-start gap-4") do
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Kind" }
+                    select(
+                      name: "receipt[kind]",
+                      class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      required: true
+                    ) do
+                      ::Accounting::Receipt.kinds.each_key do |kind|
+                        option(
+                          value: kind,
+                          selected: @receipt&.kind == kind.to_s || "invoice_receipt"
+                        ) { kind.to_s.humanize }
+                      end
+                    end
+                    render RubyUI::FormFieldError.new
+                  end
+                end
+
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Invoice" }
+                    # Hidden field for invoice_id when invoice is passed (disabled fields don't submit)
+                    if @invoice.present?
+                      input(type: :hidden, name: "receipt[invoice_id]", value: @invoice.id)
+                    end
+                    select(
+                      name: @invoice.present? ? nil : "receipt[invoice_id]",
+                      class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                      disabled: @invoice.present? || available_invoices.empty?
+                    ) do
+                      option(value: "", selected: @receipt&.invoice_id.nil? && @invoice.nil?) { "None" }
+                      available_invoices.each do |invoice|
+                        option(
+                          value: invoice.id,
+                          selected: (@receipt&.invoice_id == invoice.id) || (@invoice&.id == invoice.id)
+                        ) { invoice.display_number }
+                      end
+                    end
+                    render RubyUI::FormFieldError.new
+                  end
+                end
+              end
+
+              div(class: "flex flex-row items-start gap-4") do
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Issue Date" }
+                    render RubyUI::Input.new(
+                      type: :date,
+                      name: "receipt[issue_date]",
+                      class: "date-input-icon-light text-primary-foreground",
+                      value: (@receipt&.issue_date || Date.today).strftime("%Y-%m-%d"),
+                      required: true
+                    )
+                    render RubyUI::FormFieldError.new
+                  end
+                end
+
+                div(class: "flex-1") do
+                  render RubyUI::FormField.new do
+                    render RubyUI::FormFieldLabel.new { "Payment Date" }
+                    render RubyUI::Input.new(
+                      type: :date,
+                      name: "receipt[payment_date]",
+                      class: "date-input-icon-light text-primary-foreground",
+                      value: (@receipt&.payment_date || Date.today).strftime("%Y-%m-%d"),
+                      required: true
+                    )
+                    render RubyUI::FormFieldError.new
+                  end
+                end
+              end
+
 
               # Payment type selection (only show if invoice is selected)
               if @invoice.present? || available_invoices.any?
-                current_payment_type = @receipt&.payment_type || "total"
-                render RubyUI::FormField.new do
-                  render RubyUI::FormFieldLabel.new { "Payment Type" }
-                  div(class: "space-y-3") do
-                    div(class: "flex items-center space-x-2") do
-                      render RubyUI::RadioButton.new(
-                        name: "receipt[payment_type]",
-                        id: "payment_type_total",
-                        value: "total",
-                        checked: current_payment_type == "total"
-                      )
-                      render RubyUI::FormFieldLabel.new(for: "payment_type_total") { "Total Payment" }
-                    end
-                    div(class: "flex items-center space-x-2") do
-                      render RubyUI::RadioButton.new(
-                        name: "receipt[payment_type]",
-                        id: "payment_type_partial",
-                        value: "partial",
-                        checked: current_payment_type == "partial"
-                      )
-                      render RubyUI::FormFieldLabel.new(for: "payment_type_partial") { "Partial Payment" }
+                div(class: "flex flex-row items-start gap-4") do
+                  current_payment_type = @receipt&.payment_type || "total"
+                  div(class: "flex-1") do
+                    render RubyUI::FormField.new do
+                      render RubyUI::FormFieldLabel.new { "Payment Type" }
+                      div(class: "space-y-4") do
+                        div(class: "flex items-center space-x-2") do
+                          render RubyUI::RadioButton.new(
+                            name: "receipt[payment_type]",
+                            id: "payment_type_total",
+                            value: "total",
+                            checked: current_payment_type == "total"
+                          )
+                          render RubyUI::FormFieldLabel.new(for: "payment_type_total") { "Total Payment" }
+                        end
+                        div(class: "flex items-center space-x-2") do
+                          render RubyUI::RadioButton.new(
+                            name: "receipt[payment_type]",
+                            id: "payment_type_partial",
+                            value: "partial",
+                            checked: current_payment_type == "partial"
+                          )
+                          render RubyUI::FormFieldLabel.new(for: "payment_type_partial") { "Partial Payment" }
+                        end
+                      end
                     end
                   end
-                end
 
-                # Switch to mark invoice as fully paid (checked and disabled when total is selected)
-                div(
-                  id: "mark_fully_paid_container",
-                  data: { payment_type_toggle_target: "container" }
-                ) do
-                  render RubyUI::FormField.new do
-                    div(class: "flex items-center gap-2") do
-                      render RubyUI::Switch.new(
-                        name: "mark_fully_paid",
-                        id: "mark_fully_paid",
-                        checked: @receipt&.completes_payment || current_payment_type == "total",
-                        disabled: current_payment_type == "total",
-                        data: { payment_type_toggle_target: "switch" }
-                      )
-                      label(for: "mark_fully_paid", class: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70") do
-                        "Completes payment"
+                  # Switch to mark invoice as fully paid (checked and disabled when total is selected)
+                  div(
+                    class: "flex-1",
+                    id: "mark_fully_paid_container",
+                    data: { payment_type_toggle_target: "container" }
+                  ) do
+                    render RubyUI::FormField.new do
+                      render RubyUI::FormFieldLabel.new { " " }
+                      div(class: "flex items-center gap-2") do
+                        render RubyUI::Switch.new(
+                          name: "mark_fully_paid",
+                          id: "mark_fully_paid",
+                          checked: @receipt&.completes_payment || current_payment_type == "total",
+                          disabled: current_payment_type == "total",
+                          data: { payment_type_toggle_target: "switch" }
+                        )
+                        label(for: "mark_fully_paid", class: "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70") do
+                          "Completes payment"
+                        end
                       end
                     end
                   end

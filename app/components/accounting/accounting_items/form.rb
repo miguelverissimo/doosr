@@ -22,7 +22,9 @@ module Components
             class: "space-y-6",
             data: {
               turbo: true,
-              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+              controller: "modal-form",
+              modal_form_loading_message_value: (@is_new_record ? "Creating item..." : "Updating item..."),
+              modal_form_success_message_value: (@is_new_record ? "Item created successfully" : "Item updated successfully")
             }
           ) do
             # Hidden fields for Rails

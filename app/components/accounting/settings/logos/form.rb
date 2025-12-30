@@ -24,7 +24,9 @@ module Components
               enctype: "multipart/form-data",
               data: {
                 turbo: true,
-                action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+                controller: "modal-form",
+                modal_form_loading_message_value: (@is_new_record ? "Uploading logo..." : "Updating logo..."),
+                modal_form_success_message_value: (@is_new_record ? "Logo uploaded successfully" : "Logo updated successfully")
               }
             ) do
               # Hidden fields for Rails

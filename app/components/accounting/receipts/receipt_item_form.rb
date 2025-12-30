@@ -23,9 +23,11 @@ module Components
             class: "space-y-6",
             data: {
               turbo: true,
-              action: "submit->receipt-item-form#submit turbo:submit-end->receipt-item-form#reset turbo:submit-end@document->ruby-ui--dialog#dismiss",
-              controller: "receipt-item-form",
-              receipt_item_form_tax_brackets_value: tax_brackets_json
+              action: "submit->receipt-item-form#submit turbo:submit-end->receipt-item-form#reset",
+              controller: "receipt-item-form modal-form",
+              receipt_item_form_tax_brackets_value: tax_brackets_json,
+              modal_form_loading_message_value: (@is_new_record ? "Creating receipt item..." : "Updating receipt item..."),
+              modal_form_success_message_value: (@is_new_record ? "Receipt item created successfully" : "Receipt item updated successfully")
             }
           ) do
             # Hidden fields for Rails

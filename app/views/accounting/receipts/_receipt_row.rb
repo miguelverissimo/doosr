@@ -161,6 +161,36 @@ module Views
           end
         end
 
+        def render_pagination
+          Pagination do
+            PaginationContent do
+              PaginationItem(href: "#") do
+                render ::Components::Icon.new(name: :chevrons_left, size: "12", class: "w-5 h-5")
+                plain("First")
+              end
+              PaginationItem(href: "#") do
+                render ::Components::Icon.new(name: :chevron_left, size: "12", class: "w-5 h-5")
+                plain("Prev")
+              end
+
+              PaginationEllipsis
+
+              PaginationItem(href: "#") { "4" }
+              PaginationItem(href: "#", active: true) { "5" }
+              PaginationItem(href: "#") { "6" }
+
+              PaginationItem(href: "#") do
+                render ::Components::Icon.new(name: :chevron_right, size: "12", class: "w-5 h-5")
+                plain("Next")
+              end
+              PaginationItem(href: "#") do
+                render ::Components::Icon.new(name: :chevrons_right, size: "12", class: "w-5 h-5")
+                plain("Last")
+              end
+            end
+          end
+        end
+
         private
 
         def total_value_with_tax_formatted

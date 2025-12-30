@@ -1,146 +1,118 @@
-import { Controller } from "@hotwired/stimulus"
+import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-  static targets = ["confirmButton", "buttonText"]
-  static values = {
-    itemId: String,
-    dayId: String
-  }
+	static targets = ["confirmButton", "buttonText"];
+	static values = {
+		itemId: String,
+		dayId: String,
+	};
 
-  connect() {
-    console.log('Defer calendar controller connected')
-    console.log('Button target:', this.confirmButtonTarget)
-    console.log('Button text target:', this.buttonTextTarget)
+	connect() {
+		this.selectedDate = null;
 
-    this.selectedDate = null
+		// Listen for clicks on calendar days directly
+		setTimeout(() => {
+			const calendar = this.element.querySelector(
+				'[data-controller*="ruby-ui--calendar"]',
+			);
 
-    // Listen for clicks on calendar days directly
-    setTimeout(() => {
-      const calendar = this.element.querySelector('[data-controller*="ruby-ui--calendar"]')
-      console.log('Calendar element:', calendar)
+			if (calendar) {
+				// Listen for clicks on day buttons
+				calendar.addEventListener("click", (e) => {
+					const dayButton = e.target.closest('[data-action*="selectDay"]');
+					if (dayButton?.dataset?.day) {
+						this.handleDateSelect(dayButton.dataset.day);
+					}
+				});
+			}
+		}, 100);
+	}
 
-      if (calendar) {
-        // Listen for clicks on day buttons
-        calendar.addEventListener('click', (e) => {
-          const dayButton = e.target.closest('[data-action*="selectDay"]')
-          if (dayButton && dayButton.dataset.day) {
-            console.log('Day clicked:', dayButton.dataset.day)
-            this.handleDateSelect(dayButton.dataset.day)
-          }
-        })
-      }
-    }, 100)
-  }
+	handleDateSelect(dateString) {
+		// Parse and store the date in YYYY-MM-DD format
+		const date = new Date(dateString);
+		this.selectedDate = date.toISOString().split("T")[0];
 
-  handleDateSelect(dateString) {
-    console.log('Handling date select:', dateString)
+		// Update button text and enable it
+		const formattedDate = date.toLocaleDateString("en-US", {
+			month: "short",
+			day: "numeric",
+			year: "numeric",
+		});
 
-    // Parse and store the date in YYYY-MM-DD format
-    const date = new Date(dateString)
-    this.selectedDate = date.toISOString().split('T')[0]
-    console.log('Stored date in YYYY-MM-DD format:', this.selectedDate)
+		this.buttonTextTarget.textContent = `Defer to ${formattedDate}`;
+		this.confirmButtonTarget.disabled = false;
+	}
 
-    // Update button text and enable it
-    const formattedDate = date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
+	confirm() {
+		if (!this.selectedDate) {
+			return;
+		}
 
-    console.log('Updating button to:', `Defer to ${formattedDate}`)
-    this.buttonTextTarget.textContent = `Defer to ${formattedDate}`
-    this.confirmButtonTarget.disabled = false
-  }
+		// Disable button and show loading
+		this.confirmButtonTarget.disabled = true;
+		this.buttonTextTarget.textContent = "Deferring...";
 
-  confirm() {
-    console.log('Confirm clicked, selectedDate:', this.selectedDate)
+		// Show loading toast
+		if (window.toast) {
+			this.loadingToastId = window.toast("Deferring item...", {
+				type: "loading",
+				description: "Please wait",
+			});
+		}
 
-    if (!this.selectedDate) {
-      console.log('No date selected, returning')
-      return
-    }
+		// Submit the defer request
+		this.submitDefer(this.selectedDate);
+	}
 
-    // Disable button and show loading
-    this.confirmButtonTarget.disabled = true
-    this.buttonTextTarget.textContent = 'Deferring...'
+	submitDefer(date) {
+		const form = document.querySelector("#defer_calendar_form");
+		const url = form.action;
 
-    // Show loading toast
-    if (window.toast) {
-      this.loadingToastId = window.toast("Deferring item...", {
-        type: "loading",
-        description: "Please wait"
-      })
-    }
+		const formData = new FormData();
+		formData.append("target_date", date);
+		formData.append("_method", "patch");
+		if (this.dayIdValue) {
+			formData.append("day_id", this.dayIdValue);
+		}
 
-    // Submit the defer request
-    this.submitDefer(this.selectedDate)
-  }
+		fetch(url, {
+			method: "POST",
+			headers: {
+				"X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')
+					.content,
+				Accept: "text/vnd.turbo-stream.html",
+			},
+			body: formData,
+		})
+			.then((response) => {
+				return response.text();
+			})
+			.then((html) => {
+				Turbo.renderStreamMessage(html);
 
-  submitDefer(date) {
-    console.log('Submitting defer for date:', date)
+				// Dismiss loading toast
+				if (window.toast?.dismiss && this.loadingToastId) {
+					window.toast.dismiss(this.loadingToastId);
+					this.loadingToastId = null;
+				}
+			})
+			.catch(() => {
+				// Dismiss loading toast
+				if (window.toast?.dismiss && this.loadingToastId) {
+					window.toast.dismiss(this.loadingToastId);
+					this.loadingToastId = null;
+				}
 
-    const form = document.querySelector('#defer_calendar_form')
-    console.log('Form found:', form)
-    console.log('Form action:', form?.action)
-
-    const url = form.action
-
-    const formData = new FormData()
-    formData.append('target_date', date)
-    formData.append('_method', 'patch')
-    if (this.dayIdValue) {
-      formData.append('day_id', this.dayIdValue)
-    }
-
-    console.log('Making fetch request to:', url)
-    console.log('FormData:', {
-      target_date: date,
-      _method: 'patch',
-      day_id: this.dayIdValue
-    })
-
-    fetch(url, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
-        'Accept': 'text/vnd.turbo-stream.html'
-      },
-      body: formData
-    })
-    .then(response => {
-      console.log('Response status:', response.status)
-      return response.text()
-    })
-    .then(html => {
-      console.log('HTML response length:', html.length)
-      console.log('HTML preview:', html.substring(0, 200))
-      Turbo.renderStreamMessage(html)
-
-      // Dismiss loading toast
-      if (window.toast && window.toast.dismiss && this.loadingToastId) {
-        window.toast.dismiss(this.loadingToastId)
-        this.loadingToastId = null
-      }
-    })
-    .catch(error => {
-      console.error('Error deferring item:', error)
-
-      // Dismiss loading toast
-      if (window.toast && window.toast.dismiss && this.loadingToastId) {
-        window.toast.dismiss(this.loadingToastId)
-        this.loadingToastId = null
-      }
-
-      // Re-enable button on error
-      const date = new Date(this.selectedDate)
-      const formattedDate = date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-      this.buttonTextTarget.textContent = `Defer to ${formattedDate}`
-      this.confirmButtonTarget.disabled = false
-    })
-  }
+				// Re-enable button on error
+				const date = new Date(this.selectedDate);
+				const formattedDate = date.toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				});
+				this.buttonTextTarget.textContent = `Defer to ${formattedDate}`;
+				this.confirmButtonTarget.disabled = false;
+			});
+	}
 }
-

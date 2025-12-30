@@ -24,6 +24,7 @@ module Accounting
     }, default: :EUR, validate: true
 
     validates :number, presence: true
+    validates :number, uniqueness: { scope: [:user_id, :year], message: "already exists for this year" }
     validates :year, presence: true
     validates :display_number, presence: true
     validates :provider, presence: true

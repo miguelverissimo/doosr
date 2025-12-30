@@ -230,6 +230,20 @@ class ::Components::Icon < ::Components::Base
       svg_element.path(d: "M14 2v5a1 1 0 0 0 1 1h5")
       svg_element.path(d: "m14.5 12.5-5 5")
       svg_element.path(d: "m9.5 12.5 5 5")
+    when :chevron_left
+      svg_element.path(d: "m15 18-6-6 6-6")
+    when :chevron_right
+      svg_element.path(d: "m9 18 6-6-6-6")
+    when :chevrons_left
+      svg_element.path(d: "m11 17-5-5 5-5")
+      svg_element.path(d: "m18 17-5-5 5-5")
+    when :chevrons_right
+      svg_element.path(d: "m6 17 5-5-5-5")
+      svg_element.path(d: "m13 17 5-5-5-5")
+    when :chevron_down
+      svg_element.path(d: "m6 9 6 6 6-6")
+    when :chevron_up
+      svg_element.path(d: "m18 15-6-6-6 6")
     else
       # Unknown icon - render nothing or a placeholder
       svg_element.path(d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z")

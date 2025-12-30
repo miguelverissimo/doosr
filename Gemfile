@@ -50,6 +50,9 @@ gem "openssl", "~> 3.3.2"
 # PDF generation
 gem "grover"
 
+# Pagination
+gem "kaminari"
+
 # Authentication
 gem "devise", "~> 4.9.1"
 gem "omniauth"

@@ -23,9 +23,10 @@ module Components
           method: "post",
           class: "space-y-6",
           data: {
-            controller: "checklist-form",
+            controller: "checklist-form modal-form",
             turbo: true,
-            action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+            modal_form_loading_message_value: (@is_new_record ? "Creating checklist..." : "Updating checklist..."),
+            modal_form_success_message_value: (@is_new_record ? "Checklist created successfully" : "Checklist updated successfully")
           }
         ) do
           # Hidden fields for Rails
@@ -112,7 +113,7 @@ module Components
               # Add item button
               Button(
                 type: :button,
-                variant: :outline,
+                variant: :secondary,
                 size: :sm,
                 data: {
                   action: "click->checklist-form#addItem"
@@ -210,7 +211,7 @@ module Components
           # Remove button
           Button(
             type: :button,
-            variant: :ghost,
+            variant: :destructive,
             size: :sm,
             icon: true,
             class: "text-destructive hover:text-destructive",

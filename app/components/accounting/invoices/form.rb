@@ -9,144 +9,193 @@ module Components
 
         def view_template
           @user = view_context.current_user
+          is_new_record = @invoice.new_record?
+          form_action = is_new_record ? view_context.invoices_path : view_context.invoice_path(@invoice)
+          form_method = is_new_record ? "post" : "patch"
+
           render RubyUI::Form.new(
-            action: view_context.invoice_path(@invoice),
+            action: form_action,
             method: "post",
             class: "space-y-6",
             data: {
               turbo: true,
-              action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+              controller: "invoice-number-validator modal-form",
+              invoice_number_validator_invoice_id_value: @invoice.id.to_s,
+              modal_form_loading_message_value: (is_new_record ? "Creating invoice..." : "Updating invoice..."),
+              modal_form_success_message_value: (is_new_record ? "Invoice created successfully" : "Invoice updated successfully")
             }
           ) do
             # Hidden fields for Rails
             input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
-            input(type: :hidden, name: "_method", value: "patch")
+            input(type: :hidden, name: "_method", value: form_method) unless is_new_record
 
-            # Basic invoice attributes
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Invoice Number" }
-              render RubyUI::Input.new(
-                type: :number,
-                name: "invoice[number]",
-                id: "invoice_number",
-                value: @invoice.number,
-                min: 1,
-                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              )
-              render RubyUI::FormFieldError.new
-            end
-
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Provider" }
-              select(
-                name: "invoice[provider_id]",
-                id: "invoice_provider_id",
-                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                required: true
-              ) do
-                option(value: "", selected: @invoice.provider_id.nil?) { "Select a provider" }
-                user.addresses.each do |address|
-                  option(
-                    value: address.id,
-                    selected: @invoice.provider_id == address.id
-                  ) { address.name }
+            # first row: Invoice number and customer reference
+            div(class: "flex flex-row items-start gap-4") do
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Invoice Number" }
+                  input(
+                    type: :number,
+                    name: "invoice[number]",
+                    id: "invoice_number",
+                    value: @invoice.number,
+                    min: 1,
+                    required: true,
+                    class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    data: {
+                      invoice_number_validator_target: "numberInput",
+                      action: "blur->invoice-number-validator#validateNumber"
+                    }
+                  )
+                  div(
+                    class: "hidden text-sm text-red-500 mt-1",
+                    data: { invoice_number_validator_target: "errorMessage" }
+                  ) { "" }
                 end
               end
-              render RubyUI::FormFieldError.new
-            end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Customer" }
-              select(
-                name: "invoice[customer_id]",
-                id: "invoice_customer_id",
-                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                required: true
-              ) do
-                option(value: "", selected: @invoice.customer_id.nil?) { "Select a customer" }
-                user.customers.each do |customer|
-                  option(
-                    value: customer.id,
-                    selected: @invoice.customer_id == customer.id
-                  ) { customer.name }
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Customer Reference" }
+                  render RubyUI::Input.new(
+                    type: :text,
+                    name: "invoice[customer_reference]",
+                    id: "invoice_customer_reference",
+                    value: @invoice.customer_reference,
+                    placeholder: "Enter customer reference"
+                  )
+                  render RubyUI::FormFieldError.new
                 end
               end
-              render RubyUI::FormFieldError.new
             end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Currency" }
-              select(
-                name: "invoice[currency]",
-                id: "invoice_currency",
-                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                required: true
-              ) do
-                ::Accounting::Invoice.currencies.each_key do |currency|
-                  option(
-                    value: currency,
-                    selected: @invoice.currency == currency.to_s
-                  ) { currency }
+            # second row: Issue date and due date
+            div(class: "flex flex-row items-start gap-4") do
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Issue Date" }
+                  input(
+                    type: :date,
+                    name: "invoice[issued_at]",
+                    id: "invoice_issued_at",
+                    class: "date-input-icon-light text-primary-foreground flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    value: (@invoice.issued_at || Date.today).strftime("%Y-%m-%d"),
+                    required: true,
+                    data: {
+                      invoice_number_validator_target: "issueDateInput",
+                      action: "change->invoice-number-validator#validateNumber"
+                    }
+                  )
+                  render RubyUI::FormFieldError.new
                 end
               end
-              render RubyUI::FormFieldError.new
-            end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Bank Info (Optional)" }
-              select(
-                name: "invoice[bank_info_id]",
-                id: "invoice_bank_info_id",
-                class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              ) do
-                option(value: "", selected: @invoice.bank_info_id.nil?) { "Select bank info (optional)" }
-                user.bank_infos.where(kind: :user).each do |bank_info|
-                  option(
-                    value: bank_info.id,
-                    selected: @invoice.bank_info_id == bank_info.id
-                  ) { bank_info.name }
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Due Date" }
+                  default_due_date = @invoice.due_at || Date.today.end_of_month
+                  render RubyUI::Input.new(
+                    type: :date,
+                    name: "invoice[due_at]",
+                    id: "invoice_due_at",
+                    class: "date-input-icon-light text-primary-foreground",
+                    value: default_due_date.strftime("%Y-%m-%d"),
+                    required: true
+                  )
+                  render RubyUI::FormFieldError.new
                 end
               end
-              render RubyUI::FormFieldError.new
             end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Issue Date" }
-              render RubyUI::Input.new(
-                type: :date,
-                name: "invoice[issued_at]",
-                id: "invoice_issued_at",
-                class: "date-input-icon-light text-primary-foreground",
-                value: (@invoice.issued_at || Date.today).strftime("%Y-%m-%d"),
-                required: true
-              )
-              render RubyUI::FormFieldError.new
+            # third row: Provider and customer
+            div(class: "flex flex-row items-start gap-4") do
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Provider" }
+                  select(
+                    name: "invoice[provider_id]",
+                    id: "invoice_provider_id",
+                    class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    required: true
+                  ) do
+                    option(value: "", selected: @invoice.provider_id.nil?) { "Select a provider" }
+                    user.addresses.where(address_type: :user).each do |address|
+                      option(
+                        value: address.id,
+                        selected: @invoice.provider_id == address.id
+                      ) { address.name }
+                    end
+                  end
+                  render RubyUI::FormFieldError.new
+                end
+              end
+
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Customer" }
+                  select(
+                    name: "invoice[customer_id]",
+                    id: "invoice_customer_id",
+                    class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    required: true
+                  ) do
+                    option(value: "", selected: @invoice.customer_id.nil?) { "Select a customer" }
+                    user.customers.each do |customer|
+                      option(
+                        value: customer.id,
+                        selected: @invoice.customer_id == customer.id
+                      ) { customer.name }
+                    end
+                  end
+                  render RubyUI::FormFieldError.new
+                end
+              end
             end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Due Date" }
-              render RubyUI::Input.new(
-                type: :date,
-                name: "invoice[due_at]",
-                id: "invoice_due_at",
-                class: "date-input-icon-light text-primary-foreground",
-                value: @invoice.due_at&.strftime("%Y-%m-%d")
-              )
-              render RubyUI::FormFieldError.new
+            # fourth row: Currency and bank info
+            div(class: "flex flex-row items-start gap-4") do
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Currency" }
+                  select(
+                    name: "invoice[currency]",
+                    id: "invoice_currency",
+                    class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                    required: true
+                  ) do
+                    ::Accounting::Invoice.currencies.each_key do |currency|
+                      option(
+                        value: currency,
+                        selected: @invoice.currency == currency.to_s
+                      ) { currency }
+                    end
+                  end
+                  render RubyUI::FormFieldError.new
+                end
+              end
+
+              div(class: "flex-1") do
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Bank Info (Optional)" }
+                  select(
+                    name: "invoice[bank_info_id]",
+                    id: "invoice_bank_info_id",
+                    class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  ) do
+                    option(value: "", selected: @invoice.bank_info_id.nil?) { "Select bank info (optional)" }
+                    user.bank_infos.where(kind: :user).each do |bank_info|
+                      option(
+                        value: bank_info.id,
+                        selected: @invoice.bank_info_id == bank_info.id
+                      ) { bank_info.name }
+                    end
+                  end
+                  render RubyUI::FormFieldError.new
+                end
+              end
             end
 
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new { "Customer Reference" }
-              render RubyUI::Input.new(
-                type: :text,
-                name: "invoice[customer_reference]",
-                id: "invoice_customer_reference",
-                value: @invoice.customer_reference,
-                placeholder: "Enter customer reference"
-              )
-              render RubyUI::FormFieldError.new
-            end
-
+            # fifth row: notes
             render RubyUI::FormField.new do
               render RubyUI::FormFieldLabel.new { "Notes" }
               render RubyUI::Textarea.new(
@@ -169,7 +218,7 @@ module Components
                   controller: "invoice-items-form",
                   invoice_items_form_accounting_items_value: accounting_items_json,
                   invoice_items_form_tax_brackets_value: tax_brackets_json,
-                  invoice_items_form_currency_value: @invoice.currency,
+                  invoice_items_form_currency_value: @invoice.currency || "eur",
                   invoice_items_form_initial_items_value: invoice_items_json
                 }
               ) do
@@ -188,22 +237,45 @@ module Components
                     # Items will be managed dynamically by JavaScript
                   end
 
-                  Button(
-                    type: :button,
-                    variant: :outline,
-                    size: :sm,
-                    data: {
-                      action: "click->invoice-items-form#addItem"
-                    }
-                  ) { "Add Item" }
+                  div(class: "flex justify-end") do
+                    Button(
+                      type: :button,
+                      variant: :secondary,
+                      size: :sm,
+                      data: {
+                        action: "click->invoice-items-form#addItem"
+                      }
+                    ) { "Add Item" }
+                  end
                 end
               end
               render RubyUI::FormFieldError.new
             end
 
-            div(class: "flex gap-2 justify-end") do
-              Button(variant: :outline, type: "button", data: { action: "click->ruby-ui--dialog#dismiss" }) { "Cancel" }
-              Button(variant: :primary, type: "submit") { "Save Changes" }
+            div(class: "flex flex-row gap-2 justify-between items-baseline border-t border-border mt-4 pt-4") do
+              # Invoice Total
+              div(
+                class: "flex justify-start",
+                data: { invoice_items_form_target: "invoiceTotalContainer" }
+              ) do
+                div(class: "text-xl font-bold") do
+                  span(class: "text-muted-foreground") { "Total: " }
+                  span(
+                    id: "invoice_total_display",
+                    class: "ml-2",
+                    data: { invoice_items_form_target: "invoiceTotalDisplay" }
+                  ) { "" }
+                end
+              end
+
+              div(class: "flex gap-2 justify-end") do
+                Button(variant: :outline, type: "button", data: { action: "click->ruby-ui--dialog#dismiss" }) { "Cancel" }
+                Button(
+                  variant: :primary,
+                  type: "submit",
+                  data: { invoice_number_validator_target: "submitButton" }
+                ) { "Save Changes" }
+              end
             end
           end
         end

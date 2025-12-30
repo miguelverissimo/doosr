@@ -5,18 +5,53 @@ module Accounting
 
     def index
       filter = params[:filter] || "unpaid"
+      page = params[:page] || 1
+      search_query = params[:search_query]
+      date_from = params[:date_from]
+      date_to = params[:date_to]
 
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "invoices_filter_section",
-            ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)
+            ::Views::Accounting::Invoices::List.new(
+              user: current_user,
+              filter: filter,
+              page: page,
+              search_query: search_query,
+              date_from: date_from,
+              date_to: date_to
+            )
           )
         end
         format.html do
-          render ::Views::Accounting::Invoices::ListContent.new(user: current_user, filter: filter)
+          render ::Views::Accounting::Invoices::ListContent.new(
+            user: current_user,
+            filter: filter,
+            page: page,
+            search_query: search_query,
+            date_from: date_from,
+            date_to: date_to
+          )
         end
       end
+    end
+
+    def check_number
+      number = params[:number].to_i
+      year = params[:year].to_i
+      invoice_id = params[:invoice_id]
+
+      # Check if invoice number exists for this user and year
+      exists = if invoice_id.present?
+        # Editing - exclude current invoice from check
+        current_user.invoices.where(number: number, year: year).where.not(id: invoice_id).exists?
+      else
+        # Creating - check if any invoice has this number
+        current_user.invoices.where(number: number, year: year).exists?
+      end
+
+      render json: { exists: exists, message: exists ? "Invoice number #{number}/#{year} already exists" : "Invoice number #{number}/#{year} is available" }
     end
 
     def preview
@@ -119,8 +154,7 @@ module Accounting
         @invoice.bank_info_id ||= template.bank_info_id
       end
 
-      # Generate number (sequence per user per year, reset to 1 each year)
-      # Use the invoice issue date year if present, otherwise use current year
+      # Set year from issue date
       invoice_year = if @invoice.issued_at.present?
                        # Handle both DateTime objects and date strings
                        date = @invoice.issued_at.is_a?(String) ? Date.parse(@invoice.issued_at) : @invoice.issued_at.to_date
@@ -130,12 +164,18 @@ module Accounting
       end
       @invoice.year = invoice_year
 
-      last_invoice = current_user.invoices
-        .where(year: invoice_year)
-        .order(number: :desc)
-        .first
+      # Generate display_number from user-provided number and year
+      # The number should come from the form (already set by raw_params)
+      # If not provided, auto-generate it
+      unless @invoice.number.present?
+        last_invoice = current_user.invoices
+          .where(year: invoice_year)
+          .order(number: :desc)
+          .first
 
-      @invoice.number = last_invoice ? last_invoice.number + 1 : 1
+        @invoice.number = last_invoice ? last_invoice.number + 1 : 1
+      end
+
       @invoice.display_number = "#{@invoice.number}/#{invoice_year}"
 
       # Build invoice items from nested attributes
@@ -231,19 +271,21 @@ module Accounting
         end
       end
 
-      respond_to do |format|
-        if @invoice.save
-          # For Turbo requests, do a full redirect to the main accounting
-          # page, which by default shows the Invoicing -> Invoices tab,
-          # ensuring the user actually lands on the invoices list.
+      if @invoice.save
+        respond_to do |format|
           format.turbo_stream do
-            redirect_to accounting_index_path, notice: "Invoice created successfully."
+            render turbo_stream: [
+              turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: "unpaid", page: 1)),
+              turbo_stream.append("body", "<script>window.toast && window.toast('Invoice created successfully', { type: 'success' });</script>")
+            ]
           end
           format.html { redirect_to accounting_index_path, notice: "Invoice created successfully." }
-        else
+        end
+      else
+        error_messages = @invoice.errors.full_messages.join(', ')
+        respond_to do |format|
           format.turbo_stream do
-            error_message = @invoice.errors.full_messages.join(", ")
-            render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create invoice: #{error_message}', { type: 'error' });</script>")
+            render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create invoice: #{error_messages}', { type: 'error' });</script>"), status: :unprocessable_entity
           end
           format.html { redirect_to accounting_index_path, alert: "Failed to create invoice" }
         end
@@ -253,12 +295,13 @@ module Accounting
     def destroy
       @invoice = current_user.invoices.find(params[:id])
       filter = params[:filter] || "unpaid"
+      page = params[:page] || 1
 
       respond_to do |format|
         if @invoice.destroy
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
+              turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: page)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice deleted successfully', { type: 'success' });</script>")
             ]
           end
@@ -276,6 +319,7 @@ module Accounting
     def update
       @invoice = current_user.invoices.find(params[:id])
       filter = params[:filter] || "unpaid"
+      page = params[:page] || 1
 
       new_state = params[:state]
 
@@ -292,7 +336,7 @@ module Accounting
 
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
+                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: page)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('#{message}', { type: 'success' });</script>")
               ]
             end
@@ -312,8 +356,17 @@ module Accounting
           success = false
 
           ActiveRecord::Base.transaction do
+            # Update the invoice attributes
             unless @invoice.update(attrs)
               raise ActiveRecord::Rollback
+            end
+
+            # Regenerate display_number if number or issued_at changed
+            if @invoice.saved_change_to_number? || @invoice.saved_change_to_issued_at?
+              invoice_year = @invoice.issued_at.present? ? @invoice.issued_at.year : Date.today.year
+              @invoice.year = invoice_year
+              @invoice.display_number = "#{@invoice.number}/#{invoice_year}"
+              @invoice.save!
             end
 
             if invoice_item_params.present?
@@ -374,7 +427,7 @@ module Accounting
           if success
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter)),
+                turbo_stream.replace("invoices_filter_section", ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: page)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Invoice updated successfully', { type: 'success' });</script>")
               ]
             end

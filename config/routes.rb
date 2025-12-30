@@ -133,6 +133,9 @@ Rails.application.routes.draw do
         path: "invoices",
         controller: "accounting/invoices",
         as: "invoices" do
+          collection do
+            get :check_number
+          end
           member do
             get :preview
             get :pdf

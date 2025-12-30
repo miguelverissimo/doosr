@@ -1,356 +1,347 @@
-import { Controller } from "@hotwired/stimulus"
+import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-  static targets = ["item", "cancelButton", "rootTarget"]
-  static values = { dayId: Number, listId: Number }
+	static targets = ["item", "cancelButton", "rootTarget"];
+	static values = { dayId: Number, listId: Number };
 
-  connect() {
-    console.log("Day move controller connected")
+	connect() {
+		// Check if we're returning from a moving mode
+		const movingItemId = sessionStorage.getItem("movingItemId");
+		if (movingItemId) {
+			this.enterMovingMode(parseInt(movingItemId));
+		}
 
-    // Check if we're returning from a moving mode
-    const movingItemId = sessionStorage.getItem('movingItemId')
-    if (movingItemId) {
-      this.enterMovingMode(parseInt(movingItemId))
-    }
+		// Listen for moving mode events
+		this.boundStartMoving = this.handleStartMoving.bind(this);
+		this.boundCancelMoving = this.handleCancelMoving.bind(this);
+		this.boundEscapeKey = this.handleEscapeKey.bind(this);
 
-    // Listen for moving mode events
-    this.boundStartMoving = this.handleStartMoving.bind(this)
-    this.boundCancelMoving = this.handleCancelMoving.bind(this)
-    this.boundEscapeKey = this.handleEscapeKey.bind(this)
+		window.addEventListener("item:start-moving", this.boundStartMoving);
+		window.addEventListener("item:cancel-moving", this.boundCancelMoving);
+		document.addEventListener("keydown", this.boundEscapeKey);
+	}
 
-    window.addEventListener('item:start-moving', this.boundStartMoving)
-    window.addEventListener('item:cancel-moving', this.boundCancelMoving)
-    document.addEventListener('keydown', this.boundEscapeKey)
-  }
+	disconnect() {
+		window.removeEventListener("item:start-moving", this.boundStartMoving);
+		window.removeEventListener("item:cancel-moving", this.boundCancelMoving);
+		document.removeEventListener("keydown", this.boundEscapeKey);
+	}
 
-  disconnect() {
-    window.removeEventListener('item:start-moving', this.boundStartMoving)
-    window.removeEventListener('item:cancel-moving', this.boundCancelMoving)
-    document.removeEventListener('keydown', this.boundEscapeKey)
-  }
+	handleStartMoving(event) {
+		this.enterMovingMode(event.detail.itemId);
+	}
 
-  handleStartMoving(event) {
-    console.log("Handling start moving event:", event.detail)
-    this.enterMovingMode(event.detail.itemId)
-  }
+	handleCancelMoving(event) {
+		this.exitMovingMode();
 
-  handleCancelMoving(event) {
-    console.log("Handling cancel moving event")
-    this.exitMovingMode()
+		// Reopen the drawer on the original item
+		const itemElement = document.getElementById(`item_${event.detail.itemId}`);
+		if (itemElement) {
+			setTimeout(() => {
+				itemElement.click();
+			}, 100);
+		}
+	}
 
-    // Reopen the drawer on the original item
-    const itemElement = document.getElementById(`item_${event.detail.itemId}`)
-    if (itemElement) {
-      setTimeout(() => {
-        itemElement.click()
-      }, 100)
-    }
-  }
+	handleEscapeKey(event) {
+		if (event.key === "Escape" && this.isInMovingMode()) {
+			event.preventDefault();
+			this.cancelMoving();
+		}
+	}
 
-  handleEscapeKey(event) {
-    if (event.key === 'Escape' && this.isInMovingMode()) {
-      event.preventDefault()
-      this.cancelMoving()
-    }
-  }
+	enterMovingMode(itemId) {
+		this.movingItemId = itemId;
 
-  enterMovingMode(itemId) {
-    console.log("Entering moving mode for item:", itemId)
+		// Store in sessionStorage for persistence
+		sessionStorage.setItem("movingItemId", itemId);
+		if (this.hasDayIdValue) {
+			sessionStorage.setItem("movingDayId", this.dayIdValue);
+		}
+		if (this.hasListIdValue) {
+			sessionStorage.setItem("movingListId", this.listIdValue);
+		}
 
-    this.movingItemId = itemId
+		// Show cancel button
+		if (this.hasCancelButtonTarget) {
+			this.cancelButtonTarget.classList.remove("hidden");
+		}
 
-    // Store in sessionStorage for persistence
-    sessionStorage.setItem('movingItemId', itemId)
-    if (this.hasDayIdValue) {
-      sessionStorage.setItem('movingDayId', this.dayIdValue)
-    }
-    if (this.hasListIdValue) {
-      sessionStorage.setItem('movingListId', this.listIdValue)
-    }
+		// Check if item is at root level (direct child of items_list)
+		const itemElement = document.getElementById(`item_${itemId}`);
+		const isAtRootLevel =
+			itemElement && itemElement.parentElement.id === "items_list";
 
-    // Show cancel button
-    if (this.hasCancelButtonTarget) {
-      this.cancelButtonTarget.classList.remove('hidden')
-    }
+		// Only show root target if item is NOT already at root level
+		if (this.hasRootTargetTarget && !isAtRootLevel) {
+			this.rootTargetTarget.classList.remove("hidden");
+		}
 
-    // Check if item is at root level (direct child of items_list)
-    const itemElement = document.getElementById(`item_${itemId}`)
-    const isAtRootLevel = itemElement && itemElement.parentElement.id === 'items_list'
-    console.log("Item is at root level:", isAtRootLevel)
+		// Highlight the moving item
+		if (itemElement) {
+			itemElement.classList.add("bg-pink-500/20", "border-pink-500");
+		}
 
-    // Only show root target if item is NOT already at root level
-    if (this.hasRootTargetTarget && !isAtRootLevel) {
-      this.rootTargetTarget.classList.remove('hidden')
-    }
+		// Highlight all other items as targets
+		this.itemTargets.forEach((item) => {
+			const currentItemId = parseInt(
+				item.dataset.itemMovingItemIdValue || item.dataset.itemIdValue,
+			);
+			if (currentItemId !== itemId) {
+				item.classList.add(
+					"border-2",
+					"border-dashed",
+					"border-primary",
+					"cursor-pointer",
+				);
+				// Replace the action with selectTarget during moving mode
+				item.dataset.action = "click->day-move#selectTarget";
+				item.dataset.dayMoveTargetItemId = currentItemId;
+			}
+		});
+	}
 
-    // Highlight the moving item
-    if (itemElement) {
-      itemElement.classList.add('bg-pink-500/20', 'border-pink-500')
-    }
+	exitMovingMode() {
+		// Hide cancel button
+		if (this.hasCancelButtonTarget) {
+			this.cancelButtonTarget.classList.add("hidden");
+		}
 
-    // Highlight all other items as targets
-    this.itemTargets.forEach(item => {
-      const currentItemId = parseInt(item.dataset.itemMovingItemIdValue || item.dataset.itemIdValue)
-      if (currentItemId !== itemId) {
-        item.classList.add('border-2', 'border-dashed', 'border-primary', 'cursor-pointer')
-        // Replace the action with selectTarget during moving mode
-        item.dataset.action = 'click->day-move#selectTarget'
-        item.dataset.dayMoveTargetItemId = currentItemId
-      }
-    })
-  }
+		// Hide root target (always, since it might have been shown)
+		if (this.hasRootTargetTarget) {
+			this.rootTargetTarget.classList.add("hidden");
+		}
 
-  exitMovingMode() {
-    console.log("Exiting moving mode")
+		// Remove highlights from moving item
+		if (this.movingItemId) {
+			const itemElement = document.getElementById(`item_${this.movingItemId}`);
+			if (itemElement) {
+				itemElement.classList.remove("bg-pink-500/20", "border-pink-500");
+			}
+		}
 
-    // Hide cancel button
-    if (this.hasCancelButtonTarget) {
-      this.cancelButtonTarget.classList.add('hidden')
-    }
+		// Remove highlights from all target items
+		this.itemTargets.forEach((item) => {
+			item.classList.remove(
+				"border-2",
+				"border-dashed",
+				"border-primary",
+				"cursor-pointer",
+			);
+			// Remove the dynamic action we added (keep original actions)
+			const originalAction = "click->item#openSheet";
+			item.dataset.action = originalAction;
+			delete item.dataset.dayMoveTargetItemId;
+		});
 
-    // Hide root target (always, since it might have been shown)
-    if (this.hasRootTargetTarget) {
-      this.rootTargetTarget.classList.add('hidden')
-    }
+		// Clear session storage
+		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingDayId");
+		sessionStorage.removeItem("movingListId");
 
-    // Remove highlights from moving item
-    if (this.movingItemId) {
-      const itemElement = document.getElementById(`item_${this.movingItemId}`)
-      if (itemElement) {
-        itemElement.classList.remove('bg-pink-500/20', 'border-pink-500')
-      }
-    }
+		this.movingItemId = null;
+	}
 
-    // Remove highlights from all target items
-    this.itemTargets.forEach(item => {
-      item.classList.remove('border-2', 'border-dashed', 'border-primary', 'cursor-pointer')
-      // Remove the dynamic action we added (keep original actions)
-      const originalAction = 'click->item#openSheet'
-      item.dataset.action = originalAction
-      delete item.dataset.dayMoveTargetItemId
-    })
+	isInMovingMode() {
+		return this.movingItemId != null;
+	}
 
-    // Clear session storage
-    sessionStorage.removeItem('movingItemId')
-    sessionStorage.removeItem('movingDayId')
-    sessionStorage.removeItem('movingListId')
+	cancelMoving() {
+		const movingItemId = this.movingItemId;
 
-    this.movingItemId = null
-  }
+		// Exit moving mode (clears sessionStorage and resets UI)
+		this.exitMovingMode();
 
-  isInMovingMode() {
-    return this.movingItemId != null
-  }
+		// Reopen the drawer on the original item
+		if (movingItemId) {
+			const itemElement = document.getElementById(`item_${movingItemId}`);
+			if (itemElement) {
+				setTimeout(() => {
+					itemElement.click();
+				}, 100);
+			}
+		}
+	}
 
-  cancelMoving() {
-    console.log("Canceling moving mode")
-    const movingItemId = this.movingItemId
+	selectTarget(event) {
+		if (!this.isInMovingMode()) return;
 
-    // Exit moving mode (clears sessionStorage and resets UI)
-    this.exitMovingMode()
+		event.stopPropagation();
+		event.preventDefault();
 
-    // Reopen the drawer on the original item
-    if (movingItemId) {
-      const itemElement = document.getElementById(`item_${movingItemId}`)
-      if (itemElement) {
-        setTimeout(() => {
-          console.log("Reopening drawer for item:", movingItemId)
-          itemElement.click()
-        }, 100)
-      }
-    }
-  }
+		const targetItemId = parseInt(
+			event.currentTarget.dataset.dayMoveTargetItemId,
+		);
 
-  selectTarget(event) {
-    if (!this.isInMovingMode()) return
+		this.moveItemToTarget(this.movingItemId, targetItemId);
+	}
 
-    event.stopPropagation()
-    event.preventDefault()
+	selectRootTarget(event) {
+		if (!this.isInMovingMode()) {
+			return;
+		}
 
-    const targetItemId = parseInt(event.currentTarget.dataset.dayMoveTargetItemId)
-    console.log("Selected target item:", targetItemId)
+		event.stopPropagation();
+		event.preventDefault();
 
-    this.moveItemToTarget(this.movingItemId, targetItemId)
-  }
+		this.moveItemToRoot(this.movingItemId);
+	}
 
-  selectRootTarget(event) {
-    console.log("selectRootTarget called, moving mode:", this.isInMovingMode(), "movingItemId:", this.movingItemId)
+	moveItemToTarget(itemId, targetItemId) {
+		// Show loading toast
+		let loadingToastId = null;
+		if (window.toast) {
+			loadingToastId = window.toast("Reparenting item...", {
+				type: "loading",
+				description: "Please wait",
+			});
+		}
 
-    if (!this.isInMovingMode()) {
-      console.log("Not in moving mode, returning")
-      return
-    }
+		// Exit moving mode first
+		this.exitMovingMode();
 
-    event.stopPropagation()
-    event.preventDefault()
+		// Clear session storage
+		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingDayId");
+		sessionStorage.removeItem("movingListId");
 
-    console.log("Selected root target, moving item", this.movingItemId, "to root")
-    this.moveItemToRoot(this.movingItemId)
-  }
+		// Build request body based on context (day or list)
+		const requestBody = {
+			target_item_id: targetItemId,
+		};
+		if (this.hasDayIdValue) {
+			requestBody.day_id = this.dayIdValue;
+		} else if (this.hasListIdValue) {
+			requestBody.list_id = this.listIdValue;
+		}
 
-  moveItemToTarget(itemId, targetItemId) {
-    console.log(`Moving item ${itemId} to target ${targetItemId}`)
+		// Make the reparent request
+		// Use reusable_items path if we have a list_id, otherwise use items path
+		const reparentUrl = this.hasListIdValue
+			? `/reusable_items/${itemId}/reparent`
+			: `/items/${itemId}/reparent`;
+		fetch(reparentUrl, {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "text/vnd.turbo-stream.html",
+				"X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')
+					.content,
+			},
+			body: JSON.stringify(requestBody),
+		})
+			.then((response) => response.text())
+			.then((html) => {
+				// Dismiss loading toast
+				if (loadingToastId && window.toast && window.toast.dismiss) {
+					window.toast.dismiss(loadingToastId);
+				}
 
-    // Show loading toast
-    let loadingToastId = null
-    if (window.toast) {
-      loadingToastId = window.toast("Reparenting item...", {
-        type: "loading",
-        description: "Please wait"
-      })
-    }
+				// Process turbo stream response
+				Turbo.renderStreamMessage(html);
 
-    // Exit moving mode first
-    this.exitMovingMode()
+				// Reopen drawer on moved item after DOM updates
+				setTimeout(() => {
+					const movedItem = document.getElementById(`item_${itemId}`);
+					if (movedItem) {
+						movedItem.click();
+					}
+				}, 300);
+			})
+			.catch((error) => {
+				console.error("Error moving item:", error);
 
-    // Clear session storage
-    sessionStorage.removeItem('movingItemId')
-    sessionStorage.removeItem('movingDayId')
-    sessionStorage.removeItem('movingListId')
+				// Dismiss loading toast on error
+				if (loadingToastId && window.toast && window.toast.dismiss) {
+					window.toast.dismiss(loadingToastId);
+				}
 
-    // Build request body based on context (day or list)
-    const requestBody = {
-      target_item_id: targetItemId
-    }
-    if (this.hasDayIdValue) {
-      requestBody.day_id = this.dayIdValue
-    } else if (this.hasListIdValue) {
-      requestBody.list_id = this.listIdValue
-    }
+				// Show error toast
+				if (window.toast) {
+					window.toast("Failed to move item", {
+						type: "error",
+						description: error.message,
+					});
+				}
+			});
+	}
 
-    // Make the reparent request
-    // Use reusable_items path if we have a list_id, otherwise use items path
-    const reparentUrl = this.hasListIdValue ? `/reusable_items/${itemId}/reparent` : `/items/${itemId}/reparent`
-    fetch(reparentUrl, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/vnd.turbo-stream.html',
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-      },
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => response.text())
-    .then(html => {
-      console.log("Received turbo stream response for moveToTarget, length:", html.length)
+	moveItemToRoot(itemId) {
+		// Show loading toast
+		let loadingToastId = null;
+		if (window.toast) {
+			loadingToastId = window.toast("Reparenting item...", {
+				type: "loading",
+				description: "Please wait",
+			});
+		}
 
-      // Dismiss loading toast
-      if (loadingToastId && window.toast && window.toast.dismiss) {
-        window.toast.dismiss(loadingToastId)
-      }
+		// Exit moving mode first
+		this.exitMovingMode();
 
-      // Process turbo stream response
-      Turbo.renderStreamMessage(html)
+		// Clear session storage
+		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingDayId");
+		sessionStorage.removeItem("movingListId");
 
-      console.log("Turbo stream processed, waiting for DOM update")
+		// Build request body based on context (day or list)
+		const requestBody = {
+			target_item_id: null,
+		};
+		if (this.hasDayIdValue) {
+			requestBody.day_id = this.dayIdValue;
+		} else if (this.hasListIdValue) {
+			requestBody.list_id = this.listIdValue;
+		}
 
-      // Reopen drawer on moved item after DOM updates
-      setTimeout(() => {
-        const movedItem = document.getElementById(`item_${itemId}`)
-        console.log("Looking for moved item:", itemId, "found:", movedItem !== null)
-        if (movedItem) {
-          movedItem.click()
-        }
-      }, 300)
-    })
-    .catch(error => {
-      console.error('Error moving item:', error)
+		// Make the reparent request
+		// Use reusable_items path if we have a list_id, otherwise use items path
+		const reparentUrl = this.hasListIdValue
+			? `/reusable_items/${itemId}/reparent`
+			: `/items/${itemId}/reparent`;
+		fetch(reparentUrl, {
+			method: "PATCH",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "text/vnd.turbo-stream.html",
+				"X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')
+					.content,
+			},
+			body: JSON.stringify(requestBody),
+		})
+			.then((response) => response.text())
+			.then((html) => {
+				// Dismiss loading toast
+				if (loadingToastId && window.toast && window.toast.dismiss) {
+					window.toast.dismiss(loadingToastId);
+				}
 
-      // Dismiss loading toast on error
-      if (loadingToastId && window.toast && window.toast.dismiss) {
-        window.toast.dismiss(loadingToastId)
-      }
+				// Process turbo stream response
+				Turbo.renderStreamMessage(html);
 
-      // Show error toast
-      if (window.toast) {
-        window.toast("Failed to move item", {
-          type: "error",
-          description: error.message
-        })
-      }
-    })
-  }
+				// Reopen drawer on moved item after DOM updates
+				setTimeout(() => {
+					const movedItem = document.getElementById(`item_${itemId}`);
+					if (movedItem) {
+						movedItem.click();
+					}
+				}, 300);
+			})
+			.catch((error) => {
+				console.error("Error moving item to root:", error);
 
-  moveItemToRoot(itemId) {
-    console.log(`Moving item ${itemId} to root`)
+				// Dismiss loading toast on error
+				if (loadingToastId && window.toast && window.toast.dismiss) {
+					window.toast.dismiss(loadingToastId);
+				}
 
-    // Show loading toast
-    let loadingToastId = null
-    if (window.toast) {
-      loadingToastId = window.toast("Reparenting item...", {
-        type: "loading",
-        description: "Please wait"
-      })
-    }
-
-    // Exit moving mode first
-    this.exitMovingMode()
-
-    // Clear session storage
-    sessionStorage.removeItem('movingItemId')
-    sessionStorage.removeItem('movingDayId')
-    sessionStorage.removeItem('movingListId')
-
-    // Build request body based on context (day or list)
-    const requestBody = {
-      target_item_id: null
-    }
-    if (this.hasDayIdValue) {
-      requestBody.day_id = this.dayIdValue
-    } else if (this.hasListIdValue) {
-      requestBody.list_id = this.listIdValue
-    }
-
-    // Make the reparent request
-    // Use reusable_items path if we have a list_id, otherwise use items path
-    const reparentUrl = this.hasListIdValue ? `/reusable_items/${itemId}/reparent` : `/items/${itemId}/reparent`
-    fetch(reparentUrl, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/vnd.turbo-stream.html',
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-      },
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => response.text())
-    .then(html => {
-      console.log("Received turbo stream response for moveToRoot, length:", html.length)
-
-      // Dismiss loading toast
-      if (loadingToastId && window.toast && window.toast.dismiss) {
-        window.toast.dismiss(loadingToastId)
-      }
-
-      // Process turbo stream response
-      Turbo.renderStreamMessage(html)
-
-      console.log("Turbo stream processed, waiting for DOM update")
-
-      // Reopen drawer on moved item after DOM updates
-      setTimeout(() => {
-        const movedItem = document.getElementById(`item_${itemId}`)
-        console.log("Looking for moved item:", itemId, "found:", movedItem !== null)
-        if (movedItem) {
-          movedItem.click()
-        }
-      }, 300)
-    })
-    .catch(error => {
-      console.error('Error moving item to root:', error)
-
-      // Dismiss loading toast on error
-      if (loadingToastId && window.toast && window.toast.dismiss) {
-        window.toast.dismiss(loadingToastId)
-      }
-
-      // Show error toast
-      if (window.toast) {
-        window.toast("Failed to move item", {
-          type: "error",
-          description: error.message
-        })
-      }
-    })
-  }
+				// Show error toast
+				if (window.toast) {
+					window.toast("Failed to move item", {
+						type: "error",
+						description: error.message,
+					});
+				}
+			});
+	}
 }

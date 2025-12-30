@@ -177,10 +177,102 @@ Located in `app/services/`:
 - Use Ruby UI components from the ruby_ui gem - do not create raw HTML/JS
 
 ### UI Feedback
-- **Every backend request MUST show a loading toast**
-- Use: `window.toast(message, { type: "loading", description: "Please wait" })`
-- Dismiss on `turbo:submit-end` or response received
-- Applies to all actions: create, update, delete, move, toggle, defer, reparent
+- **Every backend request MUST show a loading indicator**
+- For form submissions: Use `window.toast(message, { type: "loading", description: "Please wait" })`
+  - Dismiss on `turbo:submit-end` or response received
+  - Applies to: create, update, delete, move, toggle, defer, reparent
+- **For pagination and filters**: Use loading spinner pattern (see below)
+
+#### Pagination with Loading Spinner Pattern
+**CRITICAL: All paginated list views MUST show a loading spinner during data fetching.**
+
+Example implementation (see `app/views/accounting/invoices/_list.rb` and `app/views/accounting/invoices/_list_content.rb`):
+
+1. **Stimulus Controller** (`app/javascript/controllers/invoice_filter_controller.js`):
+   ```javascript
+   import { Controller } from "@hotwired/stimulus"
+
+   export default class extends Controller {
+     static targets = ["spinner", "content"]
+
+     connect() {
+       this.element.addEventListener("turbo:before-stream-render", () => this.hideSpinner())
+     }
+
+     showSpinner() {
+       if (this.hasSpinnerTarget && this.hasContentTarget) {
+         this.spinnerTarget.classList.remove("hidden")
+         this.contentTarget.classList.add("hidden")
+       }
+     }
+
+     hideSpinner() {
+       if (this.hasSpinnerTarget && this.hasContentTarget) {
+         this.spinnerTarget.classList.add("hidden")
+         this.contentTarget.classList.remove("hidden")
+       }
+     }
+   }
+   ```
+
+2. **Container View** (with controller, spinner, and content targets):
+   ```ruby
+   div(class: "flex flex-col gap-4", id: "container", data: { controller: "invoice-filter" }) do
+     # Filter/pagination controls with click action
+     div(class: "flex gap-2") do
+       render ::Components::BadgeLink.new(
+         href: view_context.invoices_path(filter: "unpaid"),
+         data: {
+           turbo_stream: true,
+           action: "click->invoice-filter#showSpinner"
+         }
+       ) { "Unpaid" }
+     end
+
+     # Loading spinner (hidden by default)
+     div(
+       id: "loading_spinner",
+       class: "hidden",
+       data: { invoice_filter_target: "spinner" }
+     ) do
+       render ::Components::Shared::LoadingSpinner.new(message: "Loading...")
+     end
+
+     # Content area
+     div(data: { invoice_filter_target: "content" }) do
+       render ::Views::ListContent.new(user: @user, filter: @filter, page: @page)
+     end
+   end
+   ```
+
+3. **Pagination Links** (in list content view):
+   ```ruby
+   PaginationItem(
+     href: view_context.invoices_path(filter: @filter, page: page_num),
+     active: page_num == current_page,
+     data: {
+       turbo_stream: true,
+       action: "click->invoice-filter#showSpinner"  # CRITICAL: Must trigger spinner
+     }
+   ) { page_num.to_s }
+   ```
+
+4. **Margin for Pagination**:
+   ```ruby
+   # Always wrap pagination in a div with top margin
+   if @items.total_pages > 1
+     div(class: "mt-6") do
+       render_pagination
+     end
+   end
+   ```
+
+**Key Points:**
+- Loading spinner MUST be shown for all filter changes and pagination navigation
+- Spinner automatically hides when turbo stream response is received
+- All clickable filter/pagination elements must have `action: "click->controller#showSpinner"`
+- Content area must have the `content` target
+- Spinner must have the `spinner` target
 
 ### Drawer Navigation (CRITICAL - READ CAREFULLY)
 **THIS IS EXTREMELY IMPORTANT. VIOLATING THESE RULES CREATES MULTIPLE OVERLAYS AND WASTES USER MONEY.**

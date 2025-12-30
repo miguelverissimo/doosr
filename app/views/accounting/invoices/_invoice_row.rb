@@ -2,10 +2,12 @@ module Views
   module Accounting
     module Invoices
       class InvoiceRow < ::Views::Base
-        def initialize(invoice:, receipt_items: {}, available_invoices: [])
+        def initialize(invoice:, receipt_items: {}, available_invoices: [], filter: "unpaid", page: 1)
           @invoice = invoice
           @receipt_items = receipt_items
           @available_invoices = available_invoices
+          @filter = filter
+          @page = page
         end
 
         def view_template
@@ -106,6 +108,8 @@ module Views
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "draft")
+              input(type: :hidden, name: "filter", value: @filter)
+              input(type: :hidden, name: "page", value: @page)
               Button(
                 variant: :tinted,
                 tint: :sky,
@@ -130,6 +134,8 @@ module Views
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "sent")
+              input(type: :hidden, name: "filter", value: @filter)
+              input(type: :hidden, name: "page", value: @page)
               Button(
                 variant: :tinted,
                 tint: :amber,
@@ -141,24 +147,34 @@ module Views
             end
 
             # Mark as paid (only if currently sent) - with receipt prompt
+            # Hidden form for marking as paid (submitted via JS)
             form(
+              id: "mark_paid_form_#{@invoice.id}",
               action: view_context.invoice_path(@invoice),
               method: "post",
-              class: "inline-flex",
-              data: { action: "submit->mark-invoice-paid#submit" }
+              class: "hidden",
+              data: { mark_invoice_paid_target: "markPaidForm" }
             ) do
               input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
               input(type: :hidden, name: "_method", value: "patch")
               input(type: :hidden, name: "state", value: "paid")
-              Button(
-                variant: :tinted,
-                tint: :lime,
-                size: :md,
-                type: :submit,
-                icon: true,
-                disabled: @invoice.state != "sent"
-              ) { render ::Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
+              input(type: :hidden, name: "filter", value: @filter)
+              input(type: :hidden, name: "page", value: @page)
             end
+
+            # Button that triggers the receipt prompt flow
+            Button(
+              variant: :tinted,
+              tint: :lime,
+              size: :md,
+              type: :button,
+              icon: true,
+              disabled: @invoice.state != "sent",
+              data: {
+                action: "click->mark-invoice-paid#startFlow",
+                invoice_id: @invoice.id
+              }
+            ) { render ::Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
 
             # Preview button (always active) - opens preview in new tab
             a(
@@ -284,6 +300,8 @@ module Views
                   ) do
                     input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
                     input(type: :hidden, name: "_method", value: "delete")
+                    input(type: :hidden, name: "filter", value: @filter)
+                    input(type: :hidden, name: "page", value: @page)
                     render RubyUI::AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
                   end
                 end
@@ -300,7 +318,12 @@ module Views
           render RubyUI::AlertDialog.new(
             data: { mark_invoice_paid_target: "alertDialog" }
           ) do
-            render RubyUI::AlertDialogContent.new do
+            render RubyUI::AlertDialogContent.new(
+              data: {
+                controller: "mark-invoice-paid",
+                mark_invoice_paid_invoice_id_value: @invoice.id
+              }
+            ) do
               render RubyUI::AlertDialogHeader.new do
                 render RubyUI::AlertDialogTitle.new { "Add Receipt?" }
                 render RubyUI::AlertDialogDescription.new do
@@ -309,11 +332,39 @@ module Views
               end
 
               render RubyUI::AlertDialogFooter.new(class: "mt-4 flex flex-row justify-end gap-3") do
-                render RubyUI::AlertDialogCancel.new(
-                  data: { action: "click->mark-invoice-paid#cancelReceipt" }
-                ) { "Cancel" }
-                render RubyUI::AlertDialogAction.new(
-                  data: { action: "click->mark-invoice-paid#confirmReceipt" }
+                # Direct form submission to mark invoice as paid
+                form(
+                  action: view_context.invoice_path(@invoice),
+                  method: "post",
+                  class: "inline-flex",
+                  data: {
+                    turbo: "true",
+                    turbo_stream: "true",
+                    controller: "invoice-state",
+                    invoice_state_state_value: "paid",
+                    action: "submit->ruby-ui--alert-dialog#dismiss submit->invoice-state#submit"
+                  }
+                ) do
+                  input(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+                  input(type: :hidden, name: "_method", value: "patch")
+                  input(type: :hidden, name: "state", value: "paid")
+                  input(type: :hidden, name: "filter", value: @filter)
+                  input(type: :hidden, name: "page", value: @page)
+                  button(
+                    type: "submit",
+                    class: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                  ) { "No, Just Mark Paid" }
+                end
+
+                # Button to show receipt choice dialog
+                button(
+                  type: "button",
+                  class: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2",
+                  data: {
+                    action: "click->ruby-ui--alert-dialog#dismiss",
+                    invoice_id: @invoice.id,
+                    receipt_choice: "yes"
+                  }
                 ) { "Yes, Add Receipt" }
               end
             end
@@ -323,7 +374,13 @@ module Views
           render RubyUI::Dialog.new(
             data: { mark_invoice_paid_target: "choiceDialog" }
           ) do
-            render RubyUI::DialogContent.new(size: :md) do
+            render RubyUI::DialogContent.new(
+              size: :md,
+              data: {
+                controller: "mark-invoice-paid",
+                mark_invoice_paid_invoice_id_value: @invoice.id
+              }
+            ) do
               render RubyUI::DialogHeader.new do
                 render RubyUI::DialogTitle.new { "Choose Receipt Form" }
                 render RubyUI::DialogDescription.new do
@@ -338,8 +395,9 @@ module Views
                     type: :button,
                     class: "w-full",
                     data: {
-                      action: "click->mark-invoice-paid#openCalculatorForm",
-                      receipt_choice: "calculator"
+                      action: "click->ruby-ui--dialog#dismiss click->mark-invoice-paid#openCalculatorForm",
+                      receipt_choice: "calculator",
+                      invoice_id: @invoice.id
                     }
                   ) { "With Calculator" }
                   Button(
@@ -347,8 +405,9 @@ module Views
                     type: :button,
                     class: "w-full",
                     data: {
-                      action: "click->mark-invoice-paid#openSimpleForm",
-                      receipt_choice: "simple"
+                      action: "click->ruby-ui--dialog#dismiss click->mark-invoice-paid#openSimpleForm",
+                      receipt_choice: "simple",
+                      invoice_id: @invoice.id
                     }
                   ) { "Simple Form" }
                 end
@@ -359,8 +418,9 @@ module Views
                   variant: :outline,
                   type: :button,
                   data: {
-                    action: "click->mark-invoice-paid#cancelChoice",
-                    receipt_choice: "cancel"
+                    action: "click->ruby-ui--dialog#dismiss click->mark-invoice-paid#cancelChoice",
+                    receipt_choice: "cancel",
+                    invoice_id: @invoice.id
                   }
                 ) { "Cancel" }
               end

@@ -4,16 +4,36 @@ module Accounting
     before_action :set_receipt, only: [ :update, :destroy ]
 
     def index
+      page = params[:page] || 1
+      search_query = params[:search_query]
+      invoice_number = params[:invoice_number]
+      date_from = params[:date_from]
+      date_to = params[:date_to]
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
-            "receipts_content",
-            ::Views::Accounting::Receipts::ListContent.new(user: current_user)
+            "receipts_list",
+            ::Views::Accounting::Receipts::ListContent.new(
+              user: current_user,
+              page: page,
+              search_query: search_query,
+              invoice_number: invoice_number,
+              date_from: date_from,
+              date_to: date_to
+            )
           )
         end
         format.html do
           # Wrap in turbo frame for lazy loading from the outer accounting tab
-          render ::Views::Accounting::Receipts::IndexWithFrame.new(user: current_user)
+          render ::Views::Accounting::Receipts::IndexWithFrame.new(
+            user: current_user,
+            page: page,
+            search_query: search_query,
+            invoice_number: invoice_number,
+            date_from: date_from,
+            date_to: date_to
+          )
         end
       end
     end
@@ -93,18 +113,30 @@ module Accounting
           end
         end
 
+        page = params[:page] || 1
+        filter = params[:filter] || "unpaid"
         respond_to do |format|
           format.turbo_stream do
-            render turbo_stream: [
+            streams = [
               turbo_stream.replace(
-                "receipts_content",
-                ::Views::Accounting::Receipts::ListContent.new(user: current_user)
+                "receipts_list",
+                ::Views::Accounting::Receipts::ListContent.new(user: current_user, page: page)
               ),
               turbo_stream.append(
                 "body",
                 "<script>(function() { if (window.toast) { window.toast('Receipt created successfully', { type: 'success' }); } })();</script>"
               )
             ]
+
+            # If receipt has an invoice, also update the invoices list to reflect state change
+            if @receipt.invoice_id.present?
+              streams << turbo_stream.replace(
+                "invoices_filter_section",
+                ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: 1)
+              )
+            end
+
+            render turbo_stream: streams
           end
           format.html { redirect_to accounting_index_path, notice: "Receipt created successfully." }
         end
@@ -123,6 +155,7 @@ module Accounting
     end
 
     def update
+      page = params[:page] || 1
       receipt_params_hash = receipt_params.to_h
 
       # Convert value to cents
@@ -196,18 +229,29 @@ module Accounting
           end
         end
 
+        filter = params[:filter] || "unpaid"
         respond_to do |format|
           format.turbo_stream do
-            render turbo_stream: [
+            streams = [
               turbo_stream.replace(
-                "receipts_content",
-                ::Views::Accounting::Receipts::ListContent.new(user: current_user)
+                "receipts_list",
+                ::Views::Accounting::Receipts::ListContent.new(user: current_user, page: page)
               ),
               turbo_stream.append(
                 "body",
                 "<script>(function() { if (window.toast) { window.toast('Receipt updated successfully', { type: 'success' }); } })();</script>"
               )
             ]
+
+            # If receipt has an invoice, also update the invoices list to reflect state change
+            if @receipt.invoice_id.present?
+              streams << turbo_stream.replace(
+                "invoices_filter_section",
+                ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: 1)
+              )
+            end
+
+            render turbo_stream: streams
           end
           format.html { redirect_to accounting_index_path, notice: "Receipt updated successfully." }
         end
@@ -226,14 +270,28 @@ module Accounting
     end
 
     def destroy
+      # Store invoice_id before destroying receipt
+      invoice_id = @receipt.invoice_id
       @receipt.destroy
+      page = params[:page] || 1
+      filter = params[:filter] || "unpaid"
 
       respond_to do |format|
         format.turbo_stream do
-          render turbo_stream: [
-            turbo_stream.replace("receipts_content", ::Views::Accounting::Receipts::ListContent.new(user: current_user)),
+          streams = [
+            turbo_stream.replace("receipts_list", ::Views::Accounting::Receipts::ListContent.new(user: current_user, page: page)),
             turbo_stream.append("body", "<script>(function() { if (window.toast) { window.toast('Receipt deleted successfully', { type: 'success' }); } })();</script>")
           ]
+
+          # If receipt had an invoice, also update the invoices list to reflect state change
+          if invoice_id.present?
+            streams << turbo_stream.replace(
+              "invoices_filter_section",
+              ::Views::Accounting::Invoices::List.new(user: current_user, filter: filter, page: 1)
+            )
+          end
+
+          render turbo_stream: streams
         end
         format.html { redirect_to accounting_index_path, notice: "Receipt deleted successfully." }
       end

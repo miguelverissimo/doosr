@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-	static targets = ["itemsContainer", "itemsList"];
+	static targets = ["itemsContainer", "itemsList", "invoiceTotalDisplay"];
 	static values = {
 		accountingItems: { type: Object, default: {} },
 		taxBrackets: { type: Object, default: {} },
@@ -21,6 +21,9 @@ export default class extends Controller {
 			// Otherwise ensure at least one empty item exists
 			this.addItem();
 		}
+
+		// Update invoice total after initial load
+		this.updateInvoiceTotal();
 	}
 
 	addItem() {
@@ -28,6 +31,7 @@ export default class extends Controller {
 		const itemRow = this.createItemRow(index);
 		this.itemsListTarget.appendChild(itemRow);
 		this.updateCalculations(index);
+		this.updateInvoiceTotal();
 	}
 
 	addItemWithData(data) {
@@ -72,6 +76,19 @@ export default class extends Controller {
 
 		// Run calculations to fill in the monetary fields & displays
 		this.updateCalculations(index);
+		this.updateInvoiceTotal();
+	}
+
+	// Alias for template selector compatibility
+	addItemFromData(data) {
+		this.addItemWithData(data);
+	}
+
+	clearAllItems() {
+		// Remove all items except the first one
+		while (this.itemsListTarget.children.length > 0) {
+			this.itemsListTarget.children[0].remove();
+		}
 	}
 
 	removeItem(event) {
@@ -86,6 +103,7 @@ export default class extends Controller {
 			if (this.itemsListTarget.children.length === 0) {
 				this.addItem();
 			}
+			this.updateInvoiceTotal();
 		}
 	}
 
@@ -110,14 +128,18 @@ export default class extends Controller {
 		);
 		const index = Array.from(this.itemsListTarget.children).indexOf(row);
 		this.updateCalculations(index);
+		this.updateInvoiceTotal();
 	}
 
 	updateCalculations(index) {
 		const row = this.itemsListTarget.children[index];
 		if (!row) return;
 
-		const formPrefix = this.formPrefixValue || "invoice[invoice_items_attributes]";
-		const isTemplateForm = formPrefix.includes("invoice_template_items_attributes");
+		const formPrefix =
+			this.formPrefixValue || "invoice[invoice_items_attributes]";
+		const isTemplateForm = formPrefix.includes(
+			"invoice_template_items_attributes",
+		);
 
 		const accountingItemId = row.querySelector('[name*="[item_id]"]')?.value;
 		const quantityInput = row.querySelector('[name*="[quantity]"]');
@@ -198,7 +220,8 @@ export default class extends Controller {
 				discountAmountDisplay.textContent = this.formatCurrency(discountAmount);
 			if (taxAmountDisplay)
 				taxAmountDisplay.textContent = this.formatCurrency(taxAmount);
-			if (amountDisplay) amountDisplay.textContent = this.formatCurrency(amount);
+			if (amountDisplay)
+				amountDisplay.textContent = this.formatCurrency(amount);
 		}
 	}
 
@@ -211,21 +234,50 @@ export default class extends Controller {
 		}).format(value);
 	}
 
+	updateInvoiceTotal() {
+		// Try to find the display element by ID or by target
+		const displayElement = document.getElementById('invoice_total_display') ||
+		                       (this.hasInvoiceTotalDisplayTarget ? this.invoiceTotalDisplayTarget : null);
+
+		// Only calculate total if we have the display element (not for template forms)
+		if (!displayElement) {
+			return;
+		}
+
+		let total = 0;
+
+		// Sum all item amounts
+		Array.from(this.itemsListTarget.children).forEach((row) => {
+			const amountField = row.querySelector('[name*="[amount]"]');
+			if (amountField && amountField.value) {
+				// Amount is stored in cents, convert to units for display
+				const amountInCents = parseFloat(amountField.value) || 0;
+				total += amountInCents / 100;
+			}
+		});
+
+		// Update the display
+		displayElement.textContent = this.formatCurrency(total);
+	}
+
 	createItemRow(index) {
-		const formPrefix = this.formPrefixValue || "invoice[invoice_items_attributes]";
-		const isTemplateForm = formPrefix.includes("invoice_template_items_attributes");
-		
+		const formPrefix =
+			this.formPrefixValue || "invoice[invoice_items_attributes]";
+		const isTemplateForm = formPrefix.includes(
+			"invoice_template_items_attributes",
+		);
+
 		const row = document.createElement("div");
 		row.className = "space-y-4 p-4 border rounded-md bg-background";
 		row.dataset.invoiceItemsFormTarget = "itemRow";
 
-		// Accounting Item Select
+		// First line: Accounting Item Select
 		const accountingItemField = document.createElement("div");
 		accountingItemField.className = "space-y-2";
 		accountingItemField.innerHTML = `
       <label class="text-sm font-medium">Accounting Item</label>
-      <select 
-        name="${formPrefix}[${index}][item_id]" 
+      <select
+        name="${formPrefix}[${index}][item_id]"
         class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         required
         data-action="change->invoice-items-form#updateItem"
@@ -241,18 +293,18 @@ export default class extends Controller {
     `;
 		row.appendChild(accountingItemField);
 
-		// Quantity and Discount Rate in a row
-		const quantityDiscountRow = document.createElement("div");
-		quantityDiscountRow.className = "grid grid-cols-2 gap-4";
+		// Second line: Quantity, Tax Bracket, and Discount Rate in a row
+		const secondRow = document.createElement("div");
+		secondRow.className = "grid grid-cols-3 gap-4";
 
 		const quantityField = document.createElement("div");
 		quantityField.className = "space-y-2";
 		quantityField.innerHTML = `
       <label class="text-sm font-medium">Quantity</label>
-      <input 
-        type="number" 
-        name="${formPrefix}[${index}][quantity]" 
-        step="0.01" 
+      <input
+        type="number"
+        name="${formPrefix}[${index}][quantity]"
+        step="0.01"
         min="0"
         value="1"
         class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -260,34 +312,21 @@ export default class extends Controller {
         data-action="input->invoice-items-form#updateItem"
       />
     `;
-		quantityDiscountRow.appendChild(quantityField);
+		secondRow.appendChild(quantityField);
 
-		const discountRateField = document.createElement("div");
-		discountRateField.className = "space-y-2";
-		discountRateField.innerHTML = `
-      <label class="text-sm font-medium">Discount Rate (%)</label>
-      <input 
-        type="number" 
-        name="${formPrefix}[${index}][discount_rate]" 
-        step="0.01" 
-        min="0" 
-        max="100"
-        value="0"
-        class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        required
-        data-action="input->invoice-items-form#updateItem"
-      />
-    `;
-		quantityDiscountRow.appendChild(discountRateField);
-		row.appendChild(quantityDiscountRow);
-
-		// Tax Bracket Select
 		const taxBracketField = document.createElement("div");
 		taxBracketField.className = "space-y-2";
+
+		// Find the tax bracket with 0% to set as default
+		const zeroBracket = Object.entries(this.taxBracketsValue).find(
+			([id, bracket]) => bracket.percentage === 0
+		);
+		const defaultBracketId = zeroBracket ? zeroBracket[0] : "";
+
 		taxBracketField.innerHTML = `
       <label class="text-sm font-medium">Tax Bracket</label>
-      <select 
-        name="${formPrefix}[${index}][tax_bracket_id]" 
+      <select
+        name="${formPrefix}[${index}][tax_bracket_id]"
         class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         required
         data-action="change->invoice-items-form#updateItem"
@@ -296,34 +335,49 @@ export default class extends Controller {
         ${Object.entries(this.taxBracketsValue)
 					.map(
 						([id, bracket]) =>
-							`<option value="${id}">${bracket.name} (${bracket.percentage}%)</option>`,
+							`<option value="${id}" ${id === defaultBracketId ? 'selected' : ''}>${bracket.name} (${bracket.percentage}%)</option>`,
 					)
 					.join("")}
       </select>
     `;
-		row.appendChild(taxBracketField);
+		secondRow.appendChild(taxBracketField);
 
-		// Calculated values display (only for invoice forms, not template forms)
+		const discountRateField = document.createElement("div");
+		discountRateField.className = "space-y-2";
+		discountRateField.innerHTML = `
+      <label class="text-sm font-medium">Discount Rate (%)</label>
+      <input
+        type="number"
+        name="${formPrefix}[${index}][discount_rate]"
+        step="0.01"
+        min="0"
+        max="100"
+        value="0"
+        class="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        required
+        data-action="input->invoice-items-form#updateItem"
+      />
+    `;
+		secondRow.appendChild(discountRateField);
+		row.appendChild(secondRow);
+
+		// Fourth line: Calculated values display (only for invoice forms, not template forms)
 		if (!isTemplateForm) {
 			const calculatedValues = document.createElement("div");
-			calculatedValues.className = "grid grid-cols-2 gap-4 text-sm";
+			calculatedValues.className = "grid grid-cols-3 gap-4 items-baseline";
 			const zeroFormatted = this.formatCurrency(0);
 			calculatedValues.innerHTML = `
-        <div>
+        <div class="text-sm">
           <span class="text-muted-foreground">Subtotal:</span>
           <span class="ml-2 font-medium" data-invoice-items-form-target="subtotalDisplay">${zeroFormatted}</span>
         </div>
-        <div>
+        <div class="text-sm">
           <span class="text-muted-foreground">Discount:</span>
           <span class="ml-2 font-medium" data-invoice-items-form-target="discountAmountDisplay">${zeroFormatted}</span>
         </div>
-        <div>
+        <div class="text-sm">
           <span class="text-muted-foreground">Tax:</span>
           <span class="ml-2 font-medium" data-invoice-items-form-target="taxAmountDisplay">${zeroFormatted}</span>
-        </div>
-        <div>
-          <span class="text-muted-foreground">Total:</span>
-          <span class="ml-2 font-semibold" data-invoice-items-form-target="amountDisplay">${zeroFormatted}</span>
         </div>
       `;
 			row.appendChild(calculatedValues);
@@ -353,14 +407,35 @@ export default class extends Controller {
 		}
 		row.appendChild(hiddenFields);
 
+		// Fifth line: Total (left) and Remove button (right)
+		const bottomRow = document.createElement("div");
+		bottomRow.className = "flex justify-between items-baseline";
+
+		// Total display (only for invoice forms, not template forms)
+		if (!isTemplateForm) {
+			const totalDisplay = document.createElement("div");
+			totalDisplay.className = "text-lg";
+			const zeroFormatted = this.formatCurrency(0);
+			totalDisplay.innerHTML = `
+        <span class="text-muted-foreground font-bold">Total:</span>
+        <span class="ml-2 font-semibold font-bold" data-invoice-items-form-target="amountDisplay">${zeroFormatted}</span>
+      `;
+			bottomRow.appendChild(totalDisplay);
+		} else {
+			// For template forms, add empty div to maintain spacing
+			bottomRow.appendChild(document.createElement("div"));
+		}
+
 		// Remove button
 		const removeButton = document.createElement("button");
 		removeButton.type = "button";
 		removeButton.className =
-			"text-sm text-destructive hover:text-destructive/80 mt-2";
+			"px-3 py-1.5 h-8 text-xs whitespace-nowrap inline-flex items-center justify-center rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-disabled:cursor-not-allowe bg-destructive text-white shadow-sm [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60";
 		removeButton.dataset.action = "click->invoice-items-form#removeItem";
-		removeButton.textContent = "Remove Item";
-		row.appendChild(removeButton);
+		removeButton.textContent = "Remove item";
+
+		bottomRow.appendChild(removeButton);
+		row.appendChild(bottomRow);
 
 		return row;
 	}

@@ -22,9 +22,10 @@ module Components
               method: "post",
               class: "space-y-6",
               data: {
-                controller: "bank-info-form",
+                controller: "bank-info-form modal-form",
                 turbo: true,
-                action: "turbo:submit-end@document->ruby-ui--dialog#dismiss"
+                modal_form_loading_message_value: (@is_new_record ? "Creating bank info..." : "Updating bank info..."),
+                modal_form_success_message_value: (@is_new_record ? "Bank info saved successfully" : "Bank info updated successfully")
               }
             ) do
               # Hidden fields for Rails
