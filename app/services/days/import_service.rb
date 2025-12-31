@@ -126,7 +126,9 @@ class Days::ImportService
     end
 
     # Create new day with permanent sections
-    Days::OpenDayService.new(user: user, date: target_date).call
+    result = Days::DayOpeningService.new(user: user, date: target_date).call
+    raise StandardError, result[:error] unless result[:success]
+    result[:day]
   end
 
   def collect_items_to_import(descendant, parent_item_id: nil, parent_item: nil)

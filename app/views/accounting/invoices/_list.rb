@@ -13,6 +13,9 @@ module Views
 
           def view_template
             div(class: "flex flex-col gap-4", id: "invoices_filter_section", data: { controller: "invoice-filter" }) do
+              # Turbo frame for lazy-loaded dialogs
+              turbo_frame_tag "invoice_dialog"
+
               # Header with title and create buttons
               div(class: "flex items-center justify-between mb-4") do
                 h3(class: "text-lg font-semibold") { "Invoices" }
@@ -87,42 +90,21 @@ module Views
           private
 
           def render_invoice_form_dialog
-            invoice = @user.invoices.build
-            render RubyUI::Dialog.new do
-              render RubyUI::DialogTrigger.new do
-                Button(variant: :primary, size: :sm) { "Add Invoice" }
-              end
-
-              render RubyUI::DialogContent.new(size: :lg) do
-                render RubyUI::DialogHeader.new do
-                  render RubyUI::DialogTitle.new { "Add Invoice" }
-                  render RubyUI::DialogDescription.new { "Create a new invoice" }
-                end
-
-                render RubyUI::DialogMiddle.new do
-                  render ::Components::Accounting::Invoices::Form.new(invoice: invoice)
-                end
-              end
-            end
+            # Just render the button - form will load lazily
+            a(
+              href: view_context.new_invoice_path,
+              data: { turbo_frame: "invoice_dialog" },
+              class: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+            ) { "Add Invoice" }
           end
 
           def render_invoice_from_template_dialog
-            render RubyUI::Dialog.new do
-              render RubyUI::DialogTrigger.new do
-                Button(variant: :secondary, size: :sm) { "From Template" }
-              end
-
-              render RubyUI::DialogContent.new(size: :lg) do
-                render RubyUI::DialogHeader.new do
-                  render RubyUI::DialogTitle.new { "Create Invoice from Template" }
-                  render RubyUI::DialogDescription.new { "Select a template to create an invoice" }
-                end
-
-                render RubyUI::DialogMiddle.new do
-                  render ::Components::Accounting::Invoices::FromTemplateForm.new(user: @user)
-                end
-              end
-            end
+            # Just render the button - form will load lazily
+            a(
+              href: view_context.new_from_template_invoices_path,
+              data: { turbo_frame: "invoice_dialog" },
+              class: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+            ) { "From Template" }
           end
 
           def render_search_form

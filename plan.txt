@@ -1,0 +1,1609 @@
+
+ * ▐▛███▜▌ *   Claude Code v2.0.76
+* ▝▜█████▛▘ *  Sonnet 4.5 · Claude Pro
+ *  ▘▘ ▝▝  *   ~/DEV/personal/doosr
+
+  A gift for you
+  Your rate limits are 2x higher through 12/31. Enjoy the extra room to think!
+
+> /clear 
+  ⎿  (no content)
+
+> When we are on a closed day, we allow that the user creates a new item, 
+and that will open the day. this is correct, but when we open a day WE MUST 
+ALWAYS create the permanent sections. I want you to hook on the day 
+creation, the creation of the permanent sections on the day descendant.
+furthermore, I want you to create a "day_opening_service.rb" that 
+encompasses that logic, and remove all direct day creation, and always use 
+that service everywhere. this is a non-trivial task so put your thinking hat
+ on and plan this carefully and with autistic detail 
+
+⏺ I'll help you create a comprehensive day opening service that ensures permanent sections are always created. This is indeed a non-trivial task that requires careful planning and exploration of the codebase.
+
+  Let me enter plan mode to thoroughly analyze the current implementation and design the proper solution.
+                                                                   
+⏺ Entered plan mode
+  Claude is now exploring and designing an implementation approach.
+
+⏺ I'm now in plan mode to carefully design the day opening service. Let me start by exploring the codebase to understand the current implementation.
+
+⏺ 3 Explore agents finished (ctrl+o to expand)
+   ├─ Find day creation locations · 0 tool uses
+   │  ⎿  Done
+   ├─ Understand permanent sections system · 0 tool uses
+   │  ⎿  Done
+   └─ Examine day state transitions · 0 tool uses
+      ⎿  Done
+
+⏺ Perfect! I now have a comprehensive understanding of the current implementation. Let me now design the solution.
+
+⏺ Plan(Design day opening service)
+  ⎿  Initializing…
+  ⎿  Interrupted · What should Claude do instead?
+
+> Make sure there are tests to ensure that everything works as expected, 
+especially that permanent sections are NEVER duplicated. If a day, for some 
+reason has a section that matches by title a permanent section, a new 
+section with that name will NOT be created, and that will be assumed to be 
+the permanent section.
+if when opening a day by adding an item that's a section with the same title
+ as the permanent section, either that will be created, an the creation of 
+permanent sections will skip the section that matches, or if the day 
+creation service creates the sections first, the section will not be created
+ as it exists already.
+I believe that it will be hard to ensure that in a descendant there are no 
+two items with the same title, but if you can create a service to ensure 
+that, that would be ideal - no descendant should have two items with the 
+same title (case insensitive).
+remember we want the most robust test coverage as possible 
+
+⏺ Excellent additional requirements! This clarifies the critical edge cases. Let me read some key files to understand the current implementation better, then I'll ask a few clarifying questions before creating the comprehensive plan.
+
+⏺ Read(app/services/days/open_day_service.rb)
+  ⎿  Read 79 lines
+
+⏺ Read(app/models/day.rb)
+  ⎿  Read 185 lines
+
+⏺ Read(app/controllers/items_controller.rb)
+  ⎿  Read 1124 lines
+
+⏺ Read(app/models/item.rb)
+  ⎿  Read 420 lines
+
+⏺ Let me read a few more critical files to understand testing patterns and existing services:
+
+⏺ Read(app/services/items/defer_service.rb)
+  ⎿  Read 200 lines
+
+⏺ Read(app/services/items/schedule_next_occurrence_service.rb)
+  ⎿  Read 130 lines
+
+⏺ Search(pattern: "test/services/days/**/*_test.rb")
+  ⎿  Found 1 file (ctrl+o to expand)
+
+⏺ Search(pattern: "test/models/day_test.rb")
+  ⎿  Found 0 files 
+
+⏺ Read(test/services/days/day_migration_service_test.rb)
+  ⎿  Read 890 lines
+
+⏺ Perfect! Now I have a comprehensive understanding. Let me ask a few clarifying questions before writing the final plan:
+
+⏺ User declined to answer questions
+
+> No, but let's create a way that we can add the permanent sections to a day
+ via the UI - this will ensure that we only add if they are not already 
+there. so reopening a day will only change the day state, and the user can 
+press a button to add the permanent sections if they want to. 
+
+⏺ Perfect! That's a much cleaner approach. Let me now write the comprehensive plan with this clarification.
+
+⏺ Updated plan
+  ⎿  /plan to preview
+
+⏺ Perfect! I've created a comprehensive implementation plan. Here's what it covers:
+
+  Key Design Decisions
+
+  1. Unified Service: Rename OpenDayService → DayOpeningService that handles both:
+    - Creating new days (with permanent sections)
+    - Reopening closed days (state change ONLY, no sections)
+  2. Manual Section Addition: New AddPermanentSectionsService + UI button
+    - Idempotent (safe to call multiple times)
+    - Case-insensitive title matching
+    - Available for any day (open or closed)
+  3. Case-Insensitive Deduplication: Uses LOWER(title) = ? in SQL
+    - "Work", "work", "WORK" treated as same section
+    - Never creates duplicates
+  4. Service Consolidation: Removes 5 duplicate implementations of permanent section logic
+
+  What Gets Updated
+
+  - 7 new files (3 services + 4 test files)
+  - 9 modified files (services, controllers, models, views, routes)
+  - ~60 test cases covering all edge cases
+
+  Implementation Sequence
+
+  1. Create new services (no breaking changes)
+  2. Update existing services to use new services
+  3. Update controllers & routes
+  4. Add UI button
+  5. Write comprehensive tests
+  6. Clean up old code
+
+  The plan includes exact file paths, line numbers, code examples, and all critical edge cases. Ready to implement when you approve!
+                                                                           
+⏺ User approved Claude's plan
+  ⎿  Plan saved to: ~/.claude/plans/concurrent-noodling-flute.md · /plan to 
+     edit
+
+     Day Opening Service - Comprehensive Implementation Plan
+
+     Overview
+
+     Create a unified day opening service that consolidates all day creation
+      logic and ensures permanent sections are always created when
+     appropriate. Add UI functionality for manually adding permanent
+     sections to existing days.
+
+     User Requirements
+
+     1. Day Creation: When a new day is created (via any path), permanent 
+     sections MUST be created
+     2. Day Reopening: When reopening a closed day, ONLY change state (no 
+     automatic section creation)
+     3. Manual Section Addition: Provide UI button to add permanent sections
+      to any day
+     4. No Duplication: Permanent sections NEVER duplicated 
+     (case-insensitive title matching)
+     5. Robust Testing: Comprehensive test coverage for all scenarios
+
+     Architecture Decision
+
+     Service Structure
+
+     - Rename Days::OpenDayService → Days::DayOpeningService
+     - Service handles BOTH new day creation AND reopening closed days
+     - Create new Days::AddPermanentSectionsService for manual section 
+     addition
+     - All services use case-insensitive title deduplication
+
+     API Design
+
+     # For creating new day or reopening closed day
+     Days::DayOpeningService.new(user:, date:).call
+     # Returns: { success: Boolean, day: Day, created: Boolean, error: 
+     String }
+
+     # For manually adding permanent sections to any day
+     Days::AddPermanentSectionsService.new(day:, user:).call
+     # Returns: { success: Boolean, sections_added: Integer, error: String }
+
+     Current State Analysis
+
+     Direct Day Creation Locations (Must Replace)
+
+     1. ✅ DaysController#create (line 35) - Already uses OpenDayService
+     2. ✅ ImportService#find_or_create_target_day (line 129) - Already uses
+      OpenDayService
+     3. ❌ DeferService#find_or_create_target_day (line 139) - Direct 
+     user.days.create!
+     4. ❌ ScheduleNextOccurrenceService#find_or_create_target_day (line 93)
+      - Direct user.days.create!
+     5. ❌ DayMigrationService#ensure_target_day_exists (lines 60-66) - 
+     find_or_initialize_by + save!
+     6. ❌ ItemsController#create (line 134) - Uses OpenDayService (when 
+     date param but no day exists)
+     7. ❌ DaysController#reopen (line 57) - Direct @day.reopen! (no 
+     permanent sections)
+
+     Permanent Section Creation Logic (Must Consolidate)
+
+     Currently duplicated in 5 places:
+     1. Days::OpenDayService#initialize_permanent_sections (lines 48-69)
+     2. Day#create_permanent_sections callback (lines 139-164)
+     3. DayMigrationService#create_permanent_sections (lines 75-92)
+     4. DeferService#ensure_permanent_sections (lines 147-172)
+     5. ScheduleNextOccurrenceService#ensure_permanent_sections (lines 
+     101-126)
+
+     All use case-sensitive find_section_on_day - MUST FIX to 
+     case-insensitive.
+
+     Implementation Plan
+
+     Phase 1: Create Core Services
+
+     1.1 Create Days::DayOpeningService (Renamed from OpenDayService)
+
+     File: app/services/days/day_opening_service.rb
+
+     # frozen_string_literal: true
+
+     class Days::DayOpeningService
+       # Unified service for creating new days or reopening closed days
+       #
+       # Behavior:
+       # - If day doesn't exist: Creates new day + descendant + permanent 
+     sections
+       # - If day exists and is closed: Reopens day (state change ONLY, no 
+     sections)
+       # - If day exists and is open: Returns existing day
+       #
+       # Returns: { success: Boolean, day: Day, created: Boolean, reopened: 
+     Boolean, error: String }
+
+       attr_reader :user, :date
+
+       def initialize(user:, date:)
+         @user = user
+         @date = date.is_a?(Date) ? date : Date.parse(date.to_s)
+       end
+
+       def call
+         ActiveRecord::Base.transaction do
+           existing_day = user.days.find_by(date: date)
+
+           if existing_day
+             # Day exists - reopen if closed, otherwise return as-is
+             if existing_day.closed?
+               existing_day.reopen!
+               return { success: true, day: existing_day, created: false, 
+     reopened: true }
+             else
+               return { success: true, day: existing_day, created: false, 
+     reopened: false }
+             end
+           end
+
+           # Create new day with permanent sections
+           day = create_new_day_with_sections
+           { success: true, day: day, created: true, reopened: false }
+         end
+       rescue StandardError => e
+         Rails.logger.error "Day opening failed: #{e.message}"
+         { success: false, error: e.message }
+       end
+
+       private
+
+       def create_new_day_with_sections
+         # Create day (triggers after_create callback that creates 
+     descendant)
+         # Skip the permanent_sections callback since we'll handle it below
+         day = user.days.create!(date: date, state: :open, 
+     skip_permanent_sections_callback: true)
+
+         # Ensure descendant exists
+         day.descendant || day.create_descendant!(active_items: [], 
+     inactive_items: [])
+
+         # Add permanent sections using consolidated service
+         Days::AddPermanentSectionsService.new(day: day, user: user).call
+
+         day
+       end
+     end
+
+     1.2 Create Days::AddPermanentSectionsService
+
+     File: app/services/days/add_permanent_sections_service.rb
+
+     # frozen_string_literal: true
+
+     class Days::AddPermanentSectionsService
+       # Adds permanent sections to a day, ensuring no duplicates
+       #
+       # - Idempotent: Safe to call multiple times
+       # - Case-insensitive title matching (CRITICAL)
+       # - Only adds sections that don't already exist
+       # - Creates descendant for each section
+       #
+       # Returns: { success: Boolean, sections_added: Integer, error: String
+      }
+
+       attr_reader :day, :user
+
+       def initialize(day:, user:)
+         @day = day
+         @user = user
+       end
+
+       def call
+         permanent_sections = user.permanent_sections || []
+         return { success: true, sections_added: 0 } if 
+     permanent_sections.empty?
+
+         sections_added = 0
+
+         ActiveRecord::Base.transaction do
+           permanent_sections.each do |section_name|
+             # CRITICAL: Case-insensitive check
+             next if section_exists_on_day?(section_name)
+
+             # Create section item
+             section = user.items.create!(
+               title: section_name,
+               item_type: :section,
+               state: :todo,
+               extra_data: { permanent_section: true }
+             )
+
+             # Ensure section has a descendant
+             section.descendant || section.create_descendant!(active_items: 
+     [], inactive_items: [])
+
+             # Add section to day's active items
+             day.descendant.add_active_item(section.id)
+             day.descendant.save!
+
+             sections_added += 1
+           end
+
+           { success: true, sections_added: sections_added }
+         end
+       rescue StandardError => e
+         Rails.logger.error "Add permanent sections failed: #{e.message}"
+         { success: false, error: e.message }
+       end
+
+       private
+
+       def section_exists_on_day?(section_title)
+         return false unless day.descendant
+
+         section_ids = day.descendant.extract_active_item_ids
+
+         # CRITICAL: Case-insensitive matching using ILIKE (PostgreSQL)
+         Item.sections
+             .where(id: section_ids)
+             .where("LOWER(title) = ?", section_title.downcase)
+             .exists?
+       end
+     end
+
+     1.3 Create Descendants::EnsureUniqueTitlesService (Bonus)
+
+     File: app/services/descendants/ensure_unique_titles_service.rb
+
+     # frozen_string_literal: true
+
+     class Descendants::EnsureUniqueTitlesService
+       # Ensures no duplicate titles (case-insensitive) in a descendant's 
+     active_items
+       #
+       # Strategy: Keep first occurrence, remove duplicates
+       # Returns: { success: Boolean, removed_count: Integer, duplicates: 
+     Array }
+
+       attr_reader :descendant
+
+       def initialize(descendant:)
+         @descendant = descendant
+       end
+
+       def call
+         return { success: true, removed_count: 0, duplicates: [] } unless 
+     descendant
+
+         ActiveRecord::Base.transaction do
+           active_item_ids = descendant.extract_active_item_ids
+           items = Item.where(id: active_item_ids).index_by(&:id)
+
+           seen_titles = Set.new
+           duplicates = []
+           kept_ids = []
+
+           active_item_ids.each do |item_id|
+             item = items[item_id]
+             next unless item
+
+             title_lower = item.title.downcase
+
+             if seen_titles.include?(title_lower)
+               duplicates << { id: item_id, title: item.title }
+             else
+               seen_titles.add(title_lower)
+               kept_ids << item_id
+             end
+           end
+
+           # Update descendant with deduplicated list
+           if duplicates.any?
+             descendant.active_items = kept_ids.map { |id| { "Item" => id } 
+     }
+             descendant.save!
+           end
+
+           { success: true, removed_count: duplicates.length, duplicates: 
+     duplicates }
+         end
+       rescue StandardError => e
+         Rails.logger.error "Ensure unique titles failed: #{e.message}"
+         { success: false, error: e.message }
+       end
+     end
+
+     Phase 2: Update Existing Services
+
+     2.1 Update DeferService
+
+     File: app/services/items/defer_service.rb
+     Changes: Replace find_or_create_target_day and 
+     ensure_permanent_sections
+
+     # Line 34: Replace find_or_create_target_day call
+     def call
+       # ... validation ...
+
+       ActiveRecord::Base.transaction do
+         # Use unified day opening service
+         result = Days::DayOpeningService.new(user: user, date: 
+     target_date).call
+         return { success: false, error: result[:error] } unless 
+     result[:success]
+
+         target_day = result[:day]
+
+         # Remove: ensure_permanent_sections(target_day) - now handled by 
+     DayOpeningService
+
+         # ... rest of logic ...
+       end
+     end
+
+     # Remove private methods:
+     # - find_or_create_target_day (lines 129-145)
+     # - ensure_permanent_sections (lines 147-172)
+     # - find_section_on_day (lines 174-180)
+
+     2.2 Update ScheduleNextOccurrenceService
+
+     File: app/services/items/schedule_next_occurrence_service.rb
+     Changes: Replace find_or_create_target_day and 
+     ensure_permanent_sections
+
+     # Line 33: Replace find_or_create_target_day call
+     def call
+       # ... validation ...
+
+       ActiveRecord::Base.transaction do
+         # Use unified day opening service
+         result = Days::DayOpeningService.new(user: user, date: 
+     next_date).call
+         return { success: false, error: result[:error] } unless 
+     result[:success]
+
+         target_day = result[:day]
+
+         # Remove: ensure_permanent_sections(target_day)
+
+         # ... rest of logic ...
+       end
+     end
+
+     # Remove private methods:
+     # - find_or_create_target_day (lines 83-99)
+     # - ensure_permanent_sections (lines 101-126)
+     # - find_section_on_day (lines 128-134)
+
+     2.3 Update DayMigrationService
+
+     File: app/services/days/day_migration_service.rb
+     Changes: Replace ensure_target_day_exists and create_permanent_sections
+
+     # Line 31: Replace ensure_target_day_exists call
+     def call
+       # ... validation ...
+
+       ActiveRecord::Base.transaction do
+         # Use unified day opening service
+         result = Days::DayOpeningService.new(user: user, date: 
+     target_date).call
+         return { success: false, error: result[:error] } unless 
+     result[:success]
+
+         target_day = result[:day]
+
+         # Remove: create_permanent_sections if was_new_record
+
+         # ... rest of migration logic ...
+       end
+     end
+
+     # Remove private methods:
+     # - ensure_target_day_exists (lines 60-73)
+     # - create_permanent_sections (lines 75-92)
+
+     2.4 Update Day Model
+
+     File: app/models/day.rb
+     Changes: Remove duplicate permanent section creation callback
+
+     # Line 52: Keep the callback but with conditional
+     after_create :create_permanent_sections, unless: 
+     :skip_permanent_sections_callback
+
+     # Lines 139-164: Update to use new service
+     def create_permanent_sections
+       # Delegate to service for consistency
+       Days::AddPermanentSectionsService.new(day: self, user: user).call
+     end
+
+     # Lines 166-172: Remove find_section_by_title (moved to service)
+
+     Phase 3: Update Controllers
+
+     3.1 Update DaysController
+
+     File: app/controllers/days_controller.rb
+
+     Changes:
+     1. Update create action to use renamed service (line 35)
+     2. Keep reopen action as-is (only changes state)
+     3. Add new add_permanent_sections action
+
+     # Line 35: Update service name
+     def create
+       begin
+         result = Days::DayOpeningService.new(user: current_user, date: 
+     @date).call
+
+         if result[:success]
+           message = if result[:created]
+             "Day opened successfully"
+           elsif result[:reopened]
+             "Day reopened successfully"
+           else
+             "Day already open"
+           end
+           redirect_to day_path(date: @date), notice: message
+         else
+           redirect_to day_path(date: @date), alert: result[:error]
+         end
+       rescue ActiveRecord::RecordNotUnique
+         redirect_to day_path(date: @date), alert: "Day already exists"
+       end
+     end
+
+     # Line 52-60: Keep reopen action unchanged
+     def reopen
+       if @day.open?
+         redirect_to day_path(date: @day.date), alert: "Day is already open"
+         return
+       end
+
+       @day.reopen!
+       redirect_to day_path(date: @day.date), notice: "Day reopened 
+     successfully"
+     end
+
+     # NEW ACTION: Add permanent sections manually
+     def add_permanent_sections
+       unless @day
+         redirect_to day_path(date: @date), alert: "Day not found"
+         return
+       end
+
+       result = Days::AddPermanentSectionsService.new(day: @day, user: 
+     current_user).call
+
+       if result[:success]
+         count = result[:sections_added]
+         message = if count.zero?
+           "All permanent sections already exist"
+         else
+           "Added #{count} permanent section#{count > 1 ? 's' : ''}"
+         end
+
+         respond_to do |format|
+           format.turbo_stream do
+             # Reload day view
+             @day.reload
+             render turbo_stream: [
+               turbo_stream.update("items_list", render_to_string(...)),
+               turbo_stream.append("body", "<script>window.toast && 
+     window.toast(#{message.to_json}, { type: 'success' })</script>")
+             ]
+           end
+           format.html { redirect_to day_path(date: @day.date), notice: 
+     message }
+         end
+       else
+         redirect_to day_path(date: @day.date), alert: result[:error]
+       end
+     end
+
+     3.2 Update ItemsController
+
+     File: app/controllers/items_controller.rb
+     Changes: Line 134 - use renamed service
+
+     # Line 134: Update service name
+     unless @day
+       result = Days::DayOpeningService.new(user: @acting_user, date: 
+     date).call
+       return handle_error(result[:error]) unless result[:success]
+       @day = result[:day]
+     end
+
+     Phase 4: Update Routes
+
+     File: config/routes.rb
+     Changes: Add new route for adding permanent sections
+
+     # Line 24-32: Update days routes
+     resources :days, only: [] do
+       member do
+         patch "close", to: "days#close"
+         patch "reopen", to: "days#reopen"
+         patch "add_permanent_sections", to: "days#add_permanent_sections"  
+     # NEW
+       end
+       collection do
+         post "import", to: "days#import"
+       end
+     end
+
+     Phase 5: Update UI
+
+     5.1 Add Button to Day Header
+
+     File: app/views/days/header.rb
+     Changes: Add "Add permanent sections" button to dropdown menu
+
+     # In the dropdown menu (around line 150-170)
+     # Add this option after "Re-open day" or in an appropriate location
+
+     if @day
+       # Add permanent sections button
+       DropdownMenuItem do
+         form(
+           action: view_context.add_permanent_sections_day_path(@day),
+           method: "post",
+           data: { turbo_stream: true, turbo_method: "patch" },
+           class: "w-full"
+         ) do
+           button(
+             type: "submit",
+             class: "w-full text-left px-2 py-1.5 text-sm hover:bg-accent 
+     rounded"
+           ) { "Add permanent sections" }
+         end
+       end
+     end
+
+     Phase 6: Comprehensive Testing
+
+     6.1 Create Days::DayOpeningServiceTest
+
+     File: test/services/days/day_opening_service_test.rb
+
+     Test Cases:
+     1. ✅ Creates new day with permanent sections
+     2. ✅ Creates descendant automatically
+     3. ✅ Skips permanent section creation when user has none configured
+     4. ✅ Returns existing open day without changes
+     5. ✅ Reopens closed day WITHOUT adding permanent sections
+     6. ✅ Returns created: true for new days
+     7. ✅ Returns reopened: true for reopened days
+     8. ✅ Handles date parsing (String → Date)
+     9. ✅ CRITICAL: Never duplicates permanent sections on new day creation
+     10. ✅ CRITICAL: Case-insensitive title matching
+     11. ✅ CRITICAL: Creates sections in user.permanent_sections order
+     12. ✅ Transaction rollback on error
+
+     6.2 Create Days::AddPermanentSectionsServiceTest
+
+     File: test/services/days/add_permanent_sections_service_test.rb
+
+     Test Cases:
+     1. ✅ Adds all permanent sections to empty day
+     2. ✅ Skips sections that already exist (exact case match)
+     3. ✅ CRITICAL: Skips sections with case-insensitive title match
+     4. ✅ CRITICAL: "Work" on day → doesn't add "work" from 
+     permanent_sections
+     5. ✅ CRITICAL: "work" on day → doesn't add "Work" from 
+     permanent_sections
+     6. ✅ Returns sections_added count correctly
+     7. ✅ Creates descendant for each section
+     8. ✅ Adds sections to day's active_items in correct order
+     9. ✅ Idempotent: calling twice adds nothing on second call
+     10. ✅ Handles user with no permanent sections
+     11. ✅ Sets permanent_section marker in extra_data
+     12. ✅ Transaction rollback on error
+
+     6.3 Create Descendants::EnsureUniqueTitlesServiceTest
+
+     File: test/services/descendants/ensure_unique_titles_service_test.rb
+
+     Test Cases:
+     1. ✅ Removes duplicate titles (case-insensitive)
+     2. ✅ Keeps first occurrence
+     3. ✅ "Task", "task", "TASK" → keeps only first "Task"
+     4. ✅ Returns removed_count and duplicates array
+     5. ✅ Preserves order of kept items
+     6. ✅ Handles descendant with no duplicates (no changes)
+     7. ✅ Handles empty descendant
+     8. ✅ Only checks active_items (not inactive_items)
+
+     6.4 Update DayMigrationServiceTest
+
+     File: test/services/days/day_migration_service_test.rb
+
+     Updated Test Cases (ensure still pass):
+     1. ✅ Line 52-76: "creates permanent sections in new target day" - 
+     should still work
+     2. ✅ Line 159-194: "does not duplicate permanent sections" - CRITICAL
+     3. ✅ Line 507-558: "CRITICAL: NEVER recreates permanent sections on 
+     target day" - must still pass
+
+     6.5 Integration Tests - Day Controller
+
+     File: test/controllers/days_controller_test.rb (create if doesn't 
+     exist)
+
+     Test Cases:
+     1. ✅ POST /days creates day with permanent sections
+     2. ✅ PATCH /days/:id/reopen reopens WITHOUT adding sections
+     3. ✅ PATCH /days/:id/add_permanent_sections adds sections
+     4. ✅ CRITICAL: Reopening day, then adding sections manually works
+     5. ✅ CRITICAL: Adding sections twice doesn't duplicate (idempotent)
+     6. ✅ UI shows success toast with correct count
+     7. ✅ Returns 200 and updates UI with turbo_stream
+
+     6.6 Integration Tests - Item Creation on Closed Day
+
+     File: test/controllers/items_controller_test.rb
+
+     Test Case:
+     1. ✅ CRITICAL: Creating item on closed day reopens day AND creates 
+     permanent sections
+     2. ✅ Verify permanent sections exist after item creation
+     3. ✅ Verify day state is "open" after item creation
+
+     Phase 7: Migration & Deprecation
+
+     7.1 Update Service References
+
+     Search and replace:
+     - Days::OpenDayService → Days::DayOpeningService
+     - Check all files for references
+
+     Files to update:
+     - app/controllers/days_controller.rb (line 35)
+     - app/controllers/items_controller.rb (line 134)
+     - app/services/days/import_service.rb (line 129)
+     - Any tests that reference the old service name
+
+     7.2 Delete Old Service (After Verification)
+
+     File: app/services/days/open_day_service.rb
+     - Delete after all references updated
+     - Keep for one commit to verify tests pass with new service
+
+     Critical Files Summary
+
+     New Files (Create)
+
+     1. app/services/days/day_opening_service.rb (rename from 
+     open_day_service.rb)
+     2. app/services/days/add_permanent_sections_service.rb
+     3. app/services/descendants/ensure_unique_titles_service.rb
+     4. test/services/days/day_opening_service_test.rb
+     5. test/services/days/add_permanent_sections_service_test.rb
+     6. test/services/descendants/ensure_unique_titles_service_test.rb
+     7. test/controllers/days_controller_test.rb (if doesn't exist)
+
+     Modified Files (Update)
+
+     1. app/services/items/defer_service.rb - Remove lines 129-180
+     2. app/services/items/schedule_next_occurrence_service.rb - Remove 
+     lines 83-134
+     3. app/services/days/day_migration_service.rb - Remove lines 60-92
+     4. app/models/day.rb - Update lines 139-172
+     5. app/controllers/days_controller.rb - Add action, update line 35
+     6. app/controllers/items_controller.rb - Update line 134
+     7. app/views/days/header.rb - Add UI button
+     8. config/routes.rb - Add route
+     9. test/services/days/day_migration_service_test.rb - Verify tests pass
+
+     Deleted Files (After Migration)
+
+     1. app/services/days/open_day_service.rb (becomes 
+     day_opening_service.rb)
+
+     Test Execution Order
+
+     1. Unit Tests (services in isolation):
+       - DayOpeningServiceTest
+       - AddPermanentSectionsServiceTest
+       - EnsureUniqueTitlesServiceTest
+     2. Integration Tests (services working together):
+       - DayMigrationServiceTest (verify no regression)
+       - DeferServiceTest
+       - ScheduleNextOccurrenceServiceTest
+     3. Controller Tests (end-to-end):
+       - DaysControllerTest
+       - ItemsControllerTest
+     4. Full Test Suite: bin/rails test
+
+     Edge Cases & Gotchas
+
+     Case-Insensitive Matching
+
+     - Problem: "Work" vs "work" vs "WORK" should be treated as same section
+     - Solution: Use LOWER(title) = ? in SQL queries
+     - Tests: Comprehensive case variation tests
+
+     Concurrent Requests
+
+     - Problem: Two requests create day for same date simultaneously
+     - Solution: Database uniqueness constraint on (user_id, date)
+     - Handling: Catch ActiveRecord::RecordNotUnique, return existing day
+
+     Section Ordering
+
+     - Problem: Sections should appear in user.permanent_sections order
+     - Solution: Iterate permanent_sections array in order
+     - Tests: Verify order preservation
+
+     Descendant Creation
+
+     - Problem: Section without descendant can't have nested items
+     - Solution: Always create descendant when creating section
+     - Tests: Verify all sections have descendants
+
+     Skip Callback Flag
+
+     - Problem: Day.create triggers after_create callback that creates 
+     sections
+     - Solution: Use skip_permanent_sections_callback flag, handle in 
+     service
+     - Tests: Verify no duplicate section creation
+
+     Manual Section Addition to Closed Day
+
+     - Problem: User might try to add sections to closed day
+     - Solution: Allow it (doesn't change day state, just adds sections)
+     - Tests: Verify sections can be added to closed days
+
+     Success Criteria
+
+     1. ✅ All day creation goes through DayOpeningService
+     2. ✅ No direct user.days.create! calls except in DayOpeningService
+     3. ✅ Permanent sections NEVER duplicated (case-insensitive)
+     4. ✅ Reopening day only changes state (no section creation)
+     5. ✅ Manual "Add sections" button works from UI
+     6. ✅ All existing tests pass
+     7. ✅ New tests provide >95% coverage for new code
+     8. ✅ No regression in day migration functionality
+     9. ✅ Clear logging for debugging
+     10. ✅ Transaction safety (rollback on error)
+
+     Implementation Sequence
+
+     1. Phase 1: Create new services (no breaking changes)
+     2. Phase 2: Update existing services to use new services
+     3. Phase 3: Update controllers
+     4. Phase 4: Update routes
+     5. Phase 5: Update UI
+     6. Phase 6: Write comprehensive tests (TDD for each phase)
+     7. Phase 7: Final migration and cleanup
+
+     Estimated Complexity
+
+     - Files Created: 7
+     - Files Modified: 9
+     - Files Deleted: 1
+     - Test Cases: ~60
+     - Lines of Code: ~1000 (including tests)
+
+
+
+
+
+
+
+
+
+
+
+⏺ Excellent! The plan is approved. Let me start implementing this systematically. I'll create a comprehensive todo list first to track all tasks.
+
+⏺ Perfect! Now let's start implementing. I'll begin with Phase 1 - creating the core services.
+
+⏺ Write(app/services/days/add_permanent_sections_service.rb)
+  ⎿  Wrote 71 lines to app/services/days/add_permanent_sections_service.rb
+     # frozen_string_literal: true
+     class Days::AddPermanentSectionsService
+       # Adds permanent sections to a day, ensuring no duplicates
+       #
+       # - Idempotent: Safe to call multiple times
+       # - Case-insensitive title matching (CRITICAL)
+       # - Only adds sections that don't already exist
+       # - Creates descendant for each section
+       #
+     … +61 lines (ctrl+o to expand)
+
+⏺ Write(app/services/days/day_opening_service.rb)
+  ⎿  Wrote 60 lines to app/services/days/day_opening_service.rb            
+     # frozen_string_literal: true
+     class Days::DayOpeningService
+       # Unified service for creating new days or reopening closed days
+       #
+       # Behavior:
+       # - If day doesn't exist: Creates new day + descendant + permanent 
+     sections
+       # - If day exists and is closed: Reopens day (state change ONLY, no 
+     sections)
+       # - If day exists and is open: Returns existing day
+       #
+     … +50 lines (ctrl+o to expand)
+
+⏺ Write(app/services/descendants/ensure_unique_titles_service.rb)
+  ⎿  Wrote 54 lines to                                                     
+     app/services/descendants/ensure_unique_titles_service.rb
+     # frozen_string_literal: true
+     class Descendants::EnsureUniqueTitlesService
+       # Ensures no duplicate titles (case-insensitive) in a descendant's 
+     active_items
+       #
+       # Strategy: Keep first occurrence, remove duplicates
+       # Returns: { success: Boolean, removed_count: Integer, duplicates: 
+     Array }
+       attr_reader :descendant
+     … +44 lines (ctrl+o to expand)
+
+⏺ Perfect! Phase 1 complete. Now moving to Phase 2 - updating existing services. Let me start with the DeferService.
+
+⏺ Read(app/services/items/defer_service.rb)
+  ⎿  Read 225 lines
+
+⏺ Now let me update the DeferService to use the new DayOpeningService:
+
+⏺ Update(app/services/items/defer_service.rb)
+  ⎿  Added 4 lines, removed 4 lines                                      
+      30      nested_count = count_nested_todo_items                     
+      31                                                                 
+      32      ActiveRecord::Base.transaction do                          
+      33 -      # Find or create target day with descendant              
+      34 -      target_day = find_or_create_target_day                   
+      33 +      # Use unified day opening service                        
+      34 +      result = Days::DayOpeningService.new(user: user, date:   
+         +target_date).call                                              
+      35 +      return { success: false, error: result[:error] } unless  
+         +result[:success]                                               
+      36                                                                 
+      37 -      # ALWAYS ensure permanent sections exist on target day   
+      38 -      ensure_permanent_sections(target_day)                    
+      37 +      target_day = result[:day]                                
+      38                                                                 
+      39        # Find which permanent section (if any) the source item  
+          belongs to                                                     
+      40        source_permanent_section =                               
+          source_item.find_permanent_section                             
+
+⏺ Update(app/services/items/defer_service.rb)
+  ⎿  Removed 53 lines                                                    
+      126      count                                                     
+      127    end                                                         
+      128                                                                
+      129 -  def find_or_create_target_day                               
+      130 -    day = user.days.find_by(date: target_date)                
+      131 -                                                              
+      132 -    if day                                                    
+      133 -      # Ensure descendant exists                              
+      134 -      day.descendant || day.create_descendant!(active_items:  
+          -[], inactive_items: [])                                       
+      135 -      return day                                              
+      136 -    end                                                       
+      137 -                                                              
+      138 -    # Create new day with descendant                          
+      139 -    day = user.days.create!(date: target_date, state: :open)  
+      140 -                                                              
+      141 -    # Ensure descendant exists                                
+      142 -    day.descendant || day.create_descendant!(active_items:    
+          -[], inactive_items: [])                                       
+      143 -                                                              
+      144 -    day                                                       
+      145 -  end                                                         
+      146 -                                                              
+      147 -  def ensure_permanent_sections(day)                          
+      148 -    # ALWAYS ensure permanent sections exist on the target    
+          -day                                                           
+      149 -    permanent_sections = user.permanent_sections || []        
+      150 -    return if permanent_sections.empty?                       
+      151 -                                                              
+      152 -    permanent_sections.each do |section_name|                 
+      153 -      # Check if section already exists on day (by title)     
+      154 -      existing_section = find_section_on_day(day,             
+          -section_name)                                                 
+      155 -      next if existing_section                                
+      156 -                                                              
+      157 -      # Create section item                                   
+      158 -      section = user.items.create!(                           
+      159 -        title: section_name,                                  
+      160 -        item_type: :section,                                  
+      161 -        state: :todo,                                         
+      162 -        extra_data: { permanent_section: true }               
+      163 -      )                                                       
+      164 -                                                              
+      165 -      # Ensure section has a descendant                       
+      166 -      section.descendant ||                                   
+          -section.create_descendant!(active_items: [], inactive_items:  
+          -[])                                                           
+      167 -                                                              
+      168 -      # Add section to day's active items                     
+      169 -      day.descendant.add_active_item(section.id)              
+      170 -      day.descendant.save!                                    
+      171 -    end                                                       
+      172 -  end                                                         
+      173 -                                                              
+      174 -  def find_section_on_day(day, section_title)                 
+      175 -    return nil unless day.descendant                          
+      176 -                                                              
+      177 -    section_ids = day.descendant.extract_active_item_ids      
+      178 -    sections = Item.sections.where(id: section_ids, title:    
+          -section_title)                                                
+      179 -    sections.first                                            
+      180 -  end                                                         
+      181 -                                                              
+      129    def find_or_create_matching_permanent_section(day,          
+           source_section)                                               
+      130      # Find the matching permanent section on the target day   
+      131      matching_section = find_section_on_day(day,               
+           source_section.title)                                         
+
+⏺ Update(app/services/items/defer_service.rb)
+  ⎿  Added 8 lines, removed 2 lines                                      
+      127    end                                                         
+      128                                                                
+      129    def find_or_create_matching_permanent_section(day,          
+           source_section)                                               
+      130 -    # Find the matching permanent section on the target day   
+      131 -    matching_section = find_section_on_day(day,               
+          -source_section.title)                                         
+      130 +    # Find the matching permanent section on the target day   
+          + (case-insensitive)                                           
+      131 +    return nil unless day.descendant                          
+      132                                                                
+      133 +    section_ids = day.descendant.extract_active_item_ids      
+      134 +    matching_section = Item.sections                          
+      135 +                           .where(id: section_ids)            
+      136 +                           .where("LOWER(title) = ?",         
+          +source_section.title.downcase)                                
+      137 +                           .first                             
+      138 +                                                              
+      139      if matching_section                                       
+      140        # Ensure it has a descendant                            
+      141        matching_section.descendant ||                          
+           matching_section.create_descendant!(active_items: [],         
+           inactive_items: [])                                           
+
+⏺ Excellent! DeferService is updated. Moving to ScheduleNextOccurrenceService.
+
+⏺ Read(app/services/items/schedule_next_occurrence_service.rb)
+  ⎿  Read 183 lines
+
+⏺ Update(app/services/items/schedule_next_occurrence_service.rb)
+  ⎿  Added 4 lines, removed 4 lines                                      
+      29        return calculation_error unless next_date                
+      30                                                                 
+      31        ActiveRecord::Base.transaction do                        
+      32 -        # Find or create target day with descendant            
+      33 -        target_day = find_or_create_target_day(next_date)      
+      32 +        # Use unified day opening service                      
+      33 +        result = Days::DayOpeningService.new(user: user, date: 
+         + next_date).call                                               
+      34 +        return { success: false, error: result[:error] }       
+         +unless result[:success]                                        
+      35                                                                 
+      36 -        # ALWAYS ensure permanent sections exist on target day 
+      37 -        ensure_permanent_sections(target_day)                  
+      36 +        target_day = result[:day]                              
+      37                                                                 
+      38          # Find which permanent section (if any) the completed  
+          item belongs to                                                
+      39          source_permanent_section =                             
+          completed_item.find_permanent_section                          
+
+⏺ Update(app/services/items/schedule_next_occurrence_service.rb)
+  ⎿  Added 6 lines, removed 53 lines                                     
+       80        { success: false, error: "Failed to calculate next      
+           occurrence date" }                                            
+       81      end                                                       
+       82                                                                
+       83 -    def find_or_create_target_day(target_date)                
+       84 -      day = user.days.find_by(date: target_date)              
+       85 -                                                              
+       86 -      if day                                                  
+       87 -        # Ensure descendant exists                            
+       88 -        day.descendant ||                                     
+          -day.create_descendant!(active_items: [], inactive_items: [])  
+       89 -        return day                                            
+       90 -      end                                                     
+       91 -                                                              
+       92 -      # Create new day with descendant                        
+       93 -      day = user.days.create!(date: target_date, state:       
+          -:open)                                                        
+       94 -                                                              
+       95 -      # Ensure descendant exists                              
+       96 -      day.descendant || day.create_descendant!(active_items:  
+          -[], inactive_items: [])                                       
+       97 -                                                              
+       98 -      day                                                     
+       99 -    end                                                       
+      100 -                                                              
+      101 -    def ensure_permanent_sections(day)                        
+      102 -      # ALWAYS ensure permanent sections exist on the target  
+          -day                                                           
+      103 -      permanent_sections = user.permanent_sections || []      
+      104 -      return if permanent_sections.empty?                     
+      105 -                                                              
+      106 -      permanent_sections.each do |section_name|               
+      107 -        # Check if section already exists on day (by title)   
+      108 -        existing_section = find_section_on_day(day,           
+          -section_name)                                                 
+      109 -        next if existing_section                              
+      110 -                                                              
+      111 -        # Create section item                                 
+      112 -        section = user.items.create!(                         
+      113 -          title: section_name,                                
+      114 -          item_type: :section,                                
+      115 -          state: :todo,                                       
+      116 -          extra_data: { permanent_section: true }             
+      117 -        )                                                     
+      118 -                                                              
+      119 -        # Ensure section has a descendant                     
+      120 -        section.descendant ||                                 
+          -section.create_descendant!(active_items: [], inactive_items:  
+          -[])                                                           
+      121 -                                                              
+      122 -        # Add section to day's active items                   
+      123 -        day.descendant.add_active_item(section.id)            
+      124 -        day.descendant.save!                                  
+      125 -      end                                                     
+      126 -    end                                                       
+      127 -                                                              
+      128 -    def find_section_on_day(day, section_title)               
+       83 +    def find_or_create_matching_permanent_section(day,        
+          +source_section)                                               
+       84 +      # Find the matching permanent section on the target day 
+          + (case-insensitive)                                           
+       85        return nil unless day.descendant                        
+       86                                                                
+       87        section_ids = day.descendant.extract_active_item_ids    
+       88 -      sections = Item.sections.where(id: section_ids, title:  
+          -section_title)                                                
+       89 -      sections.first                                          
+       90 -    end                                                       
+       88 +      matching_section = Item.sections                        
+       89 +                             .where(id: section_ids)          
+       90 +                             .where("LOWER(title) = ?",       
+          +source_section.title.downcase)                                
+       91 +                             .first                           
+       92                                                                
+       93 -    def find_or_create_matching_permanent_section(day,        
+          -source_section)                                               
+       94 -      # Find the matching permanent section on the target day 
+       95 -      matching_section = find_section_on_day(day,             
+          -source_section.title)                                         
+       96 -                                                              
+       93        if matching_section                                     
+       94          # Ensure it has a descendant                          
+       95          matching_section.descendant ||                        
+           matching_section.create_descendant!(active_items: [],         
+           inactive_items: [])                                           
+
+⏺ Great! ScheduleNextOccurrenceService updated. Moving to DayMigrationService.
+
+⏺ Read(app/services/days/day_migration_service.rb)
+  ⎿  Read 100 lines
+
+⏺ Update(app/services/days/day_migration_service.rb)
+  ⎿  Added 4 lines, removed 31 lines                                     
+      57      private                                                    
+      58                                                                 
+      59      def ensure_target_day_exists                               
+      60 -      day = user.days.find_or_initialize_by(date: target_date) 
+      60 +      # Use unified day opening service                        
+      61 +      result = Days::DayOpeningService.new(user: user, date:   
+         +target_date).call                                              
+      62 +      raise StandardError, result[:error] unless               
+         +result[:success]                                               
+      63                                                                 
+      64 -      if day.new_record?                                       
+      65 -        day.state = :open                                      
+      66 -        # Skip the automatic permanent sections callback since 
+         - we handle it explicitly below                                 
+      67 -        day.skip_permanent_sections_callback = true            
+      68 -        day.save!                                              
+      69 -                                                               
+      70 -        # Create permanent sections for new day                
+      71 -        create_permanent_sections(day)                         
+      72 -      end                                                      
+      73 -                                                               
+      74 -      day                                                      
+      64 +      result[:day]                                             
+      65      end                                                        
+      66                                                                 
+      67 -    def create_permanent_sections(day)                         
+      68 -      return unless user.permanent_sections.present?           
+      69 -                                                               
+      70 -      day.descendant || day.create_descendant!                 
+      71 -                                                               
+      72 -      user.permanent_sections.each do |section_name|           
+      73 -        section = user.items.create!(                          
+      74 -          title: section_name,                                 
+      75 -          item_type: :section,                                 
+      76 -          state: :todo,                                        
+      77 -          extra_data: { "permanent_section" => true }          
+      78 -        )                                                      
+      79 -                                                               
+      80 -        day.descendant.add_active_item(section.id)             
+      81 -      end                                                      
+      82 -                                                               
+      83 -      day.descendant.save!                                     
+      84 -    end                                                        
+      85 -                                                               
+      67      def collect_items_to_migrate                               
+      68        return [] unless source_day.descendant                   
+      69                                                                 
+
+⏺ Perfect! DayMigrationService updated. Now let's update the Day model.
+
+⏺ Update(app/models/day.rb)
+  ⎿  Added 2 lines, removed 32 lines                                     
+      137    end                                                         
+      138                                                                
+      139    def create_permanent_sections                               
+      140 -    # ALWAYS create permanent sections when a new day is      
+          -created                                                       
+      141 -    permanent_sections = user.permanent_sections || []        
+      142 -    return if permanent_sections.empty?                       
+      143 -                                                              
+      144 -    permanent_sections.each do |section_name|                 
+      145 -      # Check if section already exists on day (by title)     
+      146 -      existing_section = find_section_by_title(section_name)  
+      147 -      next if existing_section                                
+      148 -                                                              
+      149 -      # Create section item                                   
+      150 -      section = user.items.create!(                           
+      151 -        title: section_name,                                  
+      152 -        item_type: :section,                                  
+      153 -        state: :todo,                                         
+      154 -        extra_data: { permanent_section: true }               
+      155 -      )                                                       
+      156 -                                                              
+      157 -      # Ensure section has a descendant                       
+      158 -      section.descendant ||                                   
+          -section.create_descendant!(active_items: [], inactive_items:  
+          -[])                                                           
+      159 -                                                              
+      160 -      # Add section to day's active items                     
+      161 -      descendant.add_active_item(section.id)                  
+      162 -      descendant.save!                                        
+      163 -    end                                                       
+      140 +    # Delegate to service for consistency                     
+      141 +    Days::AddPermanentSectionsService.new(day: self, user:    
+          +user).call                                                    
+      142    end                                                         
+      143                                                                
+      144 -  def find_section_by_title(section_title)                    
+      145 -    return nil unless descendant                              
+      146 -                                                              
+      147 -    section_ids = descendant.extract_active_item_ids          
+      148 -    sections = Item.sections.where(id: section_ids, title:    
+          -section_title)                                                
+      149 -    sections.first                                            
+      150 -  end                                                         
+      151 -                                                              
+      144    def track_state_changes                                     
+      145      if state_changed?                                         
+      146        case state                                              
+
+⏺ Excellent! Day model updated. Now moving to Phase 3 - updating controllers. Starting with DaysController.
+
+⏺ Read(app/controllers/days_controller.rb)
+  ⎿  Read 154 lines
+
+⏺ Update(app/controllers/days_controller.rb)
+  ⎿  Added 1 line, removed 1 line                                        
+      1  class DaysController < ApplicationController                    
+      2    before_action :authenticate_user!                             
+      3    before_action :set_date, only: [ :show, :create, :import ]    
+      4 -  before_action :set_day, only: [ :close, :reopen ]             
+      4 +  before_action :set_day, only: [ :close, :reopen,              
+        +:add_permanent_sections ]                                       
+      5    layout -> { ::Views::Layouts::AppLayout.new(pathname:         
+         request.path, selected_date: @date, day: @day,                  
+         latest_importable_day: @latest_importable_day) }                
+      6                                                                  
+      7    def show                                                      
+
+⏺ Update(app/controllers/days_controller.rb)
+  ⎿  Added 13 lines, removed 5 lines                                     
+      31    end                                                          
+      32                                                                 
+      33    def create                                                   
+      34 -    begin                                                      
+      35 -      @day = Days::OpenDayService.new(user: current_user,      
+         -date: @date).call                                              
+      36 -      redirect_to day_path(date: @date), notice: "Day opened   
+         -successfully"                                                  
+      37 -    rescue ActiveRecord::RecordNotUnique                       
+      38 -      redirect_to day_path(date: @date), alert: "Day already   
+         -exists"                                                        
+      34 +    result = Days::DayOpeningService.new(user: current_user,   
+         +date: @date).call                                              
+      35 +                                                               
+      36 +    if result[:success]                                        
+      37 +      message = if result[:created]                            
+      38 +        "Day opened successfully"                              
+      39 +      elsif result[:reopened]                                  
+      40 +        "Day reopened successfully"                            
+      41 +      else                                                     
+      42 +        "Day already open"                                     
+      43 +      end                                                      
+      44 +      redirect_to day_path(date: @date), notice: message       
+      45 +    else                                                       
+      46 +      redirect_to day_path(date: @date), alert: result[:error] 
+      47      end                                                        
+      48    end                                                          
+      49                                                                 
+
+⏺ Update(app/controllers/days_controller.rb)
+  ⎿  Added 35 lines                                                      
+       67      redirect_to day_path(date: @day.date), notice: "Day       
+           reopened successfully"                                        
+       68    end                                                         
+       69                                                                
+       70 +  def add_permanent_sections                                  
+       71 +    result = Days::AddPermanentSectionsService.new(day: @day, 
+          + user: current_user).call                                     
+       72 +                                                              
+       73 +    if result[:success]                                       
+       74 +      count = result[:sections_added]                         
+       75 +      message = if count.zero?                                
+       76 +        "All permanent sections already exist"                
+       77 +      else                                                    
+       78 +        "Added #{count} permanent section#{count > 1 ? 's' :  
+          +''}"                                                          
+       79 +      end                                                     
+       80 +                                                              
+       81 +      respond_to do |format|                                  
+       82 +        format.turbo_stream do                                
+       83 +          # Reload day and fetch fresh items                  
+       84 +          @day.reload                                         
+       85 +          items_data = Days::FetchItemsService.new(day:       
+          +@day).call                                                    
+       86 +                                                              
+       87 +          # Build tree for rendering                          
+       88 +          tree = ItemTree::Build.call(@day.descendant,        
+          +root_label: "day")                                            
+       89 +          rendered_items = tree.children.map do |node|        
+       90 +            render_to_string(Views::Items::TreeNode.new(node: 
+          + node, day: @day))                                            
+       91 +          end.join                                            
+       92 +                                                              
+       93 +          render turbo_stream: [                              
+       94 +            turbo_stream.update("items_list",                 
+          +rendered_items),                                              
+       95 +            turbo_stream.append("body", "<script>window.toast 
+          + && window.toast(#{message.to_json}, { type: 'success'        
+          +})</script>")                                                 
+       96 +          ]                                                   
+       97 +        end                                                   
+       98 +        format.html { redirect_to day_path(date: @day.date),  
+          +notice: message }                                             
+       99 +      end                                                     
+      100 +    else                                                      
+      101 +      redirect_to day_path(date: @day.date), alert:           
+          +result[:error]                                                
+      102 +    end                                                       
+      103 +  end                                                         
+      104 +                                                              
+      105    def import                                                  
+      106      begin                                                     
+      107        # Check if current day is closed - cannot import into   
+           closed days                                                   
+
+⏺ Perfect! DaysController updated. Now updating ItemsController.
+
+⏺ Update(app/controllers/items_controller.rb)
+  ⎿  Added 15 lines, removed 1 line                                      
+      131          date = Date.parse(params[:date])                      
+      132          @day = @acting_user.days.find_by(date: date)          
+      133          unless @day                                           
+      134 -          @day = Days::OpenDayService                         
+          -.new(user: @acting_user, date: date).call                     
+      134 +          result = Days::DayOpeningService                    
+          +.new(user: @acting_user, date: date).call                     
+      135 +          if result[:success]                                 
+      136 +            @day = result[:day]                               
+      137 +          else                                                
+      138 +            respond_to do |format|                            
+      139 +              format.turbo_stream do                          
+      140 +                render turbo_stream: turbo_stream.update(     
+      141 +                  "item_form_errors",                         
+      142 +                  "<div class='text-destructive'>Failed to    
+          +open day: #{result[:error]}</div>"                            
+      143 +                )                                             
+      144 +              end                                             
+      145 +              format.html { redirect_back(fallback_location:  
+          +root_path, alert: "Failed to open day") }                     
+      146 +            end                                               
+      147 +            return                                            
+      148 +          end                                                 
+      149          end                                                   
+      150          @day.descendant.add_active_item(@item.id)             
+      151          @day.descendant.save!                                 
+
+⏺ Search(pattern: "OpenDayService")
+  ⎿  Found 3 files (ctrl+o to expand)
+
+⏺ Read(app/services/days/import_service.rb)
+  ⎿  Read 150 lines
+
+⏺ Update(app/services/days/import_service.rb)
+  ⎿  Added 3 lines, removed 1 line                                       
+      126      end                                                       
+      127                                                                
+      128      # Create new day with permanent sections                  
+      129 -    Days::OpenDayService                                      
+          -.new(user: user, date: target_date).call                      
+      129 +    result = Days::DayOpeningService                          
+          +.new(user: user, date: target_date).call                      
+      130 +    raise StandardError, result[:error] unless                
+          +result[:success]                                              
+      131 +    result[:day]                                              
+      132    end                                                         
+      133                                                                
+      134    def collect_items_to_import(descendant, parent_item_id:     
+           nil, parent_item: nil)                                        
+
+⏺ Perfect! Now let's add the route. Moving to Phase 4.
+
+⏺ Read(config/routes.rb)
+  ⎿  Read 175 lines
+
+⏺ Update(config/routes.rb)
+  ⎿  Added 1 line                                                        
+      25      member do                                                  
+      26        patch "close", to: "days#close"                          
+      27        patch "reopen", to: "days#reopen"                        
+      28 +      patch "add_permanent_sections", to:                      
+         +"days#add_permanent_sections"                                  
+      29      end                                                        
+      30      collection do                                              
+      31        post "import", to: "days#import"                         
+
+⏺ Perfect! Route added. Now adding the UI button to the day header. Moving to Phase 5.
+
+⏺ Read(app/views/days/header.rb)
+  ⎿  Read 173 lines
+
+⏺ Update(app/views/days/header.rb)
+  ⎿  Added 19 lines                                                      
+      151                end                                             
+      152              end                                               
+      153                                                                
+      154 +            # Show "Add permanent sections" if day exists     
+      155 +            if @day                                           
+      156 +              form(                                           
+      157 +                action:                                       
+          +view_context.add_permanent_sections_day_path(@day),           
+      158 +                method: "post",                               
+      159 +                class: "w-full",                              
+      160 +                data: { turbo_stream: true, turbo_method:     
+          +"patch" }                                                     
+      161 +              ) do                                            
+      162 +                raw view_context.hidden_field_tag(:_method,   
+          +"patch")                                                      
+      163 +                raw                                           
+          +view_context.hidden_field_tag(:authenticity_token,            
+          +view_context.form_authenticity_token)                         
+      164 +                button(                                       
+      165 +                  type: "submit",                             
+      166 +                  class: "w-full text-left px-2 py-1.5        
+          +text-sm cursor-pointer hover:bg-accent rounded-sm"            
+      167 +                ) do                                          
+      168 +                  plain "Add permanent sections"              
+      169 +                end                                           
+      170 +              end                                             
+      171 +            end                                               
+      172 +                                                              
+      173              # Show "Import from [date]" if latest importable  
+           day is available                                              
+      174              if @latest_importable_day                         
+      175                a(                                              
+
+⏺ Excellent! All code changes complete. Now moving to Phase 6 - comprehensive testing.
+
+⏺ Now let me create comprehensive tests. Starting with DayOpeningServiceTest.
+
+⏺ Write(test/services/days/day_opening_service_test.rb)
+  ⎿  Wrote 224 lines to test/services/days/day_opening_service_test.rb
+     # frozen_string_literal: true
+     require "test_helper"
+     class Days::DayOpeningServiceTest < ActiveSupport::TestCase
+       def setup
+         @user = User.create!(
+           email: "test@example.com",
+           password: "password123",
+           password_confirmation: "password123"
+     … +214 lines (ctrl+o to expand)
+
+⏺ Write(test/services/days/add_permanent_sections_service_test.rb)
+  ⎿  Wrote 279 lines to                                                   
+     test/services/days/add_permanent_sections_service_test.rb
+     # frozen_string_literal: true
+     require "test_helper"
+     class Days::AddPermanentSectionsServiceTest < ActiveSupport::TestCase
+       def setup
+         @user = User.create!(
+           email: "test@example.com",
+           password: "password123",
+           password_confirmation: "password123"
+     … +269 lines (ctrl+o to expand)
+
+⏺ Write(test/services/descendants/ensure_unique_titles_service_test.rb)
+  ⎿  Wrote 246 lines to                                                    
+     test/services/descendants/ensure_unique_titles_service_test.rb
+     # frozen_string_literal: true
+     require "test_helper"
+     class Descendants::EnsureUniqueTitlesServiceTest < 
+     ActiveSupport::TestCase
+       def setup
+         @user = User.create!(
+           email: "test@example.com",
+           password: "password123",
+           password_confirmation: "password123"
+     … +236 lines (ctrl+o to expand)
+
+⏺ Excellent! All tests created. Now running the full test suite to check for regressions.
+
+⏺ Bash(bin/rails test)
+  ⎿  Running in the background (↓ to manage)
+
+⏺ Task Output bbb3e2c
+  ⎿  Running 210 tests in parallel using 14 processes
+     [stderr] ≈ tailwindcss v4.1.16
+     … +114016 lines (ctrl+o to expand)
+  ⎿  Context low · Run /compact to compact & continue
+
+> /compact 
+  ⎿  Error: Error during compaction: Error: Conversation too long. Press esc twice to go up a few messages and try again.
+
+> /compact 
+  ⎿  Error: Error during compaction: Error: Conversation too long. Press esc twice to go up a few messages and try again.
+
+> continue 
+  ⎿  Context low · Run /compact to compact & continue
+
+> /context 
+  ⎿  
+      Context Usage
+     ⛀ ⛁ ⛁ ⛀ ⛁   claude-sonnet-4-5-20250929 · 3118k/200k tokens (1559%)
+     ⛁ ⛁ ⛁ ⛁ ⛁ 
+     ⛁ ⛁ ⛁ ⛁ ⛁   ⛁ System prompt: 3.2k tokens (1.6%)
+     ⛁ ⛁ ⛁ ⛁ ⛁   ⛁ System tools: 15.3k tokens (7.6%)
+     ⛁ ⛁ ⛁ ⛁ ⛁   ⛁ Memory files: 4.8k tokens (2.4%)
+                 ⛁ Messages: 3049.4k tokens (1524.7%)
+                 ⛝ Autocompact buffer: 45.0k tokens (22.5%)
+     
+     Memory files · /memory
+     └ CLAUDE.md: 4.8k tokens
+     
+     Skills and slash commands · /skills
+     
+     
+
+> /compact 
+  ⎿  Error: Error during compaction: Error: Conversation too long. Press esc twice to go up a few messages and try again.
+
+
+

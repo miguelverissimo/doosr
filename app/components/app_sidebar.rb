@@ -83,7 +83,10 @@ class ::Components::AppSidebar < ::Components::Base
             SidebarMenuButton(
               as: :a,
               href: view_context.accounting_index_path,
-              data: { action: "click->nav-loader#show" }
+              data: {
+                action: "click->nav-loader#show",
+                turbo_prefetch: false
+              }
             ) do
               render ::Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }

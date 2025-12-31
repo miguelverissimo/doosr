@@ -102,6 +102,7 @@ class ::Views::Layouts::AppLayout < ::Views::Base
       head do
         title { yield(:title).presence || "Doosr" }
         meta(name: "viewport", content: "width=device-width,initial-scale=1")
+        meta(name: "turbo-prefetch", content: "false")
         meta(name: "apple-mobile-web-app-capable", content: "yes")
         meta(name: "apple-mobile-web-app-status-bar-style", content: "default")
         meta(name: "application-name", content: "Doosr")
@@ -173,11 +174,13 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               SidebarTrigger(class: "-ml-1")
 
               if @selected_date
-                render ::Views::Days::Header.new(
-                  date: @selected_date,
-                  day: @day,
-                  latest_importable_day: @latest_importable_day
-                )
+                div(id: "day_header", class: "flex items-center gap-3 flex-1") do
+                  render ::Views::Days::Header.new(
+                    date: @selected_date,
+                    day: @day,
+                    latest_importable_day: @latest_importable_day
+                  )
+                end
 
                 # Ephemeries button
                 Button(

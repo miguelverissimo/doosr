@@ -15,7 +15,7 @@ module Views
       def view_template
         div(class: "flex h-full flex-col") do
           # Content - no header needed, date is in top bar
-          div(class: "flex-1") do
+          div(id: "day_content", class: "flex-1") do
             render_day_content
           end
         end

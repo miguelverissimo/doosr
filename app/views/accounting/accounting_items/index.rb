@@ -6,17 +6,19 @@ module Views
         end
 
         def view_template
-          div(class: "flex h-full flex-col") do
-            render RubyUI::Dialog.new do
-              div(class: "flex items-center justify-between mb-2") do
-                render RubyUI::DialogTitle.new { "Accounting Items" }
-                render RubyUI::DialogTrigger.new do
-                  Button(variant: :primary, size: :sm) { "Add Accounting Item" }
+          turbo_frame_tag "accounting_items_tab_content" do
+            div(class: "flex h-full flex-col") do
+              render RubyUI::Dialog.new do
+                div(class: "flex items-center justify-between mb-2") do
+                  render RubyUI::DialogTitle.new { "Accounting Items" }
+                  render RubyUI::DialogTrigger.new do
+                    Button(variant: :primary, size: :sm) { "Add Accounting Item" }
+                  end
                 end
-              end
 
-              render ::Views::Accounting::AccountingItems::List.new(user: view_context.current_user)
-              render_accounting_item_form_dialog
+                render ::Views::Accounting::AccountingItems::List.new(user: view_context.current_user)
+                render_accounting_item_form_dialog
+              end
             end
           end
         end

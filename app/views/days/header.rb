@@ -10,9 +10,8 @@ module Views
       end
 
       def view_template
-        div(class: "flex items-center gap-3 flex-1") do
-          # Date display with import status
-          div do
+        # Date display with import status
+        div do
             h1(class: "font-semibold text-base") { full_date }
             p(class: "text-xs") do
               # Weekday in normal color
@@ -33,15 +32,14 @@ module Views
             end
           end
 
-          # Spacer
-          div(class: "flex-1")
+        # Spacer
+        div(class: "flex-1")
 
-          # Day state badge
-          render_state_badge
+        # Day state badge
+        render_state_badge
 
-          # Three-dot menu
-          render_actions_menu
-        end
+        # Three-dot menu
+        render_actions_menu
       end
 
       private
@@ -147,6 +145,25 @@ module Views
                   class: "w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
                 ) do
                   plain "Re-open day"
+                end
+              end
+            end
+
+            # Show "Add permanent sections" if day exists
+            if @day
+              form(
+                action: view_context.add_permanent_sections_day_path(@day),
+                method: "post",
+                class: "w-full",
+                data: { turbo_stream: true, turbo_method: "patch" }
+              ) do
+                raw view_context.hidden_field_tag(:_method, "patch")
+                raw view_context.hidden_field_tag(:authenticity_token, view_context.form_authenticity_token)
+                button(
+                  type: "submit",
+                  class: "w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+                ) do
+                  plain "Add permanent sections"
                 end
               end
             end

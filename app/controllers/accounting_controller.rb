@@ -5,4 +5,16 @@ class AccountingController < ApplicationController
   def index
     render ::Views::Accounting::Index.new
   end
+
+  def customers_tab
+    render ::Views::Accounting::Customers::Index.new
+  end
+
+  def accounting_items_tab
+    render ::Views::Accounting::AccountingItems::Index.new
+  end
+
+  def settings_tab
+    render ::Views::Accounting::Settings::Index.new
+  end
 end

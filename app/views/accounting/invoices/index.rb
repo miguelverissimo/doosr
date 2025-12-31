@@ -23,30 +23,20 @@ module Views
               end
               TabsContent(value: "templates", data: { controller: "lazy-tab" }) do
                 div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                  render RubyUI::Dialog.new do
-                    div(class: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2") do
-                      render RubyUI::DialogTitle.new { "Your Invoice Templates" }
-                      render RubyUI::DialogTrigger.new do
-                        Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Invoice Template" }
-                      end
-                    end
-                    render ::Views::Accounting::Invoices::Templates::List.new(user: view_context.current_user)
-                    render_invoice_template_form_dialog
+                  # Turbo frame for lazy-loaded template dialog
+                  turbo_frame_tag "invoice_template_dialog"
+
+                  div(class: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2") do
+                    h3(class: "text-lg font-semibold") { "Your Invoice Templates" }
+                    a(
+                      href: view_context.new_invoice_template_path,
+                      data: { turbo_frame: "invoice_template_dialog" },
+                      class: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 w-full sm:w-auto"
+                    ) { "Add Invoice Template" }
                   end
+                  render ::Views::Accounting::Invoices::Templates::List.new(user: view_context.current_user)
                 end
               end
-            end
-          end
-        end
-
-        def render_invoice_template_form_dialog(invoice_template: nil)
-          render RubyUI::DialogContent.new(size: :lg) do
-            render RubyUI::DialogHeader.new do
-              render RubyUI::DialogDescription.new { "Manage invoice template" }
-            end
-
-            render RubyUI::DialogMiddle.new do
-              render ::Components::Accounting::Invoices::Templates::Form.new(invoice_template: invoice_template, user: view_context.current_user)
             end
           end
         end

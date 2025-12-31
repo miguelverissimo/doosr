@@ -127,24 +127,82 @@ class ItemsController < ApplicationController
           format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
         end
       elsif params[:date].present?
-        # Create day if it doesn't exist (when adding first item)
+        # Ensure day exists and is open (create new or reopen closed day)
         date = Date.parse(params[:date])
-        @day = @acting_user.days.find_by(date: date)
-        unless @day
-          @day = Days::OpenDayService.new(user: @acting_user, date: date).call
+        existing_day = @acting_user.days.find_by(date: date)
+
+        # Always use DayOpeningService to ensure day is open and has permanent sections
+        if existing_day.nil? || existing_day.closed?
+          result = Days::DayOpeningService.new(user: @acting_user, date: date).call
+          unless result[:success]
+            respond_to do |format|
+              format.turbo_stream do
+                render turbo_stream: turbo_stream.update(
+                  "item_form_errors",
+                  "<div class='text-destructive'>Failed to open day: #{result[:error]}</div>"
+                )
+              end
+              format.html { redirect_back(fallback_location: root_path, alert: "Failed to open day") }
+            end
+            return
+          end
+
+          @day = result[:day]
+
+          # CRITICAL: Track if we opened/reopened day (sections will be created)
+          # - For NEW days: DayOpeningService already created sections
+          # - For REOPENED days: We need to add sections manually
+          day_was_opened_or_reopened = result[:created] || result[:reopened]
+
+          if result[:reopened]
+            # Only manually add sections for REOPENED days (new days already have them)
+            Days::AddPermanentSectionsService.new(day: @day, user: @acting_user).call
+          end
+        else
+          @day = existing_day
+          day_was_opened_or_reopened = false
         end
         @day.descendant.add_active_item(@item.id)
         @day.descendant.save!
 
         respond_to do |format|
           format.turbo_stream do
-            render turbo_stream: [
-              turbo_stream.append(
-                "items_list",
-                ::Views::Items::Item.new(item: @item)
-              ),
-              turbo_stream.update("item_form_errors", "")
-            ]
+            if day_was_opened_or_reopened
+              # Day was created or reopened - refresh EVERYTHING
+              @day.reload
+              @day.descendant.reload
+
+              # Update day header (shows state badge, etc.)
+              rendered_header = render_to_string(
+                Views::Days::Header.new(
+                  date: @day.date,
+                  day: @day,
+                  latest_importable_day: nil
+                ),
+                layout: false
+              )
+
+              # Build the items tree (includes permanent sections + new item)
+              tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+              rendered_items = tree.children.map do |node|
+                render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+              end.join
+
+              render turbo_stream: [
+                turbo_stream.update("day_header", rendered_header),
+                turbo_stream.update("items_list", rendered_items),
+                turbo_stream.update("item_form_errors", "")
+              ]
+            else
+              # Day already existed and was open - just append the new item
+              render turbo_stream: [
+                turbo_stream.append(
+                  "items_list",
+                  ::Views::Items::Item.new(item: @item)
+                ),
+                turbo_stream.update("item_form_errors", "")
+              ]
+            end
           end
           format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
         end

@@ -27,19 +27,23 @@ module Views
             end
             TabsContent(value: "receipts", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                turbo_frame_tag "receipts_index_content", data: { lazy_tab_target: "frame", src: view_context.receipts_path } do
+                turbo_frame_tag "receipts_index_content", loading: "lazy", data: { lazy_tab_target: "frame", src: view_context.receipts_path } do
                   render ::Components::Shared::LoadingSpinner.new(message: "Loading receipts...")
                 end
               end
             end
             TabsContent(value: "customers", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render ::Views::Accounting::Customers::Index.new
+                turbo_frame_tag "customers_tab_content", loading: "lazy", data: { lazy_tab_target: "frame", src: view_context.customers_tab_accounting_index_path } do
+                  render ::Components::Shared::LoadingSpinner.new(message: "Loading customers...")
+                end
               end
             end
             TabsContent(value: "items", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render ::Views::Accounting::AccountingItems::Index.new
+                turbo_frame_tag "accounting_items_tab_content", loading: "lazy", data: { lazy_tab_target: "frame", src: view_context.accounting_items_tab_accounting_index_path } do
+                  render ::Components::Shared::LoadingSpinner.new(message: "Loading items...")
+                end
               end
             end
             TabsContent(value: "automations") do
@@ -49,7 +53,9 @@ module Views
             end
             TabsContent(value: "settings", data: { controller: "lazy-tab" }) do
               div(class: "rounded-lg border p-6 space-y-4 bg-background text-foreground") do
-                render ::Views::Accounting::Settings::Index.new
+                turbo_frame_tag "settings_tab_content", loading: "lazy", data: { lazy_tab_target: "frame", src: view_context.settings_tab_accounting_index_path } do
+                  render ::Components::Shared::LoadingSpinner.new(message: "Loading settings...")
+                end
               end
             end
           end

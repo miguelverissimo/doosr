@@ -6,17 +6,19 @@ module Views
         end
 
         def view_template
-          div(class: "flex h-full flex-col") do
-            render RubyUI::Dialog.new do
-              div(class: "flex items-center justify-between mb-2") do
-                render RubyUI::DialogTitle.new { "Customers" }
-                render RubyUI::DialogTrigger.new do
-                  Button(variant: :primary, size: :sm) { "Add Customer" }
+          turbo_frame_tag "customers_tab_content" do
+            div(class: "flex h-full flex-col") do
+              render RubyUI::Dialog.new do
+                div(class: "flex items-center justify-between mb-2") do
+                  render RubyUI::DialogTitle.new { "Customers" }
+                  render RubyUI::DialogTrigger.new do
+                    Button(variant: :primary, size: :sm) { "Add Customer" }
+                  end
                 end
-              end
 
-              render ::Views::Accounting::Customers::List.new(user: view_context.current_user)
-              render_customer_form_dialog
+                render ::Views::Accounting::Customers::List.new(user: view_context.current_user)
+                render_customer_form_dialog
+              end
             end
           end
         end

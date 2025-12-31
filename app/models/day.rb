@@ -137,38 +137,8 @@ class Day < ApplicationRecord
   end
 
   def create_permanent_sections
-    # ALWAYS create permanent sections when a new day is created
-    permanent_sections = user.permanent_sections || []
-    return if permanent_sections.empty?
-
-    permanent_sections.each do |section_name|
-      # Check if section already exists on day (by title)
-      existing_section = find_section_by_title(section_name)
-      next if existing_section
-
-      # Create section item
-      section = user.items.create!(
-        title: section_name,
-        item_type: :section,
-        state: :todo,
-        extra_data: { permanent_section: true }
-      )
-
-      # Ensure section has a descendant
-      section.descendant || section.create_descendant!(active_items: [], inactive_items: [])
-
-      # Add section to day's active items
-      descendant.add_active_item(section.id)
-      descendant.save!
-    end
-  end
-
-  def find_section_by_title(section_title)
-    return nil unless descendant
-
-    section_ids = descendant.extract_active_item_ids
-    sections = Item.sections.where(id: section_ids, title: section_title)
-    sections.first
+    # Delegate to service for consistency
+    Days::AddPermanentSectionsService.new(day: self, user: user).call
   end
 
   def track_state_changes

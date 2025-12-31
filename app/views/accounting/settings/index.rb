@@ -6,8 +6,9 @@ module Views
         end
 
         def view_template
-          div(class: "flex h-full flex-col") do
-            h1(class: "text-xl font-bold") { "Settings" }
+          turbo_frame_tag "settings_tab_content" do
+            div(class: "flex h-full flex-col") do
+              h1(class: "text-xl font-bold") { "Settings" }
 
             # Tax Brackets
             div(class: "rounded-lg border p-4 md:p-6 space-y-4 bg-background text-foreground mt-4") do
@@ -114,6 +115,7 @@ module Views
             end
           end
         end
+          end
       end
     end
   end

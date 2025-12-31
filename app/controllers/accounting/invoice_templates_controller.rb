@@ -17,6 +17,14 @@ module Accounting
       end
     end
 
+    def new
+      invoice_template = current_user.invoice_templates.build
+      render turbo_stream: turbo_stream.replace(
+        "invoice_template_dialog",
+        ::Views::Accounting::Invoices::Templates::FormDialog.new(invoice_template: invoice_template, user: current_user)
+      )
+    end
+
     def create
       # Split out nested invoice_template_items_attributes so we don't assign them
       # directly (we build invoice_template_items manually below).

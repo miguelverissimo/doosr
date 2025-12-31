@@ -57,38 +57,11 @@ module Days
     private
 
     def ensure_target_day_exists
-      day = user.days.find_or_initialize_by(date: target_date)
+      # Use unified day opening service
+      result = Days::DayOpeningService.new(user: user, date: target_date).call
+      raise StandardError, result[:error] unless result[:success]
 
-      if day.new_record?
-        day.state = :open
-        # Skip the automatic permanent sections callback since we handle it explicitly below
-        day.skip_permanent_sections_callback = true
-        day.save!
-
-        # Create permanent sections for new day
-        create_permanent_sections(day)
-      end
-
-      day
-    end
-
-    def create_permanent_sections(day)
-      return unless user.permanent_sections.present?
-
-      day.descendant || day.create_descendant!
-
-      user.permanent_sections.each do |section_name|
-        section = user.items.create!(
-          title: section_name,
-          item_type: :section,
-          state: :todo,
-          extra_data: { "permanent_section" => true }
-        )
-
-        day.descendant.add_active_item(section.id)
-      end
-
-      day.descendant.save!
+      result[:day]
     end
 
     def collect_items_to_migrate

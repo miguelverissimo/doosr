@@ -25,6 +25,7 @@ Rails.application.routes.draw do
     member do
       patch "close", to: "days#close"
       patch "reopen", to: "days#reopen"
+      patch "add_permanent_sections", to: "days#add_permanent_sections"
     end
     collection do
       post "import", to: "days#import"
@@ -90,6 +91,9 @@ Rails.application.routes.draw do
   # Accounting
   resources :accounting, only: [ :index ] do
     collection do
+      get :customers_tab
+      get :accounting_items_tab
+      get :settings_tab
       resources :tax_brackets,
         path: "settings/tax_brackets",
         controller: "accounting/settings/tax_brackets",
@@ -135,6 +139,7 @@ Rails.application.routes.draw do
         as: "invoices" do
           collection do
             get :check_number
+            get :new_from_template
           end
           member do
             get :preview

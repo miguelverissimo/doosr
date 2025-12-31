@@ -1,7 +1,7 @@
 class DaysController < ApplicationController
   before_action :authenticate_user!
   before_action :set_date, only: [ :show, :create, :import ]
-  before_action :set_day, only: [ :close, :reopen ]
+  before_action :set_day, only: [ :close, :reopen, :add_permanent_sections ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day, latest_importable_day: @latest_importable_day) }
 
   def show
@@ -31,11 +31,19 @@ class DaysController < ApplicationController
   end
 
   def create
-    begin
-      @day = Days::OpenDayService.new(user: current_user, date: @date).call
-      redirect_to day_path(date: @date), notice: "Day opened successfully"
-    rescue ActiveRecord::RecordNotUnique
-      redirect_to day_path(date: @date), alert: "Day already exists"
+    result = Days::DayOpeningService.new(user: current_user, date: @date).call
+
+    if result[:success]
+      message = if result[:created]
+        "Day opened successfully"
+      elsif result[:reopened]
+        "Day reopened successfully"
+      else
+        "Day already open"
+      end
+      redirect_to day_path(date: @date), notice: message
+    else
+      redirect_to day_path(date: @date), alert: result[:error]
     end
   end
 
@@ -57,6 +65,41 @@ class DaysController < ApplicationController
 
     @day.reopen!
     redirect_to day_path(date: @day.date), notice: "Day reopened successfully"
+  end
+
+  def add_permanent_sections
+    result = Days::AddPermanentSectionsService.new(day: @day, user: current_user).call
+
+    if result[:success]
+      count = result[:sections_added]
+      message = if count.zero?
+        "All permanent sections already exist"
+      else
+        "Added #{count} permanent section#{count > 1 ? 's' : ''}"
+      end
+
+      respond_to do |format|
+        format.turbo_stream do
+          # Reload day and fetch fresh items
+          @day.reload
+          items_data = Days::FetchItemsService.new(day: @day).call
+
+          # Build tree for rendering
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
+
+          render turbo_stream: [
+            turbo_stream.update("items_list", rendered_items),
+            turbo_stream.append("body", "<script>window.toast && window.toast(#{message.to_json}, { type: 'success' })</script>")
+          ]
+        end
+        format.html { redirect_to day_path(date: @day.date), notice: message }
+      end
+    else
+      redirect_to day_path(date: @day.date), alert: result[:error]
+    end
   end
 
   def import

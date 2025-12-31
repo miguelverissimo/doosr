@@ -37,6 +37,21 @@ module Accounting
       end
     end
 
+    def new
+      invoice = current_user.invoices.build
+      render turbo_stream: turbo_stream.replace(
+        "invoice_dialog",
+        ::Views::Accounting::Invoices::FormDialog.new(invoice: invoice)
+      )
+    end
+
+    def new_from_template
+      render turbo_stream: turbo_stream.replace(
+        "invoice_dialog",
+        ::Views::Accounting::Invoices::FromTemplateDialog.new(user: current_user)
+      )
+    end
+
     def check_number
       number = params[:number].to_i
       year = params[:year].to_i

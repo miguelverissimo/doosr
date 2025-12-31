@@ -29,11 +29,11 @@ module Items
       return calculation_error unless next_date
 
       ActiveRecord::Base.transaction do
-        # Find or create target day with descendant
-        target_day = find_or_create_target_day(next_date)
+        # Use unified day opening service
+        result = Days::DayOpeningService.new(user: user, date: next_date).call
+        return { success: false, error: result[:error] } unless result[:success]
 
-        # ALWAYS ensure permanent sections exist on target day
-        ensure_permanent_sections(target_day)
+        target_day = result[:day]
 
         # Find which permanent section (if any) the completed item belongs to
         source_permanent_section = completed_item.find_permanent_section
@@ -80,62 +80,15 @@ module Items
       { success: false, error: "Failed to calculate next occurrence date" }
     end
 
-    def find_or_create_target_day(target_date)
-      day = user.days.find_by(date: target_date)
-
-      if day
-        # Ensure descendant exists
-        day.descendant || day.create_descendant!(active_items: [], inactive_items: [])
-        return day
-      end
-
-      # Create new day with descendant
-      day = user.days.create!(date: target_date, state: :open)
-
-      # Ensure descendant exists
-      day.descendant || day.create_descendant!(active_items: [], inactive_items: [])
-
-      day
-    end
-
-    def ensure_permanent_sections(day)
-      # ALWAYS ensure permanent sections exist on the target day
-      permanent_sections = user.permanent_sections || []
-      return if permanent_sections.empty?
-
-      permanent_sections.each do |section_name|
-        # Check if section already exists on day (by title)
-        existing_section = find_section_on_day(day, section_name)
-        next if existing_section
-
-        # Create section item
-        section = user.items.create!(
-          title: section_name,
-          item_type: :section,
-          state: :todo,
-          extra_data: { permanent_section: true }
-        )
-
-        # Ensure section has a descendant
-        section.descendant || section.create_descendant!(active_items: [], inactive_items: [])
-
-        # Add section to day's active items
-        day.descendant.add_active_item(section.id)
-        day.descendant.save!
-      end
-    end
-
-    def find_section_on_day(day, section_title)
+    def find_or_create_matching_permanent_section(day, source_section)
+      # Find the matching permanent section on the target day (case-insensitive)
       return nil unless day.descendant
 
       section_ids = day.descendant.extract_active_item_ids
-      sections = Item.sections.where(id: section_ids, title: section_title)
-      sections.first
-    end
-
-    def find_or_create_matching_permanent_section(day, source_section)
-      # Find the matching permanent section on the target day
-      matching_section = find_section_on_day(day, source_section.title)
+      matching_section = Item.sections
+                             .where(id: section_ids)
+                             .where("LOWER(title) = ?", source_section.title.downcase)
+                             .first
 
       if matching_section
         # Ensure it has a descendant
