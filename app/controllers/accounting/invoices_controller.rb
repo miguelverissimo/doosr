@@ -297,7 +297,7 @@ module Accounting
           format.html { redirect_to accounting_index_path, notice: "Invoice created successfully." }
         end
       else
-        error_messages = @invoice.errors.full_messages.join(', ')
+        error_messages = @invoice.errors.full_messages.join(", ")
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to create invoice: #{error_messages}', { type: 'error' });</script>"), status: :unprocessable_entity

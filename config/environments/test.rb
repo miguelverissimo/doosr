@@ -39,8 +39,9 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }
 
-  # Print deprecation notices to the stderr.
-  config.active_support.deprecation = :stderr
+  # Silence all deprecation warnings in test (including Devise route warnings)
+  # This is acceptable since we can't fix third-party gem deprecations
+  config.active_support.deprecation = :silence
 
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true

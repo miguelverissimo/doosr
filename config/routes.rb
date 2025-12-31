@@ -4,11 +4,12 @@ Rails.application.routes.draw do
   # Action Cable for real-time WebSocket connections
   mount ActionCable.server, at: "/cable"
 
-  devise_for :users, controllers: {
-    sessions: "users/sessions",
-    registrations: "users/registrations",
-    omniauth_callbacks: "users/omniauth_callbacks"
-  }
+  devise_for :users,
+    controllers: {
+      sessions: "users/sessions",
+      registrations: "users/registrations",
+      omniauth_callbacks: "users/omniauth_callbacks"
+    }
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.

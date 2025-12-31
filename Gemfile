@@ -54,7 +54,7 @@ gem "grover"
 gem "kaminari"
 
 # Authentication
-gem "devise", "~> 4.9.1"
+gem "devise", "~> 4.9.4"
 gem "omniauth"
 gem "omniauth-rails_csrf_protection"
 gem "omniauth-google-oauth2"
@@ -74,6 +74,9 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   gem "dotenv-rails"
+
+  # Pin minitest to 5.x for Rails 8.1 compatibility
+  gem "minitest", "~> 5.0"
 end
 
 group :development do
