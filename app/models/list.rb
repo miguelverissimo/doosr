@@ -16,6 +16,9 @@ class List < ApplicationRecord
   # Create descendant after list is created
   after_create :create_list_descendant
 
+  # Remove list links from all descendants before destroying
+  before_destroy :remove_from_all_descendants
+
   def items
     return [] unless descendant
     item_ids = descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
@@ -60,5 +63,22 @@ class List < ApplicationRecord
   def create_list_descendant
     self.descendant = Descendant.create!(descendable: self)
     save!
+  end
+
+  def remove_from_all_descendants
+    # Find all descendants containing this list as a link
+    tuple = { "List" => id }
+    descendants = Descendant.where(
+      "active_items @> ? OR inactive_items @> ?",
+      [ tuple ].to_json,
+      [ tuple ].to_json
+    )
+
+    # Remove the list tuple from each descendant
+    descendants.each do |desc|
+      desc.remove_active_record("List", id)
+      desc.remove_inactive_record("List", id)
+      desc.save!
+    end
   end
 end

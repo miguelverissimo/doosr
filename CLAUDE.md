@@ -172,8 +172,13 @@ Located in `app/services/`:
 ## Critical Development Rules
 
 ### Phlex Components
-- **NEVER use `onclick`, `onchange`, or any `on*` event attributes** - they throw `Phlex::ArgumentError`
-- Always use Stimulus controllers with data attributes: `data: { action: "click->controller#method" }`
+- ❌ **ABSOLUTELY NEVER EVER USE `onclick`, `onchange`, or ANY `on*` EVENT ATTRIBUTES IN PHLEX** ❌
+  - They throw `Phlex::ArgumentError` and will break the application
+  - This includes: `onclick`, `onchange`, `onsubmit`, `onload`, `oninput`, `onfocus`, `onblur`, etc.
+  - **NO EXCEPTIONS** - even simple things like `onclick="event.stopPropagation()"` are forbidden
+- ✅ **ALWAYS use Stimulus controllers with data attributes instead**:
+  - `data: { action: "click->controller#method" }`
+  - Example: Instead of `onclick="alert('hi')"`, create a Stimulus controller method
 - Use Ruby UI components from the ruby_ui gem - do not create raw HTML/JS
 
 ### UI Feedback

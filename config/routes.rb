@@ -36,6 +36,16 @@ Rails.application.routes.draw do
   # Day migrations - import with custom settings
   resources :day_migrations, only: [ :new, :create ]
 
+  # Day list links - linking lists to days
+  resources :day_list_links, only: [ :create, :destroy ] do
+    member do
+      get "actions", to: "day_list_links#actions_sheet", as: "actions_sheet"
+      patch "move", to: "day_list_links#move", as: "move"
+      patch "reparent", to: "day_list_links#reparent", as: "reparent"
+      get "debug", to: "day_list_links#debug", as: "debug"
+    end
+  end
+
   # Ephemeries
   get "ephemeries", to: "ephemeries#index", as: :ephemeries
 

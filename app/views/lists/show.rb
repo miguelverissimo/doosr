@@ -14,45 +14,63 @@ module Views
         div(
           class: "flex h-full flex-col",
           data: {
-            controller: "list-subscription day-move",
+            controller: "list-subscription day-move list-loader",
             list_subscription_list_id_value: @list.id,
             day_move_list_id_value: @list.id
           }
         ) do
-          # Header
-          div(class: "flex items-center justify-between mb-6") do
-            div(class: "flex items-center gap-4") do
-              h1(class: "text-2xl font-bold") { @list.title }
-              render_list_type_badge(@list)
-            end
-
-            div(class: "flex items-center gap-2") do
-              if @list.list_type_public_list?
-                Button(
-                  href: public_list_path(@list.slug),
-                  variant: :outline,
-                  target: "_blank"
-                ) do
-                  plain "View Public"
-                end
-              end
-              Button(href: edit_list_path(@list), variant: :outline) do
-                plain "Edit"
-              end
-              Button(href: lists_path, variant: :outline) do
-                plain "Back to Lists"
-              end
-            end
+          # Loading spinner (shown on page load, hidden by controller)
+          div(
+            data: { list_loader_target: "spinner" },
+            class: "flex items-center justify-center py-12"
+          ) do
+            render ::Components::Shared::LoadingSpinner.new(message: "Loading list...")
           end
 
-          # Content
-          div(class: "flex-1") do
-            render_list_content
+          # Content (hidden initially, shown by controller)
+          div(
+            data: { list_loader_target: "content" },
+            class: "hidden"
+          ) do
+            render_full_content
           end
         end
       end
 
       private
+
+      def render_full_content
+        # Header
+        div(class: "flex items-center justify-between mb-6") do
+          div(class: "flex items-center gap-4") do
+            h1(class: "text-2xl font-bold") { @list.title }
+            render_list_type_badge(@list)
+          end
+
+          div(class: "flex items-center gap-2") do
+            if @list.list_type_public_list?
+              Button(
+                href: public_list_path(@list.slug),
+                variant: :outline,
+                target: "_blank"
+              ) do
+                plain "View Public"
+              end
+            end
+            Button(href: edit_list_path(@list), variant: :outline) do
+              plain "Edit"
+            end
+            Button(href: lists_path, variant: :outline) do
+              plain "Back to Lists"
+            end
+          end
+        end
+
+        # Content
+        div(class: "flex-1") do
+          render_list_content
+        end
+      end
 
       def render_list_content
         div(class: "space-y-3") do
@@ -137,9 +155,9 @@ module Views
                 s.line(x1: "5", y1: "12", x2: "19", y2: "12")
               end
             end
-            end
+          end
 
-            # Autocomplete dropdown
+          # Autocomplete dropdown
             div(
               data: { item_autocomplete_target: "dropdown" },
               class: "hidden absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover shadow-lg"

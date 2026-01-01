@@ -12,20 +12,25 @@ module Views
       end
 
       def view_template
-        return unless @node.item
+        record = @node.item || @node.list
+        return unless record
 
         # Wrap in a container div
-        div(id: "item_with_children_#{@node.item.id}") do
-          # Render the item itself
-          render ::Views::Items::Item.new(
-            item: @node.item,
-            day: @day,
-            list: @list,
-            is_public_list: @public_view
-          )
+        div(id: "#{record.class.name.downcase}_with_children_#{record.id}") do
+          # Route to appropriate component based on type
+          if @node.item
+            render_item_component(@node.item)
+          elsif @node.list
+            render ::Views::Items::ListLinkItem.new(
+              record: @node.list,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
+          end
 
-          # Render children if any
-          if @node.children.any?
+          # Render children (only for items, not lists in day context)
+          if @node.children.any? && @node.item
             div(class: "ml-6 mt-2 space-y-2 border-l-2 border-border/50 pl-3") do
               @node.children.each do |child_node|
                 render ::Views::Items::TreeNode.new(
@@ -38,6 +43,35 @@ module Views
               end
             end
           end
+        end
+      end
+
+      private
+
+      def render_item_component(item)
+        case item.item_type.to_sym
+        when :completable, :reusable, :trackable
+          render ::Views::Items::CompletableItem.new(
+            record: item,
+            day: @day,
+            list: @list,
+            is_public_list: @public_view
+          )
+        when :section
+          render ::Views::Items::SectionItem.new(
+            record: item,
+            day: @day,
+            list: @list,
+            is_public_list: @public_view
+          )
+        else
+          # Fallback to original Item component if needed
+          render ::Views::Items::Item.new(
+            item: item,
+            day: @day,
+            list: @list,
+            is_public_list: @public_view
+          )
         end
       end
     end

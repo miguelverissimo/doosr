@@ -12,12 +12,15 @@ class DaysController < ApplicationController
     # Fetch latest importable day for import button (only if current day is open)
     @latest_importable_day = Days::FindLatestImportableDayService.new(user: current_user, current_date: @date).call if @day&.open? || @day.nil?
 
-    # Fetch all items recursively if day exists
+    # Fetch all items and lists recursively if day exists
     if @day
       items_data = Days::FetchItemsService.new(day: @day).call
       @all_items = items_data[:all_items]
       @active_items = items_data[:active_items]
       @inactive_items = items_data[:inactive_items]
+      @all_lists = items_data[:all_lists]
+      @active_lists = items_data[:active_lists]
+      @inactive_lists = items_data[:inactive_lists]
     end
 
     render ::Views::Days::Show.new(
@@ -26,7 +29,10 @@ class DaysController < ApplicationController
       is_today: @is_today,
       all_items: @all_items,
       active_items: @active_items,
-      inactive_items: @inactive_items
+      inactive_items: @inactive_items,
+      all_lists: @all_lists,
+      active_lists: @active_lists,
+      inactive_lists: @inactive_lists
     )
   end
 

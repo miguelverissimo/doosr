@@ -2,11 +2,15 @@
 
 class Days::FetchItemsService
   # Service for recursively fetching all items from a day with nested items
+  # Also fetches lists (as leaf nodes, no recursion)
   # Returns:
   #   all_items: Flat array of all items at all nesting levels
   #   item_descendant_map: Maps item IDs to their descendant IDs (for tree building)
   #   active_items: Top-level active items (filtered from all_items)
   #   inactive_items: Top-level inactive items (filtered from all_items)
+  #   all_lists: Flat array of all lists linked to the day
+  #   active_lists: Top-level active lists
+  #   inactive_lists: Top-level inactive lists
 
   attr_reader :day
 
@@ -14,13 +18,17 @@ class Days::FetchItemsService
     @day = day
     @all_items = []
     @item_descendant_map = {}
+    @all_lists = []
   end
 
   def call
     return default_result unless day&.descendant
 
-    # Start traversal from day's descendant
+    # Start traversal from day's descendant for items
     traverse_descendant(day.descendant)
+
+    # Fetch lists from day's descendant (lists are leaf nodes, no recursion)
+    fetch_lists(day.descendant)
 
     # Filter top-level items from all_items (extract IDs from tuples)
     top_level_active_item_ids = day.descendant.extract_active_item_ids
@@ -29,11 +37,21 @@ class Days::FetchItemsService
     active_items = @all_items.select { |item| top_level_active_item_ids.include?(item.id) }
     inactive_items = @all_items.select { |item| top_level_inactive_item_ids.include?(item.id) }
 
+    # Filter top-level lists
+    top_level_active_list_ids = day.descendant.extract_active_ids_by_type("List")
+    top_level_inactive_list_ids = day.descendant.extract_inactive_ids_by_type("List")
+
+    active_lists = @all_lists.select { |list| top_level_active_list_ids.include?(list.id) }
+    inactive_lists = @all_lists.select { |list| top_level_inactive_list_ids.include?(list.id) }
+
     {
       all_items: @all_items,
       item_descendant_map: @item_descendant_map,
       active_items: active_items,
-      inactive_items: inactive_items
+      inactive_items: inactive_items,
+      all_lists: @all_lists,
+      active_lists: active_lists,
+      inactive_lists: inactive_lists
     }
   end
 
@@ -44,8 +62,21 @@ class Days::FetchItemsService
       all_items: [],
       item_descendant_map: {},
       active_items: [],
-      inactive_items: []
+      inactive_items: [],
+      all_lists: [],
+      active_lists: [],
+      inactive_lists: []
     }
+  end
+
+  def fetch_lists(descendant)
+    # Extract list IDs from descendant (no recursion - lists are leaf nodes)
+    all_list_ids = descendant.extract_active_ids_by_type("List") +
+                   descendant.extract_inactive_ids_by_type("List")
+    return if all_list_ids.empty?
+
+    # Fetch all lists with their descendants
+    @all_lists = List.where(id: all_list_ids).includes(:descendant).to_a
   end
 
   def traverse_descendant(descendant)

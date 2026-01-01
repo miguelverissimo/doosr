@@ -35,6 +35,9 @@ module Days
         # Migrate items, handling permanent section matching
         migrated_count = migrate_items(source_items, target_day)
 
+        # Migrate list links from source day to target day
+        migrate_list_links(target_day)
+
         # CRITICAL: Mark migration chain
         source_day.update!(
           imported_to_day_id: target_day.id,
@@ -178,6 +181,25 @@ module Days
       end
 
       true
+    end
+
+    def migrate_list_links(target_day)
+      # Get list links from source day
+      source_list_ids = source_day.descendant.extract_active_ids_by_type("List")
+      return if source_list_ids.empty?
+
+      # Add each list link to target day (only if user still has access and list still exists)
+      source_list_ids.each do |list_id|
+        list = user.lists.find_by(id: list_id)
+        next unless list
+
+        # Add to target day if not already present
+        unless target_day.descendant.active_record?("List", list_id)
+          target_day.descendant.add_active_record("List", list_id)
+        end
+      end
+
+      target_day.descendant.save!
     end
   end
 end

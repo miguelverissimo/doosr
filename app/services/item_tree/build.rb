@@ -1,8 +1,8 @@
 # app/services/item_tree/build.rb
 module ItemTree
   class Build
-    Node = Struct.new(:label, :item, :children, keyword_init: true) do
-      def initialize(label:, item: nil, children: [])
+    Node = Struct.new(:label, :item, :list, :children, keyword_init: true) do
+      def initialize(label:, item: nil, list: nil, children: [])
         super
       end
     end
@@ -33,41 +33,70 @@ module ItemTree
 
       @descendant_stack[descendant.id] = true
 
-      ids = ordered_item_ids(descendant)
-      return [] if ids.empty?
+      # Get all tuples (items and lists) in order
+      all_tuples = descendant.active_items + descendant.inactive_items
+      return [] if all_tuples.empty?
 
-      items_by_id = fetch_items_indexed(ids)
+      # Extract IDs by type
+      item_ids = descendant.extract_active_ids_by_type("Item") +
+                 descendant.extract_inactive_ids_by_type("Item")
+      list_ids = descendant.extract_active_ids_by_type("List") +
+                 descendant.extract_inactive_ids_by_type("List")
 
-      ids.filter_map do |id|
-        item = items_by_id[id]
-        next unless item # stale reference => skip
+      # Fetch items and lists
+      items_by_id = fetch_items_indexed(item_ids)
+      lists_by_id = fetch_lists_indexed(list_ids)
 
-        # Check for item-level cycle (item appears in its own descendant tree)
-        if @item_stack[item.id]
-          return [ Node.new(label: "(cycle detected)", children: []) ]
+      # Process tuples in order, creating nodes based on type
+      all_tuples.filter_map do |tuple|
+        type, id = tuple.first
+
+        case type
+        when "Item"
+          item = items_by_id[id]
+          next unless item # stale reference => skip
+
+          # Check for item-level cycle (item appears in its own descendant tree)
+          if @item_stack[item.id]
+            return [ Node.new(label: "(cycle detected)", children: []) ]
+          end
+
+          @item_stack[item.id] = true
+          children = build_children_for_descendant(item.descendant)
+          @item_stack.delete(item.id)
+
+          Node.new(
+            label: item.title,
+            item: item,
+            children: children
+          )
+
+        when "List"
+          list = lists_by_id[id]
+          next unless list # stale reference => skip
+
+          # Lists are leaf nodes in day context (no children rendered)
+          Node.new(
+            label: list.title,
+            list: list,
+            children: []
+          )
         end
-
-        @item_stack[item.id] = true
-        children = build_children_for_descendant(item.descendant)
-        @item_stack.delete(item.id)
-
-        Node.new(
-          label: item.title, # adjust if your display field differs
-          item: item,
-          children: children
-        )
       end
     ensure
       @descendant_stack.delete(descendant.id) if descendant&.id
     end
 
-    def ordered_item_ids(descendant)
-      descendant.extract_active_item_ids + descendant.extract_inactive_item_ids
-    end
-
     def fetch_items_indexed(ids)
+      return {} if ids.empty?
       # Polymorphic-safe: Item has_one :descendant
       Item.where(id: ids).includes(:descendant).index_by(&:id)
+    end
+
+    def fetch_lists_indexed(ids)
+      return {} if ids.empty?
+      # Lists also have descendants
+      List.where(id: ids).includes(:descendant).index_by(&:id)
     end
   end
 end
