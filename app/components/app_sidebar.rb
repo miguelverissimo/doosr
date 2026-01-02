@@ -28,11 +28,12 @@ class ::Components::AppSidebar < ::Components::Base
         is_lists_page = @pathname.start_with?("/lists")
         is_accounting_page = @pathname.start_with?("/accounting")
         is_checklists_page = @pathname.start_with?("/checklists")
+        is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
 
         if is_day_view
           # Show calendar for day view
           render_day_calendar
-        elsif is_well_page || is_lists_page || is_accounting_page || is_checklists_page
+        elsif is_well_page || is_lists_page || is_accounting_page || is_checklists_page || is_fixed_calendar_page
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(
@@ -74,6 +75,16 @@ class ::Components::AppSidebar < ::Components::Base
             ) do
               render ::Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
+            end
+          end
+          SidebarMenuItem do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.fixed_calendar_path,
+              data: { action: "click->nav-loader#show" }
+            ) do
+              render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Fixed Calendar" }
             end
           end
         end

@@ -13,19 +13,19 @@ module Views
         # Date display with import status
         div do
             h1(class: "font-semibold text-base") { full_date }
-            p(class: "text-xs") do
-              # Weekday in normal color
-              span(class: "text-foreground") { weekday }
+            p(class: "text-sm") do
+              # Fixed Calendar date
+              span(class: "dark:text-sky-400 text-sky-600") { fixed_calendar_date }
 
               # Import status in muted color
               if @day&.imported_from_day
-                span(class: "text-muted-foreground") do
+                span(class: "text-muted-foreground text-xs") do
                   plain " • Imported from #{format_date(@day.imported_from_day.date)}"
                 end
               end
 
               if @day&.imported_to_day
-                span(class: "text-muted-foreground") do
+                span(class: "text-muted-foreground text-xs") do
                   plain " • Imported to #{format_date(@day.imported_to_day.date)}"
                 end
               end
@@ -46,12 +46,17 @@ module Views
 
       def full_date
         # Format: "November 19, 2025"
-        @date.strftime("%B %-d, %Y")
+        @date.strftime("%A, %B %-d, %Y")
       end
 
       def weekday
         # Format: "Wednesday"
         @date.strftime("%A")
+      end
+
+      def fixed_calendar_date
+        converter = ::FixedCalendar::Converter.new(@date)
+        converter.to_formatted_string
       end
 
       def format_date(date)

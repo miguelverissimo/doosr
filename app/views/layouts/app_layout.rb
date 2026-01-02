@@ -123,7 +123,7 @@ class ::Views::Layouts::AppLayout < ::Views::Base
         raw(view_context.javascript_importmap_tags)
       end
 
-      body(data: { controller: "pwa nav-loader" }, class: "dark") do
+      body(data: { controller: "pwa nav-loader" }) do
         render ::Components::Toast.new
 
         # Global navigation loading spinner
@@ -214,6 +214,9 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               elsif @pathname == "/accounting" || @pathname == "/accounting/"
                 # Accounting page
                 render ::Views::Accounting::Header.new
+              elsif @pathname == "/fixed_calendar" || @pathname == "/fixed_calendar/"
+                # Fixed Calendar page
+                render ::Views::FixedCalendar::Header.new
               end
 
               div(class: "flex items-center gap-2") do

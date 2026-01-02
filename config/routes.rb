@@ -59,6 +59,9 @@ Rails.application.routes.draw do
   # Ephemeries
   get "ephemeries", to: "ephemeries#index", as: :ephemeries
 
+  # Fixed Calendar - 13-month equinox-based calendar view
+  get "fixed_calendar", to: "fixed_calendar#index", as: :fixed_calendar
+
   # Lists - reusable item collections
   resources :lists do
     member do
