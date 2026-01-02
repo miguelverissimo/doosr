@@ -41,12 +41,12 @@ class ItemTest < ActiveSupport::TestCase
   end
 
   test "items can be deferred" do
-    future_date = 1.week.from_now
+    # Round to microsecond precision before saving to match PostgreSQL precision
+    future_date = 1.week.from_now.round(6)
     assert @item.set_deferred!(future_date)
     assert @item.deferred?
     assert_not_nil @item.deferred_at
-    # Round to microsecond precision to match PostgreSQL timestamp precision
-    assert_equal future_date.round(6), @item.deferred_to
+    assert_equal future_date, @item.deferred_to
   end
 
   test "items can be returned to todo state" do
