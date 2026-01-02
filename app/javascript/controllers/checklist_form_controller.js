@@ -40,6 +40,7 @@ export default class extends Controller {
 				items.push({
 					type: "completable",
 					title: titleInput.value || "",
+					completed_at: null,
 				});
 			}
 		});
@@ -54,6 +55,7 @@ export default class extends Controller {
 		this.items.push({
 			type: "completable",
 			title: "",
+			completed_at: null,
 		});
 		this.renderItems();
 		// Focus on the new item's input

@@ -94,6 +94,15 @@ class Descendant < ApplicationRecord
     self.active_items = active_items + [ tuple ]
   end
 
+  # Add a record to active_items (at the beginning)
+  # @param type [String] The record type (e.g., "Item", "Link")
+  # @param id [Integer] The record ID
+  def prepend_active_record(type, id)
+    tuple = build_tuple(type, id)
+    return if active_items.include?(tuple)
+    self.active_items = [ tuple ] + active_items
+  end
+
   # Add a record to inactive_items (at the end)
   # @param type [String] The record type (e.g., "Item", "Link")
   # @param id [Integer] The record ID

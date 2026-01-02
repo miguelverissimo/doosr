@@ -73,6 +73,12 @@ class ::Components::Icon < ::Components::Base
     when :arrow_down
       svg_element.path(d: "M12 5v14")
       svg_element.path(d: "m19 12-7 7-7-7")
+    when :arrow_left
+      svg_element.path(d: "M19 12H5")
+      svg_element.path(d: "m12 19-7-7 7-7")
+    when :arrow_right
+      svg_element.path(d: "M5 12h14")
+      svg_element.path(d: "m12 5 7 7-7 7")
     when :bug
       svg_element.path(d: "m8 2 1.88 1.88")
       svg_element.path(d: "M14.12 3.88 16 2")
@@ -256,6 +262,16 @@ class ::Components::Icon < ::Components::Base
     when :link
       svg_element.path(d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71")
       svg_element.path(d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71")
+    when :grid
+      svg_element.rect(x: "3", y: "3", width: "7", height: "7")
+      svg_element.rect(x: "14", y: "3", width: "7", height: "7")
+      svg_element.rect(x: "14", y: "14", width: "7", height: "7")
+      svg_element.rect(x: "3", y: "14", width: "7", height: "7")
+    when :refresh
+      svg_element.path(d: "M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8")
+      svg_element.path(d: "M3 3v5h5")
+      svg_element.path(d: "M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16")
+      svg_element.path(d: "M16 16h5v5")
     else
       # Unknown icon - render nothing or a placeholder
       svg_element.path(d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z")

@@ -46,6 +46,16 @@ Rails.application.routes.draw do
     end
   end
 
+  # Day checklist links - linking checklists to days
+  resources :day_checklist_links, only: [ :create, :destroy ] do
+    member do
+      get "actions", to: "day_checklist_links#actions_sheet", as: "actions_sheet"
+      patch "move", to: "day_checklist_links#move", as: "move"
+      patch "reparent", to: "day_checklist_links#reparent", as: "reparent"
+      get "debug", to: "day_checklist_links#debug", as: "debug"
+    end
+  end
+
   # Ephemeries
   get "ephemeries", to: "ephemeries#index", as: :ephemeries
 
@@ -171,7 +181,12 @@ Rails.application.routes.draw do
   end
 
   # Checklists
-  resources :checklists, only: [ :index, :show, :create, :update, :destroy ]
+  resources :checklists, only: [ :index, :show, :create, :update, :destroy ] do
+    member do
+      patch "complete_item", to: "checklists#complete_item", as: "complete_item"
+      post "reset", to: "checklists#reset", as: "reset"
+    end
+  end
 
   # Authenticated users see the day view, unauthenticated users see sign in
   devise_scope :user do

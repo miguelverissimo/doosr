@@ -3,12 +3,13 @@
 class ::Views::Layouts::AppLayout < ::Views::Base
   include Phlex::Rails::Layout
 
-  def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil, list: nil)
+  def initialize(pathname:, selected_date: nil, day: nil, latest_importable_day: nil, list: nil, checklist: nil)
     @pathname = pathname
     @selected_date = selected_date
     @day = day
     @latest_importable_day = latest_importable_day
     @list = list
+    @checklist = checklist
   end
 
   private
@@ -205,6 +206,11 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               elsif @pathname == "/checklists" || @pathname == "/checklists/"
                 # Checklists page
                 render ::Views::Checklists::Header.new
+              elsif @checklist
+                # Individual checklist show page
+                div(class: "flex items-center gap-3 flex-1") do
+                  h1(class: "font-semibold text-base truncate") { @checklist.name }
+                end
               elsif @pathname == "/accounting" || @pathname == "/accounting/"
                 # Accounting page
                 render ::Views::Accounting::Header.new

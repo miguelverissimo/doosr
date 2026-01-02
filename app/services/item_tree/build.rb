@@ -1,8 +1,8 @@
 # app/services/item_tree/build.rb
 module ItemTree
   class Build
-    Node = Struct.new(:label, :item, :list, :children, keyword_init: true) do
-      def initialize(label:, item: nil, list: nil, children: [])
+    Node = Struct.new(:label, :item, :list, :checklist, :children, keyword_init: true) do
+      def initialize(label:, item: nil, list: nil, checklist: nil, children: [])
         super
       end
     end
@@ -42,10 +42,13 @@ module ItemTree
                  descendant.extract_inactive_ids_by_type("Item")
       list_ids = descendant.extract_active_ids_by_type("List") +
                  descendant.extract_inactive_ids_by_type("List")
+      checklist_ids = descendant.extract_active_ids_by_type("Checklist") +
+                      descendant.extract_inactive_ids_by_type("Checklist")
 
-      # Fetch items and lists
+      # Fetch items, lists, and checklists
       items_by_id = fetch_items_indexed(item_ids)
       lists_by_id = fetch_lists_indexed(list_ids)
+      checklists_by_id = fetch_checklists_indexed(checklist_ids)
 
       # Process tuples in order, creating nodes based on type
       all_tuples.filter_map do |tuple|
@@ -81,6 +84,17 @@ module ItemTree
             list: list,
             children: []
           )
+
+        when "Checklist"
+          checklist = checklists_by_id[id]
+          next unless checklist # stale reference => skip
+
+          # Checklists are leaf nodes in day context (no children rendered)
+          Node.new(
+            label: checklist.name,
+            checklist: checklist,
+            children: []
+          )
         end
       end
     ensure
@@ -97,6 +111,11 @@ module ItemTree
       return {} if ids.empty?
       # Lists also have descendants
       List.where(id: ids).includes(:descendant).index_by(&:id)
+    end
+
+    def fetch_checklists_indexed(ids)
+      return {} if ids.empty?
+      Checklist.where(id: ids).index_by(&:id)
     end
   end
 end
