@@ -31,6 +31,15 @@ class ::Components::Icon < ::Components::Base
 
   def render_icon_paths(svg_element)
     case @name
+    when :completable
+      svg_element.path(d: "M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344")
+      svg_element.path(d: "m9 11 3 3L22 4")
+    when :section
+      svg_element.path(d: "M8 5h13")
+      svg_element.path(d: "M13 12h8")
+      svg_element.path(d: "M13 19h8")
+      svg_element.path(d: "M3 10a2 2 0 0 0 2 2h3")
+      svg_element.path(d: "M3 5v12a2 2 0 0 0 2 2h3")
     when :edit
       svg_element.path(d: "M12 20h9")
       svg_element.path(d: "M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z")

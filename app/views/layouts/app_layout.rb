@@ -159,17 +159,7 @@ class ::Views::Layouts::AppLayout < ::Views::Base
         SidebarWrapper do
           render ::Components::AppSidebar.new(pathname: @pathname, selected_date: @selected_date)
 
-          SidebarInset(
-            data: begin
-              if @day
-                { controller: "day-move", day_move_day_id_value: @day.id }
-              elsif @list
-                { controller: "day-move", day_move_list_id_value: @list.id }
-              else
-                {}
-              end
-            end
-          ) do
+          SidebarInset do
             header(class: "sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4") do
               SidebarTrigger(class: "-ml-1")
 
@@ -218,16 +208,6 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               elsif @pathname == "/accounting" || @pathname == "/accounting/"
                 # Accounting page
                 render ::Views::Accounting::Header.new
-              end
-
-              # Cancel button for moving mode (hidden by default)
-              div(
-                data: { day_move_target: "cancelButton" },
-                class: "hidden"
-              ) do
-                Button(variant: :outline, size: :sm, data: { action: "click->day-move#cancelMoving" }) do
-                  "Cancel Move"
-                end
               end
 
               div(class: "flex items-center gap-2") do
