@@ -61,6 +61,7 @@ Rails.application.routes.draw do
 
   # Fixed Calendar - 13-month equinox-based calendar view
   get "fixed_calendar", to: "fixed_calendar#index", as: :fixed_calendar
+  get "fixed_calendar/ritual", to: "fixed_calendar#ritual", as: :fixed_calendar_ritual
 
   # Lists - reusable item collections
   resources :lists do

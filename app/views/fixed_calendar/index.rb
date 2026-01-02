@@ -3,13 +3,22 @@
 module Views
   module FixedCalendar
     class Index < ::Views::Base
-      def initialize(target_date:, calendar_data:)
+      def initialize(target_date:, calendar_data:, open_ritual: false)
         @target_date = target_date
         @calendar_data = calendar_data
+        @open_ritual = open_ritual
       end
 
       def view_template
-        div(class: "max-w-7xl mx-auto") do
+        div(
+          class: "max-w-7xl mx-auto",
+          data: {
+            controller: @open_ritual ? "auto-open-ritual" : nil,
+            auto_open_ritual_month_value: @calendar_data[:month_index],
+            auto_open_ritual_day_value: @calendar_data[:day],
+            auto_open_ritual_type_value: @calendar_data[:type]
+          }
+        ) do
           # Year display at top
           if @calendar_data[:cycle_year]
             div(class: "mb-6 text-center") do
@@ -51,6 +60,7 @@ module Views
             current_day = (@calendar_data[:type] == :regular && @calendar_data[:month_index] == month_idx) ? @calendar_data[:day] : nil
             render Components::Calendar::MonthView.new(
               month_name: ::FixedCalendar::Converter::MONTHS[month_idx],
+              month_index: month_idx,
               current_day: current_day
             )
           end
@@ -65,6 +75,7 @@ module Views
             current_day = (@calendar_data[:type] == :regular && @calendar_data[:month_index] == month_idx) ? @calendar_data[:day] : nil
             render Components::Calendar::MonthView.new(
               month_name: ::FixedCalendar::Converter::MONTHS[month_idx],
+              month_index: month_idx,
               current_day: current_day
             )
           end
@@ -96,6 +107,7 @@ module Views
 
       def render_year_day_box
         is_year_day = @calendar_data[:type] == :year_day
+        ritual = ::FixedCalendar::Converter.ritual_for_year_day
 
         div(class: "w-full") do
           # Header
@@ -106,7 +118,13 @@ module Views
           # Box
           div(class: "border border-border rounded-md overflow-hidden") do
             div(class: "grid grid-cols-1") do
-              div(class: special_day_classes(is_year_day)) do
+              div(
+                class: special_day_classes(is_year_day, ritual),
+                data: {
+                  controller: "fixed-calendar-ritual",
+                  action: "click->fixed-calendar-ritual#showYearDayRitual"
+                }
+              ) do
                 plain "Year Day"
               end
             end
@@ -114,11 +132,13 @@ module Views
         end
       end
 
-      def special_day_classes(is_current)
+      def special_day_classes(is_current, ritual = nil)
         base = "text-center py-8 text-sm border-border"
 
         if is_current
           "#{base} bg-primary text-primary-foreground font-semibold"
+        elsif ritual
+          "#{base} bg-rose-500/10 text-rose-500 cursor-pointer hover:bg-rose-500/20 transition-colors"
         else
           "#{base} hover:bg-accent hover:text-accent-foreground transition-colors"
         end

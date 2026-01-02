@@ -454,3 +454,9 @@ Key route patterns:
 5. **ULID for slugs**: Public lists use ULID for URL-safe unique identifiers.
 
 6. **Class organization**: Never use the `public` keyword and use a single `private` keyword per class. Keep all public methods before the `private` keyword.
+
+7. **Class references with :: prefix**: ALWAYS prefix class references with `::` to reference top-level constants and avoid namespace collisions. This is especially critical when referencing classes from within module namespaces.
+   - ✅ CORRECT: `::FixedCalendar::Converter.ritual_for_day`
+   - ❌ WRONG: `FixedCalendar::Converter.ritual_for_day` (inside `Views::FixedCalendar` module)
+   - The `::` prefix ensures Ruby looks for the class at the top level, not within the current module
+   - Example error without `::`: `NameError (uninitialized constant Views::FixedCalendar::Converter)` when trying to reference `FixedCalendar::Converter` from within `Views::FixedCalendar` module

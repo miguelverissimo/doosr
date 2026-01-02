@@ -17,7 +17,7 @@ module RubyUI
       {
         data: {
           controller: "ruby-ui--dialog",
-          ruby_ui__dialog_open_value: @open
+          ruby_ui__dialog_open_value: @open.to_s
         }
       }
     end

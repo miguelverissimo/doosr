@@ -15,7 +15,7 @@ module Views
             h1(class: "font-semibold text-base") { full_date }
             p(class: "text-sm") do
               # Fixed Calendar date
-              span(class: "dark:text-sky-400 text-sky-600") { fixed_calendar_date }
+              render_fixed_calendar_date_link
 
               # Import status in muted color
               if @day&.imported_from_day
@@ -45,18 +45,23 @@ module Views
       private
 
       def full_date
-        # Format: "November 19, 2025"
+        # Format: "Friday, January 2, 2026"
         @date.strftime("%A, %B %-d, %Y")
       end
 
-      def weekday
-        # Format: "Wednesday"
-        @date.strftime("%A")
-      end
-
-      def fixed_calendar_date
+      def render_fixed_calendar_date_link
+        # @date = Date.new(2026, 1, 18)
         converter = ::FixedCalendar::Converter.new(@date)
-        converter.to_formatted_string
+        case converter.has_ritual?
+        when true
+          render Components::ColoredLink.new(href: view_context.fixed_calendar_path(date: @date, open_ritual: true), variant: :ghost_rose, size: :md, plain: true) do
+            converter.to_formatted_string
+          end
+        when false
+          render Components::ColoredLink.new(href: view_context.fixed_calendar_path(date: @date), variant: :ghost_sky, size: :md, plain: true) do
+            converter.to_formatted_string
+          end
+        end
       end
 
       def format_date(date)

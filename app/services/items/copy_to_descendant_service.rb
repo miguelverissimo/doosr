@@ -44,11 +44,16 @@ class Items::CopyToDescendantService
   end
 
   def create_new_item
+    # CRITICAL: Never copy the permanent_section flag to prevent duplicates
+    # Permanent sections should always be created by DayOpeningService, not by copying
+    extra_data_to_copy = source_item.extra_data&.dup || {}
+    extra_data_to_copy.delete("permanent_section") if extra_data_to_copy.is_a?(Hash)
+
     user.items.create!(
       title: source_item.title,
       item_type: source_item.item_type,
       state: source_item.state,
-      extra_data: source_item.extra_data,
+      extra_data: extra_data_to_copy.presence,
       source_item_id: source_item.id,
       deferred_at: source_item.deferred_at,
       deferred_to: source_item.deferred_to,
@@ -105,6 +110,13 @@ class Items::CopyToDescendantService
   def should_copy_item_for_migration?(item)
     # Used when filtering child items for copying
     # Note: We only get active items from descendant, but need to filter by state too
+
+    # CRITICAL: NEVER copy permanent sections - they should already exist in target day
+    # Permanent sections are ALWAYS at day root level and should never be nested
+    # If we encounter one nested, skip it to prevent duplicates
+    if item.item_type == "section" && item.extra_data&.dig("permanent_section")
+      return false
+    end
 
     # CRITICAL: Completable items ONLY get copied if they are in 'todo' state
     # NEVER copy completable items that are done, dropped, or deferred

@@ -154,6 +154,10 @@ module Days
       # Copy each child to target section
       # CRITICAL: Check if item should be migrated before copying (state filtering)
       source_children.each do |child_item|
+        # CRITICAL: NEVER migrate permanent sections - they should not be nested
+        # If we find one, skip it to prevent duplicates
+        next if is_permanent_section?(child_item)
+
         # CRITICAL: Only copy items that pass the should_migrate_item? check
         next unless should_migrate_item?(child_item)
 

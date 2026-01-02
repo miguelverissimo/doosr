@@ -268,6 +268,9 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               # Turbo frame for day migration modal
               div(id: "day_migration_modal")
 
+              # Container for ritual modals
+              div(id: "ritual_modal_container")
+
               yield
             end
           end
