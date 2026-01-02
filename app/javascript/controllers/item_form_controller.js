@@ -90,6 +90,11 @@ export default class extends Controller {
 	}
 
 	updateTypeIcon() {
+		// Only update if we have the typeIcon target (for lists view)
+		if (!this.hasTypeIconTarget) {
+			return;
+		}
+
 		const icon = this.typeIconTarget;
 
 		// Clear existing paths
