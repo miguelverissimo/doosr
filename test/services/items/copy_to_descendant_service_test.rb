@@ -132,7 +132,8 @@ class Items::CopyToDescendantServiceTest < ActiveSupport::TestCase
     new_item = result[:new_item]
 
     assert_equal "section", new_item.item_type
-    assert_equal section.extra_data, new_item.extra_data
+    # CRITICAL: permanent_section should NOT be copied (to prevent duplicates)
+    assert_equal({}, new_item.extra_data)
     assert_equal section.id, new_item.source_item_id
   end
 

@@ -53,7 +53,7 @@ class Items::CopyToDescendantService
       title: source_item.title,
       item_type: source_item.item_type,
       state: source_item.state,
-      extra_data: extra_data_to_copy.presence,
+      extra_data: extra_data_to_copy,
       source_item_id: source_item.id,
       deferred_at: source_item.deferred_at,
       deferred_to: source_item.deferred_to,
