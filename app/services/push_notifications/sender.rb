@@ -80,12 +80,14 @@ module PushNotifications
     private
 
     def build_payload
+      base_url = "https://#{ENV.fetch('APP_HOST', 'localhost:3000')}"
+
       {
         title: title,
         options: {
           body: body,
-          icon: "/icon.png",
-          badge: "/icon.png",
+          icon: "#{base_url}/icon.png",
+          badge: "#{base_url}/icon.png",
           data: data.merge(
             path: data[:path] || "/",
             timestamp: Time.current.to_i
