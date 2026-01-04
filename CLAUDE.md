@@ -16,6 +16,39 @@ Doosr is a daily task management application built with Rails 8.1, Hotwire (Turb
 - **Job Queue**: Solid Queue
 - **Cache**: Solid Cache
 - **WebSockets**: Action Cable (Solid Cable)
+- **Push Notifications**: Web Push API with VAPID keys (works in Firefox; Chrome requires `gcm_sender_id` in manifest)
+- **Deployment**: Coolify (Docker-based deployment platform)
+
+## Deployment
+
+**CRITICAL: This application is deployed using Coolify, NOT Fly.io, Heroku, or other platforms.**
+
+### Coolify Deployment
+- **Platform**: Coolify (self-hosted Docker deployment)
+- **Container**: Uses Dockerfile in the repository root
+- **Environment Variables**: Set via Coolify UI (Settings → Environment Variables)
+- **Persistent Storage**: Configure via Coolify UI (Settings → Persistent Storage)
+  - Storage volume mounted at `/rails/storage` for ActiveStorage files
+- **Database Migrations**: Run automatically via `bin/docker-entrypoint` script
+- **Server**: Thruster web server (exposes port 80)
+
+### Setting Environment Variables in Coolify
+1. Go to your application in Coolify UI
+2. Navigate to Settings → Environment Variables
+3. Add/edit variables (e.g., `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, etc.)
+4. Redeploy the application for changes to take effect
+
+### Running Commands in Production
+Access the production container via Coolify's built-in terminal:
+1. Go to your application in Coolify UI
+2. Click on "Terminal" or "Execute Command"
+3. Run commands like `bin/rails db:migrate`, `bin/rails console`, etc.
+
+### Checking Logs
+View application logs in Coolify UI:
+1. Go to your application
+2. Click on "Logs" tab
+3. Filter by container/service as needed
 
 ## Development Commands
 

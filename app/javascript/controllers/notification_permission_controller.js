@@ -52,6 +52,11 @@ export default class extends Controller {
 
   async subscribe() {
     try {
+      // Check if VAPID key is configured
+      if (!this.vapidPublicKeyValue || this.vapidPublicKeyValue.trim() === '') {
+        throw new Error('VAPID keys not configured on server. Please contact administrator.')
+      }
+
       // Check if service worker is supported
       if (!('serviceWorker' in navigator)) {
         throw new Error('Service Workers not supported')
@@ -76,6 +81,7 @@ export default class extends Controller {
 
       // Subscribe to push notifications
       console.log('Subscribing to push notifications...')
+      console.log('VAPID key length:', this.vapidPublicKeyValue.length)
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKeyValue)
@@ -104,15 +110,25 @@ export default class extends Controller {
       console.error('Subscription failed:', error)
 
       let errorMessage = 'Failed to enable notifications'
-      if (error.message.includes('not supported')) {
+      let description = error.message
+
+      if (error.message.includes('VAPID keys not configured')) {
+        errorMessage = 'Server not configured'
+        description = 'VAPID keys are missing. Run: bin/rails notifications:generate_vapid_keys'
+      } else if (error.message.includes('not supported')) {
         errorMessage = error.message
       } else if (error.name === 'AbortError') {
-        errorMessage = 'Push service error. Are you using HTTPS or localhost?'
-      } else if (error.name === 'InvalidAccessError') {
-        errorMessage = 'Invalid VAPID key. Please check server configuration.'
+        errorMessage = 'Push service error'
+        description = 'Possible causes: Invalid VAPID keys, not using HTTPS, or browser restriction. Check console for details.'
+      } else if (error.name === 'InvalidAccessError' || error.name === 'InvalidStateError') {
+        errorMessage = 'Invalid VAPID key'
+        description = 'The server VAPID keys are not properly configured. Please check environment variables.'
+      } else if (error.name === 'NotAllowedError') {
+        errorMessage = 'Permission denied'
+        description = 'Please allow notifications in your browser settings'
       }
 
-      window.toast(errorMessage, { type: 'error', description: error.message })
+      window.toast(errorMessage, { type: 'error', description: description })
     }
   }
 
@@ -173,15 +189,31 @@ export default class extends Controller {
   }
 
   urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
+    try {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4)
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+      console.log('Converting VAPID key:', {
+        original_length: base64String.length,
+        with_padding_length: base64.length,
+        first_chars: base64String.substring(0, 10)
+      })
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i)
+      const rawData = window.atob(base64)
+      const outputArray = new Uint8Array(rawData.length)
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i)
+      }
+
+      console.log('Converted to Uint8Array:', {
+        length: outputArray.length,
+        first_byte: outputArray[0]
+      })
+
+      return outputArray
+    } catch (error) {
+      console.error('Error converting VAPID key:', error)
+      throw error
     }
-
-    return outputArray
   }
 }
