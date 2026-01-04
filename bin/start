@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+# Start Solid Queue worker in background
+echo "Starting Solid Queue worker..."
+bundle exec bin/jobs &
+
+# Start web server in foreground
+echo "Starting Rails web server..."
+exec ./bin/thrust ./bin/rails server

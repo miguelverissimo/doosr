@@ -113,6 +113,22 @@ Rails.application.routes.draw do
     post "migration_settings", to: "settings#update_migration_settings" # Temporary fallback
   end
 
+  # Push Notifications
+  resources :push_subscriptions, only: [ :create, :destroy ]
+
+  # Admin
+  namespace :admin do
+    resources :notifications, only: [ :index ] do
+      collection do
+        post :send_test
+        post :send_scheduled_test
+      end
+      member do
+        post :send_to_device
+      end
+    end
+  end
+
   # Accounting
   resources :accounting, only: [ :index ] do
     collection do

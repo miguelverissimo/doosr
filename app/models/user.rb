@@ -14,6 +14,8 @@ class User < ApplicationRecord
   has_many :items, dependent: :destroy
   has_many :lists, dependent: :destroy
   has_many :checklists, dependent: :destroy
+  has_many :push_subscriptions, dependent: :destroy
+  has_many :notification_logs, dependent: :destroy
 
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy

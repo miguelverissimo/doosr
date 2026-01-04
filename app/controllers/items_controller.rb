@@ -1073,7 +1073,7 @@ class ItemsController < ApplicationController
   end
 
   def item_params
-    params.require(:item).permit(:title, :item_type, :state)
+    params.require(:item).permit(:title, :item_type, :state, :notification_time)
   end
 
   def find_day

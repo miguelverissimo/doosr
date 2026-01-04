@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_29_143912) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_03_063642) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -284,6 +284,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_143912) do
     t.datetime "dropped_at"
     t.jsonb "extra_data", default: {}, null: false
     t.integer "item_type", default: 0, null: false
+    t.datetime "notification_time"
     t.string "recurrence_rule"
     t.bigint "recurring_next_item_id"
     t.bigint "source_item_id"
@@ -294,6 +295,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_143912) do
     t.index ["descendant_id"], name: "index_items_on_descendant_id"
     t.index ["extra_data"], name: "index_items_on_extra_data", using: :gin
     t.index ["item_type"], name: "index_items_on_item_type"
+    t.index ["notification_time"], name: "index_items_on_notification_time"
     t.index ["recurring_next_item_id"], name: "index_items_on_recurring_next_item_id"
     t.index ["source_item_id"], name: "index_items_on_source_item_id"
     t.index ["state"], name: "index_items_on_state"
@@ -313,6 +315,38 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_143912) do
     t.index ["list_type"], name: "index_lists_on_list_type"
     t.index ["slug"], name: "index_lists_on_slug", unique: true
     t.index ["user_id"], name: "index_lists_on_user_id"
+  end
+
+  create_table "notification_logs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.bigint "item_id"
+    t.string "notification_type", null: false
+    t.jsonb "payload"
+    t.bigint "push_subscription_id"
+    t.datetime "sent_at"
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["item_id"], name: "index_notification_logs_on_item_id"
+    t.index ["notification_type", "status"], name: "index_notification_logs_on_notification_type_and_status"
+    t.index ["push_subscription_id"], name: "index_notification_logs_on_push_subscription_id"
+    t.index ["user_id", "created_at"], name: "index_notification_logs_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_notification_logs_on_user_id"
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.text "auth_key", null: false
+    t.datetime "created_at", null: false
+    t.string "endpoint", null: false
+    t.datetime "last_used_at"
+    t.text "p256dh_key", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.bigint "user_id", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id", "created_at"], name: "index_push_subscriptions_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
   end
 
   create_table "receipt_items", force: :cascade do |t|
@@ -429,6 +463,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_29_143912) do
   add_foreign_key "items", "users"
   add_foreign_key "lists", "descendants"
   add_foreign_key "lists", "users"
+  add_foreign_key "notification_logs", "items"
+  add_foreign_key "notification_logs", "push_subscriptions"
+  add_foreign_key "notification_logs", "users"
+  add_foreign_key "push_subscriptions", "users"
   add_foreign_key "receipt_items", "tax_brackets"
   add_foreign_key "receipt_items", "users"
   add_foreign_key "receipt_receipt_items", "receipt_items"

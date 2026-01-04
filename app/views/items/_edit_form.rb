@@ -47,6 +47,19 @@ module Views
               )
             end
 
+            # Notification Time Input
+            div(class: "space-y-2") do
+              label(for: "item_notification_time", class: "text-sm font-medium") { "Notification" }
+              input(
+                type: "datetime-local",
+                id: "item_notification_time",
+                name: "item[notification_time]",
+                value: @item.notification_time&.strftime("%Y-%m-%dT%H:%M"),
+                class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              )
+              p(class: "text-xs text-muted-foreground") { "Optional: Set a time to be notified about this item" }
+            end
+
             # Action Buttons
             div(class: "flex items-center gap-2 mt-6") do
               Button(type: :submit, variant: :primary) do

@@ -69,9 +69,31 @@ self.addEventListener('fetch', (event) => {
 
 // Web Push notifications support
 self.addEventListener("push", async (event) => {
+  console.log('[Service Worker] Push event received', event);
+
   if (event.data) {
-    const { title, options } = await event.data.json();
-    event.waitUntil(self.registration.showNotification(title, options));
+    try {
+      const data = await event.data.json();
+      console.log('[Service Worker] Push data:', data);
+
+      const { title, options } = data;
+      console.log('[Service Worker] Showing notification:', title, options);
+
+      const showPromise = self.registration.showNotification(title, options)
+        .then(() => {
+          console.log('[Service Worker] Notification shown successfully!');
+        })
+        .catch((error) => {
+          console.error('[Service Worker] showNotification failed:', error);
+        });
+
+      event.waitUntil(showPromise);
+    } catch (error) {
+      console.error('[Service Worker] Error parsing push data:', error);
+      console.log('[Service Worker] Raw push data:', event.data.text());
+    }
+  } else {
+    console.warn('[Service Worker] Push event has no data');
   }
 });
 

@@ -30,6 +30,7 @@ class Item < ApplicationRecord
   # Inverse associations
   has_many :items_imported_from_this, class_name: "Item", foreign_key: "source_item_id", dependent: :nullify
   has_many :recurring_previous_items, class_name: "Item", foreign_key: "recurring_next_item_id", dependent: :nullify
+  has_many :notification_logs, dependent: :nullify
 
   # Enums
   enum :item_type, {
@@ -53,6 +54,7 @@ class Item < ApplicationRecord
   validates :state, presence: true
   validate :section_cannot_have_completion_state
   validate :deferred_to_must_be_future
+  validate :notification_time_must_be_future, on: :create
 
   # Callbacks
   after_create :create_descendant_if_needed
@@ -67,6 +69,10 @@ class Item < ApplicationRecord
   scope :active, -> { where(state: :todo) }
   scope :completed, -> { where(state: :done) }
   scope :ordered_by_creation, -> { order(created_at: :asc) }
+  scope :with_pending_notifications, -> {
+    where("notification_time IS NOT NULL AND notification_time <= ?", Time.current)
+      .where(state: :todo)
+  }
 
   # State transition methods with descendant management
   def set_todo!
@@ -365,6 +371,12 @@ class Item < ApplicationRecord
   def deferred_to_must_be_future
     if deferred? && deferred_to.present? && deferred_to.to_date < Date.today
       errors.add(:deferred_to, "must be today or in the future")
+    end
+  end
+
+  def notification_time_must_be_future
+    if notification_time.present? && notification_time < Time.current
+      errors.add(:notification_time, "must be in the future")
     end
   end
 

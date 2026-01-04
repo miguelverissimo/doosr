@@ -145,6 +145,7 @@ GEM
       nokogiri (~> 1)
     hashie (5.1.0)
       logger
+    hkdf (0.3.0)
     i18n (1.14.8)
       concurrent-ruby (~> 1.0)
     image_processing (1.14.0)
@@ -163,7 +164,7 @@ GEM
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     json (2.18.0)
-    jwt (3.1.2)
+    jwt (2.10.2)
       base64
     kamal (2.10.1)
       activesupport (>= 7.0)
@@ -464,6 +465,9 @@ GEM
       activemodel (>= 6.0.0)
       bindex (>= 0.4.0)
       railties (>= 6.0.0)
+    webpush (1.1.0)
+      hkdf (~> 0.2)
+      jwt (~> 2.0)
     websocket (1.2.11)
     websocket-driver (0.8.0)
       base64
@@ -496,6 +500,7 @@ DEPENDENCIES
   image_processing (~> 1.2)
   importmap-rails
   jbuilder
+  jwt
   kamal
   kaminari
   minitest (~> 5.0)
@@ -522,6 +527,7 @@ DEPENDENCIES
   turbo-rails
   tzinfo-data
   web-console
+  webpush (~> 1.1)
 
 BUNDLED WITH
    2.6.9

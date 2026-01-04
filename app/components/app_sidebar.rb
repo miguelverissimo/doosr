@@ -104,6 +104,22 @@ class ::Components::AppSidebar < ::Components::Base
             end
           end
         end
+
+        SidebarMenu do
+          SidebarMenuItem do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.admin_notifications_path,
+              data: {
+                action: "click->nav-loader#show",
+                turbo_prefetch: false
+              }
+            ) do
+              render ::Components::Icon.new(name: :bell, size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Admin" }
+            end
+          end
+        end
       end
 
       SidebarFooter()
