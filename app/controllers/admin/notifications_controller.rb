@@ -41,7 +41,7 @@ module Admin
           end
         else
           format.turbo_stream do
-            error_message = result[:error] || result[:errors]&.first || 'Unknown error'
+            error_message = result[:error] || result[:errors]&.first || "Unknown error"
             render turbo_stream: turbo_stream.append(
               "body",
               "<script>window.toast && window.toast('Failed to send notification', { type: 'error', description: '#{error_message}' })</script>"

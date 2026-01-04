@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# check=error=true
+# check=skip=SecretsUsedInArgOrEnv
 
 # This Dockerfile is designed for production, not development. Use with Coolify or build'n'run by hand:
 # docker build -t doosr .

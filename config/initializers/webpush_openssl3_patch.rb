@@ -17,13 +17,13 @@ module Webpush
       ec_private_key = OpenSSL::ASN1::Sequence([
         OpenSSL::ASN1::Integer(1),
         OpenSSL::ASN1::OctetString(private_key_bytes),
-        OpenSSL::ASN1::ObjectId('prime256v1', 0, :EXPLICIT)
+        OpenSSL::ASN1::ObjectId("prime256v1", 0, :EXPLICIT)
       ])
 
       # PKCS8 wrapper
       ec_params = OpenSSL::ASN1::Sequence([
-        OpenSSL::ASN1::ObjectId('id-ecPublicKey'),
-        OpenSSL::ASN1::ObjectId('prime256v1')
+        OpenSSL::ASN1::ObjectId("id-ecPublicKey"),
+        OpenSSL::ASN1::ObjectId("prime256v1")
       ])
 
       pkcs8 = OpenSSL::ASN1::Sequence([
@@ -73,7 +73,7 @@ module Webpush
     def encrypt(message, p256dh, auth)
       assert_arguments(message, p256dh, auth)
 
-      group_name = 'prime256v1'
+      group_name = "prime256v1"
       salt = Random.new.bytes(16)
 
       # OpenSSL 3.0 compatible: use generate instead of new + generate_key
@@ -92,7 +92,7 @@ module Webpush
       content_encryption_key_info = "Content-Encoding: aes128gcm\0"
       nonce_info = "Content-Encoding: nonce\0"
 
-      prk = HKDF.new(shared_secret, salt: client_auth_token, algorithm: 'SHA256', info: info).next_bytes(32)
+      prk = HKDF.new(shared_secret, salt: client_auth_token, algorithm: "SHA256", info: info).next_bytes(32)
 
       content_encryption_key = HKDF.new(prk, salt: salt, info: content_encryption_key_info).next_bytes(16)
 
@@ -104,7 +104,7 @@ module Webpush
       rs = ciphertext.bytesize
       raise ArgumentError, "encrypted payload is too big" if rs > 4096
 
-      aes128gcmheader = "#{salt}" + [rs].pack('N*') + [serverkey16bn.bytesize].pack('C*') + serverkey16bn
+      aes128gcmheader = "#{salt}" + [ rs ].pack("N*") + [ serverkey16bn.bytesize ].pack("C*") + serverkey16bn
 
       aes128gcmheader + ciphertext
     end
@@ -112,7 +112,7 @@ module Webpush
     private
 
     def encrypt_payload(plaintext, content_encryption_key, nonce)
-      cipher = OpenSSL::Cipher.new('aes-128-gcm')
+      cipher = OpenSSL::Cipher.new("aes-128-gcm")
       cipher.encrypt
       cipher.key = content_encryption_key
       cipher.iv = nonce
@@ -125,13 +125,13 @@ module Webpush
     end
 
     def convert16bit(key)
-      [key.to_s(16)].pack('H*')
+      [ key.to_s(16) ].pack("H*")
     end
 
     def assert_arguments(message, p256dh, auth)
-      raise ArgumentError, 'message cannot be blank' if blank?(message)
-      raise ArgumentError, 'p256dh cannot be blank' if blank?(p256dh)
-      raise ArgumentError, 'auth cannot be blank' if blank?(auth)
+      raise ArgumentError, "message cannot be blank" if blank?(message)
+      raise ArgumentError, "p256dh cannot be blank" if blank?(p256dh)
+      raise ArgumentError, "auth cannot be blank" if blank?(auth)
     end
 
     def blank?(value)
