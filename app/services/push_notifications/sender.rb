@@ -86,8 +86,8 @@ module PushNotifications
         title: title,
         options: {
           body: body,
-          icon: "#{base_url}/icon.png",
-          badge: "#{base_url}/icon.png",
+          icon: "#{base_url}/web-app-manifest-192x192.png",
+          badge: "#{base_url}/web-app-manifest-192x192.png",
           data: data.merge(
             path: data[:path] || "/",
             timestamp: Time.current.to_i

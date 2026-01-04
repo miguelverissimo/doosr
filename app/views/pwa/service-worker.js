@@ -1,10 +1,11 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `doosr-${CACHE_VERSION}`;
 
 // Assets to cache on install
 const PRECACHE_URLS = [
   '/',
-  '/icon.png',
+  '/web-app-manifest-192x192.png',
+  '/web-app-manifest-512x512.png',
   '/icon.svg'
 ];
 
