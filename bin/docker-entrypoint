@@ -3,6 +3,9 @@
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
+elif [ "${@: -1}" == "./bin/start" ]; then
+  # Also run migrations if using the start script (which launches both web server and background jobs)
+  ./bin/rails db:prepare
 fi
 
 exec "${@}"
