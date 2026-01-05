@@ -84,7 +84,7 @@ group :development, :test do
   gem "dotenv-rails"
 
   # Pin minitest to 5.x for Rails 8.1 compatibility
-  gem "minitest", "~> 5.0"
+  gem "minitest", "~> 6.0"
 end
 
 group :development do
