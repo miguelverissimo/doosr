@@ -118,6 +118,16 @@ Rails.application.routes.draw do
 
   # Admin
   namespace :admin do
+    root to: "dashboard#index"
+    get "dashboard", to: "dashboard#index", as: :dashboard
+
+    resources :users, only: [ :index ] do
+      member do
+        patch :toggle_access
+        patch :update_roles
+      end
+    end
+
     resources :notifications, only: [ :index ] do
       collection do
         post :send_test

@@ -553,7 +553,7 @@ class ReusableItemsController < ApplicationController
   end
 
   def item_params
-    params.require(:item).permit(:title, :item_type, :state, :remove_preview_image, extra_data: [:unfurled_url, :unfurled_description])
+    params.require(:item).permit(:title, :item_type, :state, :remove_preview_image, extra_data: [ :unfurled_url, :unfurled_description ])
   end
 
   def find_duplicate_item(title)

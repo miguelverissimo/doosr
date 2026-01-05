@@ -31,6 +31,12 @@ class User < ApplicationRecord
   has_many :receipts, class_name: "Accounting::Receipt", dependent: :destroy
   has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
 
+  # Available roles for authorization
+  AVAILABLE_ROLES = %w[admin fixed_calendar accounting].freeze
+
+  # Validations
+  validate :roles_must_be_valid
+
   # Settings defaults
   SETTINGS_DEFAULTS = {
     "theme" => "dark",
@@ -78,12 +84,36 @@ class User < ApplicationRecord
     end
   end
 
+  # Role helper methods
+  def has_role?(role)
+    roles.include?(role.to_s)
+  end
+
+  def add_role(role)
+    roles << role.to_s unless has_role?(role)
+    save
+  end
+
+  def remove_role(role)
+    roles.delete(role.to_s)
+    save
+  end
+
   private
 
   def ensure_settings_defaults
     self.settings ||= {}
     SETTINGS_DEFAULTS.each do |key, value|
       settings[key] ||= value
+    end
+  end
+
+  def roles_must_be_valid
+    return if roles.blank?
+
+    invalid_roles = roles - AVAILABLE_ROLES
+    if invalid_roles.any?
+      errors.add(:roles, "contains invalid roles: #{invalid_roles.join(', ')}")
     end
   end
 end
