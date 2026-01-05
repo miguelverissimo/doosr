@@ -32,6 +32,9 @@ class Item < ApplicationRecord
   has_many :recurring_previous_items, class_name: "Item", foreign_key: "recurring_next_item_id", dependent: :nullify
   has_many :notification_logs, dependent: :nullify
 
+  # ActiveStorage attachments
+  has_one_attached :preview_image
+
   # Enums
   enum :item_type, {
     completable: 0,
@@ -314,6 +317,23 @@ class Item < ApplicationRecord
 
     update!(recurring_next_item: next_item)
     next_item
+  end
+
+  # URL unfurling support
+  def has_unfurled_url?
+    extra_data&.dig("unfurled_url").present?
+  end
+
+  def unfurled_url
+    extra_data&.dig("unfurled_url")
+  end
+
+  def unfurled_title
+    extra_data&.dig("unfurled_title")
+  end
+
+  def unfurled_description
+    extra_data&.dig("unfurled_description")
   end
 
   # Date calculation utilities for deferring

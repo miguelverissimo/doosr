@@ -29,11 +29,14 @@ class ::Components::AppSidebar < ::Components::Base
         is_accounting_page = @pathname.start_with?("/accounting")
         is_checklists_page = @pathname.start_with?("/checklists")
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
+        is_admin_page = @pathname.start_with?("/admin")
+
+        is_app_page_not_day_view = is_well_page || is_lists_page || is_accounting_page || is_checklists_page || is_fixed_calendar_page || is_admin_page
 
         if is_day_view
           # Show calendar for day view
           render_day_calendar
-        elsif is_well_page || is_lists_page || is_accounting_page || is_checklists_page || is_fixed_calendar_page
+        elsif is_app_page_not_day_view
           SidebarMenu(class: "mt-4") do
             SidebarMenuItem do
               SidebarMenuButton(

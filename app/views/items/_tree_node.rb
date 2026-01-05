@@ -72,9 +72,9 @@ module Views
             is_public_list: @public_view
           )
         else
-          # Fallback to original Item component if needed
-          render ::Views::Items::Item.new(
-            item: item,
+          # Fallback - should not happen but use CompletableItem as safe default
+          render ::Views::Items::CompletableItem.new(
+            record: item,
             day: @day,
             list: @list,
             is_public_list: @public_view

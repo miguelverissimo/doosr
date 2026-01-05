@@ -57,4 +57,58 @@ class ItemTest < ActiveSupport::TestCase
     assert @item.todo?
     assert_nil @item.done_at
   end
+
+  # URL Unfurling tests
+
+  test "has_unfurled_url? returns true when item has unfurled URL" do
+    @item.update!(extra_data: { "unfurled_url" => "https://example.com" })
+    assert @item.has_unfurled_url?
+  end
+
+  test "has_unfurled_url? returns false when item has no unfurled URL" do
+    assert_not @item.has_unfurled_url?
+  end
+
+  test "has_unfurled_url? returns false when extra_data is empty" do
+    @item.update!(extra_data: {})
+    assert_not @item.has_unfurled_url?
+  end
+
+  test "unfurled_url returns the URL from extra_data" do
+    @item.update!(extra_data: { "unfurled_url" => "https://example.com" })
+    assert_equal "https://example.com", @item.unfurled_url
+  end
+
+  test "unfurled_url returns nil when no URL present" do
+    assert_nil @item.unfurled_url
+  end
+
+  test "unfurled_title returns the title from extra_data" do
+    @item.update!(extra_data: { "unfurled_title" => "Example Domain" })
+    assert_equal "Example Domain", @item.unfurled_title
+  end
+
+  test "unfurled_title returns nil when no title present" do
+    assert_nil @item.unfurled_title
+  end
+
+  test "unfurled_description returns the description from extra_data" do
+    @item.update!(extra_data: { "unfurled_description" => "This is a test description" })
+    assert_equal "This is a test description", @item.unfurled_description
+  end
+
+  test "unfurled_description returns nil when no description present" do
+    assert_nil @item.unfurled_description
+  end
+
+  test "preview_image can be attached" do
+    @item.preview_image.attach(
+      io: StringIO.new("fake image data"),
+      filename: "test.jpg",
+      content_type: "image/jpeg"
+    )
+
+    assert @item.preview_image.attached?
+    assert_equal "test.jpg", @item.preview_image.filename.to_s
+  end
 end

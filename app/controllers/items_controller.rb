@@ -11,6 +11,9 @@ class ItemsController < ApplicationController
     # This controller is only for days and nested items
 
     if @item.save
+      # Unfurl URL if title contains one
+      ::Items::UrlUnfurlerService.call(@item)
+
       # Add item to parent item's descendant if parent_item_id provided
       if params[:parent_item_id].present?
         @parent_item = @acting_user.items.find(params[:parent_item_id])
@@ -119,7 +122,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                ::Views::Items::Item.new(item: @item)
+                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -198,7 +201,7 @@ class ItemsController < ApplicationController
               render turbo_stream: [
                 turbo_stream.append(
                   "items_list",
-                  ::Views::Items::Item.new(item: @item)
+                  ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
                 ),
                 turbo_stream.update("item_form_errors", "")
               ]
@@ -212,7 +215,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                ::Views::Items::Item.new(item: @item)
+                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -265,8 +268,25 @@ class ItemsController < ApplicationController
     # Store old state and new state params before update
     old_state = @item.state
     new_state_param = params.dig(:item, :state)
+    old_title = @item.title
 
-    if @item.update(item_params)
+    # Handle preview image removal if requested
+    if params.dig(:item, :remove_preview_image) == "1"
+      @item.preview_image.purge
+    end
+
+    # Handle extra_data updates manually to preserve other keys
+    if params.dig(:item, :extra_data).present?
+      updated_extra_data = @item.extra_data.merge(params[:item][:extra_data].to_unsafe_h)
+      @item.extra_data = updated_extra_data
+    end
+
+    if @item.update(item_params.except(:remove_preview_image, :extra_data))
+      # Unfurl URL if title changed and contains a URL
+      if @item.title != old_title
+        ::Items::UrlUnfurlerService.call(@item)
+      end
+
       # State changes are now handled by the set_* methods on the Item model
       # No manual descendant management needed here
 
@@ -324,10 +344,29 @@ class ItemsController < ApplicationController
 
               # Broadcast item update to list
               broadcast_list_update(@list, [ streams.last ])
-            else
+            elsif @day
+              # For day items, reload and re-render using proper component
+              @item.reload
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
-                ::Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
+                ::Views::Items::CompletableItem.new(
+                  record: @item,
+                  day: @day,
+                  list: nil,
+                  is_public_list: false
+                )
+              )
+            else
+              # Fallback: reload and render
+              @item.reload
+              streams << turbo_stream.replace(
+                "item_#{@item.id}",
+                ::Views::Items::CompletableItem.new(
+                  record: @item,
+                  day: nil,
+                  list: nil,
+                  is_public_list: false
+                )
               )
             end
 
@@ -354,7 +393,7 @@ class ItemsController < ApplicationController
             else
               stream = turbo_stream.replace(
                 "item_#{@item.id}",
-                ::Views::Items::Item.new(item: @item, list: @list, is_public_list: @is_public_list || false)
+                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: @is_public_list || false)
               )
             end
 
@@ -604,7 +643,7 @@ class ItemsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
-        stream = turbo_stream.replace("item_#{@item.id}", ::Views::Items::Item.new(item: @item, day: find_day, list: @list))
+        stream = turbo_stream.replace("item_#{@item.id}", ::Views::Items::CompletableItem.new(record: @item, day: find_day, list: @list, is_public_list: false))
 
         # Broadcast to list if this is a list item
         broadcast_list_update(@list, [ stream ]) if @list
@@ -1073,7 +1112,7 @@ class ItemsController < ApplicationController
   end
 
   def item_params
-    params.require(:item).permit(:title, :item_type, :state, :notification_time)
+    params.require(:item).permit(:title, :item_type, :state, :notification_time, :remove_preview_image, extra_data: [:unfurled_url, :unfurled_description])
   end
 
   def find_day

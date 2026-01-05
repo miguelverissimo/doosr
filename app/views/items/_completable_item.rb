@@ -20,9 +20,13 @@ module Views
 
       def render_content
         div(class: "flex-1 min-w-0") do
-          title_classes = [ "text-sm truncate" ]
-          title_classes << "line-through text-muted-foreground" if @record.done?
-          p(class: title_classes.join(" ")) { @record.title }
+          if @record.has_unfurled_url?
+            render_unfurled_item
+          else
+            title_classes = [ "text-sm truncate" ]
+            title_classes << "line-through text-muted-foreground" if @record.done?
+            p(class: title_classes.join(" ")) { @record.title }
+          end
         end
       end
 
@@ -58,6 +62,40 @@ module Views
       end
 
       private
+
+      def render_unfurled_item
+        div(class: "flex gap-2 items-center min-w-0") do
+          # Thumbnail image
+          if @record.preview_image.attached?
+            img(
+              src: view_context.url_for(@record.preview_image),
+              class: "w-10 h-10 rounded object-cover shrink-0"
+            )
+          end
+
+          # Title + description
+          div(class: "flex-1 min-w-0") do
+            title_classes = [ "text-sm truncate" ]
+            title_classes << "line-through text-muted-foreground" if @record.done?
+
+            # Clickable link - stop propagation to prevent drawer opening
+            a(
+              href: @record.unfurled_url,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              class: title_classes.join(" ") + " hover:underline",
+              data: { action: "click->item#stopPropagation" }
+            ) { @record.title }
+
+            # Optional: Show description (truncated to 80 chars)
+            if @record.unfurled_description.present?
+              p(class: "text-xs text-muted-foreground truncate") do
+                view_context.truncate(@record.unfurled_description, length: 80)
+              end
+            end
+          end
+        end
+      end
 
       def render_checkbox
         # ALWAYS use toggle_state endpoint for both days and lists

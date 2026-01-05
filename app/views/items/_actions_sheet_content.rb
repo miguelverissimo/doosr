@@ -196,7 +196,13 @@ module Views
               inactive_item_ids.each do |item_id|
                 item = items[item_id]
                 next unless item
-                render ::Views::Items::Item.new(item: item, day: @day)
+                # Render using proper component based on type
+                case item.item_type.to_sym
+                when :section
+                  render ::Views::Items::SectionItem.new(record: item, day: @day, list: @list, is_public_list: @is_public_list)
+                else
+                  render ::Views::Items::CompletableItem.new(record: item, day: @day, list: @list, is_public_list: @is_public_list)
+                end
               end
             end
           end

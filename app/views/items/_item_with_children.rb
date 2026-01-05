@@ -15,13 +15,23 @@ module Views
       def view_template
         # Wrap in a container div so we can replace the entire item+children structure
         div(id: "item_with_children_#{@item.id}") do
-          # Render the item itself
-          render ::Views::Items::Item.new(
-            item: @item,
-            day: @day,
-            list: @list,
-            is_public_list: @public_view
-          )
+          # Render the item itself using proper component based on type
+          case @item.item_type.to_sym
+          when :section
+            render ::Views::Items::SectionItem.new(
+              record: @item,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
+          else
+            render ::Views::Items::CompletableItem.new(
+              record: @item,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
+          end
 
           # Render nested children if item has a descendant
           if @item.descendant

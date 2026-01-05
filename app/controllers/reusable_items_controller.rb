@@ -41,6 +41,9 @@ class ReusableItemsController < ApplicationController
 
     # No duplicate found - create new item
     if @item.save
+      # Unfurl URL if title contains one
+      ::Items::UrlUnfurlerService.call(@item)
+
       @list.descendant.add_active_item(@item.id)
       @list.descendant.save!
 
@@ -158,7 +161,7 @@ class ReusableItemsController < ApplicationController
         streams = []
 
         # Stream 1: Update the item in the list view
-        streams << turbo_stream.replace("item_#{@item.id}", ::Views::Items::Item.new(item: @item, day: nil, list: @list))
+        streams << turbo_stream.replace("item_#{@item.id}", ::Views::Items::CompletableItem.new(record: @item, day: nil, list: @list, is_public_list: false))
 
         # Stream 2: Update action sheet buttons if drawer is open
         # Recalculate position for move buttons
@@ -290,7 +293,25 @@ class ReusableItemsController < ApplicationController
       end
     end
 
-    if @item.update(item_params)
+    old_title = @item.title
+
+    # Handle preview image removal if requested
+    if params.dig(:item, :remove_preview_image) == "1"
+      @item.preview_image.purge
+    end
+
+    # Handle extra_data updates manually to preserve other keys
+    if params.dig(:item, :extra_data).present?
+      updated_extra_data = @item.extra_data.merge(params[:item][:extra_data].to_unsafe_h)
+      @item.extra_data = updated_extra_data
+    end
+
+    if @item.update(item_params.except(:remove_preview_image, :extra_data))
+      # Unfurl URL if title changed and contains a URL
+      if @item.title != old_title
+        ::Items::UrlUnfurlerService.call(@item)
+      end
+
       respond_to do |format|
         format.turbo_stream do
           # If updating from edit form, return both the action sheet and the item update
@@ -532,7 +553,7 @@ class ReusableItemsController < ApplicationController
   end
 
   def item_params
-    params.require(:item).permit(:title, :item_type, :state)
+    params.require(:item).permit(:title, :item_type, :state, :remove_preview_image, extra_data: [:unfurled_url, :unfurled_description])
   end
 
   def find_duplicate_item(title)

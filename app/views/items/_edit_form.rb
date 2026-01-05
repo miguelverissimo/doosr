@@ -47,6 +47,58 @@ module Views
               )
             end
 
+            # Unfurled URL fields (only show if item has been unfurled)
+            if @item.has_unfurled_url?
+              div(class: "space-y-2") do
+                label(for: "item_unfurled_url", class: "text-sm font-medium") { "Link URL" }
+                Input(
+                  type: "url",
+                  id: "item_unfurled_url",
+                  name: "item[extra_data][unfurled_url]",
+                  value: @item.unfurled_url,
+                  placeholder: "https://..."
+                )
+              end
+
+              div(class: "space-y-2") do
+                label(for: "item_unfurled_description", class: "text-sm font-medium") { "Description" }
+                textarea(
+                  id: "item_unfurled_description",
+                  name: "item[extra_data][unfurled_description]",
+                  rows: "3",
+                  class: "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                ) { @item.unfurled_description }
+              end
+
+              # Preview image info and remove option
+              if @item.preview_image.attached?
+                div(class: "space-y-2") do
+                  label(class: "text-sm font-medium") { "Preview Image" }
+                  div(class: "flex items-center gap-3") do
+                    img(
+                      src: view_context.url_for(@item.preview_image),
+                      class: "w-16 h-16 rounded object-cover"
+                    )
+                    div(class: "flex-1") do
+                      p(class: "text-sm text-muted-foreground") { @item.preview_image.filename.to_s }
+                      p(class: "text-xs text-muted-foreground") do
+                        "#{(@item.preview_image.byte_size / 1024.0).round(1)} KB"
+                      end
+                    end
+                    label(class: "flex items-center gap-2 text-sm") do
+                      input(
+                        type: "checkbox",
+                        name: "item[remove_preview_image]",
+                        value: "1",
+                        class: "rounded border-input"
+                      )
+                      plain "Remove image"
+                    end
+                  end
+                end
+              end
+            end
+
             # Notification Time Input
             div(class: "space-y-2") do
               label(for: "item_notification_time", class: "text-sm font-medium") { "Notification" }
