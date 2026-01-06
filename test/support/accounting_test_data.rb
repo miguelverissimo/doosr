@@ -11,7 +11,8 @@ class AccountingTestData
     user = User.create!(
       email: "accounting@example.com",
       password: "password123",
-      roles: [ "accounting" ]
+      roles: [ "accounting" ],
+      access_confirmed: true
     )
 
     # Provider address (used as invoice provider)

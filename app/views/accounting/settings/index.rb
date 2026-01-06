@@ -7,7 +7,7 @@ module Views
 
         def view_template
           turbo_frame_tag "settings_tab_content" do
-            div(class: "flex h-full flex-col") do
+            div(class: "flex h-full flex-col", data: { controller: "lazy-tab" }) do
               h1(class: "text-xl font-bold") { "Settings" }
 
             # Tax Brackets
@@ -67,6 +67,7 @@ module Views
             end
           end
         end
+        end
 
         def render_tax_bracket_form_dialog(tax_bracket: nil)
           render RubyUI::DialogContent.new(size: :md) do
@@ -115,7 +116,6 @@ module Views
             end
           end
         end
-          end
       end
     end
   end

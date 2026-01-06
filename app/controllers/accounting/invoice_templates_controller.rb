@@ -121,7 +121,7 @@ module Accounting
         if success
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.replace("invoice_template_#{@invoice_template.id}_div", ::Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: @invoice_template)),
+              turbo_stream.replace("invoice_template_#{@invoice_template.id}_div", ::Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: @invoice_template, user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Invoice template updated successfully', { type: 'success' });</script>")
             ]
           end

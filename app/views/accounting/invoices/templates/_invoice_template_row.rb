@@ -3,8 +3,9 @@ module Views
     module Invoices
       module Templates
         class InvoiceTemplateRow < ::Views::Base
-          def initialize(invoice_template:)
+          def initialize(invoice_template:, user:)
             @invoice_template = invoice_template
+            @user = user
           end
 
           def view_template

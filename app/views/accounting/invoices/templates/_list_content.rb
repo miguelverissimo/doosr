@@ -23,7 +23,7 @@ module Views
                 end
               else
                 @invoice_templates.each do |invoice_template|
-                  render ::Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: invoice_template)
+                  render ::Views::Accounting::Invoices::Templates::InvoiceTemplateRow.new(invoice_template: invoice_template, user: @user)
                 end
               end
             end

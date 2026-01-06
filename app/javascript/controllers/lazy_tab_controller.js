@@ -25,10 +25,12 @@ export default class extends Controller {
       attributeFilter: ['class']
     })
 
-    // Check if tab is initially visible
-    if (!this.element.classList.contains('hidden') && !this.loadedValue) {
-      this.load()
-    }
+    // Check if tab is initially visible - use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      if (!this.element.classList.contains('hidden') && !this.loadedValue) {
+        this.load()
+      }
+    })
   }
 
   disconnect() {
@@ -43,20 +45,23 @@ export default class extends Controller {
     this.loadedValue = true
 
     // Load ALL frames, not just one
-    if (this.hasFrameTarget) {
-      this.frameTargets.forEach((frame) => {
-        const src = frame.dataset.src
+    // Use setTimeout to ensure frameTargets are in DOM
+    setTimeout(() => {
+      if (this.hasFrameTarget) {
+        this.frameTargets.forEach((frame) => {
+          const src = frame.dataset.src
 
-        if (src) {
-          // Listen for frame load completion - no toast, just trigger load
-          frame.addEventListener('turbo:frame-load', () => {
-            // Frame loaded successfully
-          }, { once: true })
+          if (src) {
+            // Listen for frame load completion - no toast, just trigger load
+            frame.addEventListener('turbo:frame-load', () => {
+              // Frame loaded successfully
+            }, { once: true })
 
-          // Trigger the load by setting src attribute
-          frame.setAttribute('src', src)
-        }
-      })
-    }
+            // Trigger the load by setting src attribute
+            frame.setAttribute('src', src)
+          }
+        })
+      }
+    }, 100)
   }
 }
