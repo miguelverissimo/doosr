@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_05_175756) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_06_054030) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -317,6 +317,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_175756) do
     t.index ["user_id"], name: "index_lists_on_user_id"
   end
 
+  create_table "note_links", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "linked_note_id", null: false
+    t.bigint "note_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["linked_note_id"], name: "index_note_links_on_linked_note_id"
+    t.index ["note_id", "linked_note_id"], name: "index_note_links_on_note_id_and_linked_note_id", unique: true
+    t.index ["note_id"], name: "index_note_links_on_note_id"
+  end
+
+  create_table "notes", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "created_at"], name: "index_notes_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id"], name: "index_notes_on_user_id"
+  end
+
   create_table "notification_logs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "error_message"
@@ -586,6 +605,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_175756) do
   add_foreign_key "items", "users"
   add_foreign_key "lists", "descendants"
   add_foreign_key "lists", "users"
+  add_foreign_key "note_links", "notes"
+  add_foreign_key "note_links", "notes", column: "linked_note_id"
+  add_foreign_key "notes", "users"
   add_foreign_key "notification_logs", "items"
   add_foreign_key "notification_logs", "push_subscriptions"
   add_foreign_key "notification_logs", "users"

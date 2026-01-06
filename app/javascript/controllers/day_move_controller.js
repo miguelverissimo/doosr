@@ -7,28 +7,36 @@ export default class extends Controller {
 	connect() {
 		// Check if we're returning from a moving mode
 		const movingItemId = sessionStorage.getItem("movingItemId");
+		const movingRecordType = sessionStorage.getItem("movingRecordType") || "Item";
 		if (movingItemId) {
-			this.enterMovingMode(parseInt(movingItemId));
+			this.enterMovingMode(parseInt(movingItemId), movingRecordType);
 		}
 
 		// Listen for moving mode events
 		this.boundStartMoving = this.handleStartMoving.bind(this);
+		this.boundStartMovingNote = this.handleStartMovingNote.bind(this);
 		this.boundCancelMoving = this.handleCancelMoving.bind(this);
 		this.boundEscapeKey = this.handleEscapeKey.bind(this);
 
 		window.addEventListener("item:start-moving", this.boundStartMoving);
+		window.addEventListener("note:start-moving", this.boundStartMovingNote);
 		window.addEventListener("item:cancel-moving", this.boundCancelMoving);
 		document.addEventListener("keydown", this.boundEscapeKey);
 	}
 
 	disconnect() {
 		window.removeEventListener("item:start-moving", this.boundStartMoving);
+		window.removeEventListener("note:start-moving", this.boundStartMovingNote);
 		window.removeEventListener("item:cancel-moving", this.boundCancelMoving);
 		document.removeEventListener("keydown", this.boundEscapeKey);
 	}
 
 	handleStartMoving(event) {
-		this.enterMovingMode(event.detail.itemId);
+		this.enterMovingMode(event.detail.itemId, "Item");
+	}
+
+	handleStartMovingNote(event) {
+		this.enterMovingMode(event.detail.noteId, "Note");
 	}
 
 	handleCancelMoving(event) {
@@ -50,11 +58,13 @@ export default class extends Controller {
 		}
 	}
 
-	enterMovingMode(itemId) {
-		this.movingItemId = itemId;
+	enterMovingMode(recordId, recordType = "Item") {
+		this.movingItemId = recordId;
+		this.movingRecordType = recordType;
 
 		// Store in sessionStorage for persistence
-		sessionStorage.setItem("movingItemId", itemId);
+		sessionStorage.setItem("movingItemId", recordId);
+		sessionStorage.setItem("movingRecordType", recordType);
 		if (this.hasDayIdValue) {
 			sessionStorage.setItem("movingDayId", this.dayIdValue);
 		}
@@ -67,19 +77,20 @@ export default class extends Controller {
 			this.cancelButtonTarget.classList.remove("hidden");
 		}
 
-		// Check if item is at root level (direct child of items_list)
-		const itemElement = document.getElementById(`item_${itemId}`);
+		// Check if record is at root level (direct child of items_list)
+		const elementId = recordType === "Note" ? `note_${recordId}` : `item_${recordId}`;
+		const recordElement = document.getElementById(elementId);
 		const isAtRootLevel =
-			itemElement && itemElement.parentElement.id === "items_list";
+			recordElement && recordElement.parentElement.id === "items_list";
 
-		// Only show root target if item is NOT already at root level
+		// Only show root target if record is NOT already at root level
 		if (this.hasRootTargetTarget && !isAtRootLevel) {
 			this.rootTargetTarget.classList.remove("hidden");
 		}
 
-		// Highlight the moving item
-		if (itemElement) {
-			itemElement.classList.add("bg-pink-500/20", "border-pink-500");
+		// Highlight the moving record
+		if (recordElement) {
+			recordElement.classList.add("bg-pink-500/20", "border-pink-500");
 		}
 
 		// Highlight all other items as targets
@@ -87,7 +98,7 @@ export default class extends Controller {
 			const currentItemId = parseInt(
 				item.dataset.itemMovingItemIdValue || item.dataset.itemIdValue,
 			);
-			if (currentItemId !== itemId) {
+			if (currentItemId !== recordId) {
 				item.classList.add(
 					"border-2",
 					"border-dashed",
@@ -112,11 +123,12 @@ export default class extends Controller {
 			this.rootTargetTarget.classList.add("hidden");
 		}
 
-		// Remove highlights from moving item
+		// Remove highlights from moving record
 		if (this.movingItemId) {
-			const itemElement = document.getElementById(`item_${this.movingItemId}`);
-			if (itemElement) {
-				itemElement.classList.remove("bg-pink-500/20", "border-pink-500");
+			const elementId = this.movingRecordType === "Note" ? `note_${this.movingItemId}` : `item_${this.movingItemId}`;
+			const recordElement = document.getElementById(elementId);
+			if (recordElement) {
+				recordElement.classList.remove("bg-pink-500/20", "border-pink-500");
 			}
 		}
 
@@ -136,10 +148,12 @@ export default class extends Controller {
 
 		// Clear session storage
 		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingRecordType");
 		sessionStorage.removeItem("movingDayId");
 		sessionStorage.removeItem("movingListId");
 
 		this.movingItemId = null;
+		this.movingRecordType = null;
 	}
 
 	isInMovingMode() {
@@ -188,10 +202,13 @@ export default class extends Controller {
 	}
 
 	moveItemToTarget(itemId, targetItemId) {
+		const recordType = this.movingRecordType || "Item";
+		const recordLabel = recordType === "Note" ? "note" : "item";
+
 		// Show loading toast
 		let loadingToastId = null;
 		if (window.toast) {
-			loadingToastId = window.toast("Reparenting item...", {
+			loadingToastId = window.toast(`Reparenting ${recordLabel}...`, {
 				type: "loading",
 				description: "Please wait",
 			});
@@ -202,6 +219,7 @@ export default class extends Controller {
 
 		// Clear session storage
 		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingRecordType");
 		sessionStorage.removeItem("movingDayId");
 		sessionStorage.removeItem("movingListId");
 
@@ -216,10 +234,16 @@ export default class extends Controller {
 		}
 
 		// Make the reparent request
-		// Use reusable_items path if we have a list_id, otherwise use items path
-		const reparentUrl = this.hasListIdValue
-			? `/reusable_items/${itemId}/reparent`
-			: `/items/${itemId}/reparent`;
+		// Determine URL based on record type and context
+		let reparentUrl;
+		if (recordType === "Note") {
+			reparentUrl = `/notes/${itemId}/reparent`;
+		} else {
+			// Use reusable_items path if we have a list_id, otherwise use items path
+			reparentUrl = this.hasListIdValue
+				? `/reusable_items/${itemId}/reparent`
+				: `/items/${itemId}/reparent`;
+		}
 		fetch(reparentUrl, {
 			method: "PATCH",
 			headers: {
@@ -240,11 +264,12 @@ export default class extends Controller {
 				// Process turbo stream response
 				Turbo.renderStreamMessage(html);
 
-				// Reopen drawer on moved item after DOM updates
+				// Reopen drawer on moved record after DOM updates
 				setTimeout(() => {
-					const movedItem = document.getElementById(`item_${itemId}`);
-					if (movedItem) {
-						movedItem.click();
+					const elementId = recordType === "Note" ? `note_${itemId}` : `item_${itemId}`;
+					const movedElement = document.getElementById(elementId);
+					if (movedElement) {
+						movedElement.click();
 					}
 				}, 300);
 			})
@@ -267,10 +292,13 @@ export default class extends Controller {
 	}
 
 	moveItemToRoot(itemId) {
+		const recordType = this.movingRecordType || "Item";
+		const recordLabel = recordType === "Note" ? "note" : "item";
+
 		// Show loading toast
 		let loadingToastId = null;
 		if (window.toast) {
-			loadingToastId = window.toast("Reparenting item...", {
+			loadingToastId = window.toast(`Reparenting ${recordLabel}...`, {
 				type: "loading",
 				description: "Please wait",
 			});
@@ -281,6 +309,7 @@ export default class extends Controller {
 
 		// Clear session storage
 		sessionStorage.removeItem("movingItemId");
+		sessionStorage.removeItem("movingRecordType");
 		sessionStorage.removeItem("movingDayId");
 		sessionStorage.removeItem("movingListId");
 
@@ -295,10 +324,16 @@ export default class extends Controller {
 		}
 
 		// Make the reparent request
-		// Use reusable_items path if we have a list_id, otherwise use items path
-		const reparentUrl = this.hasListIdValue
-			? `/reusable_items/${itemId}/reparent`
-			: `/items/${itemId}/reparent`;
+		// Determine URL based on record type and context
+		let reparentUrl;
+		if (recordType === "Note") {
+			reparentUrl = `/notes/${itemId}/reparent`;
+		} else {
+			// Use reusable_items path if we have a list_id, otherwise use items path
+			reparentUrl = this.hasListIdValue
+				? `/reusable_items/${itemId}/reparent`
+				: `/items/${itemId}/reparent`;
+		}
 		fetch(reparentUrl, {
 			method: "PATCH",
 			headers: {
@@ -319,11 +354,12 @@ export default class extends Controller {
 				// Process turbo stream response
 				Turbo.renderStreamMessage(html);
 
-				// Reopen drawer on moved item after DOM updates
+				// Reopen drawer on moved record after DOM updates
 				setTimeout(() => {
-					const movedItem = document.getElementById(`item_${itemId}`);
-					if (movedItem) {
-						movedItem.click();
+					const elementId = recordType === "Note" ? `note_${itemId}` : `item_${itemId}`;
+					const movedElement = document.getElementById(elementId);
+					if (movedElement) {
+						movedElement.click();
 					}
 				}, 300);
 			})

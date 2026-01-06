@@ -204,6 +204,24 @@ Located in `app/services/`:
 
 ## Critical Development Rules
 
+### Following User Instructions (ABSOLUTELY CRITICAL)
+**❌ THERE IS ABSOLUTELY NO AUTONOMY TO CHANGE, INTERPRET, OR MODIFY USER INSTRUCTIONS ❌**
+
+- **CRITICAL**: When the user gives explicit instructions, follow them EXACTLY as stated
+- **DO NOT**:
+  - Make "improvements" or "optimizations" that weren't requested
+  - Change the approach because you think there's a "better way"
+  - Add extra features or functionality not explicitly requested
+  - Modify the scope or implementation details beyond what was instructed
+  - Interpret instructions loosely or make assumptions about intent
+- **DO**:
+  - Follow instructions to the letter
+  - Ask clarifying questions if instructions are ambiguous
+  - Implement exactly what was requested, nothing more, nothing less
+  - Respect the user's decisions about architecture, patterns, and approaches
+
+**If you find yourself thinking "but it would be better if..." - STOP. Do what was instructed.**
+
 ### Phlex Components
 - ❌ **ABSOLUTELY NEVER EVER USE `onclick`, `onchange`, or ANY `on*` EVENT ATTRIBUTES IN PHLEX** ❌
   - They throw `Phlex::ArgumentError` and will break the application
@@ -215,7 +233,7 @@ Located in `app/services/`:
 - Use Ruby UI components from the ruby_ui gem - do not create raw HTML/JS
 
 ### UI Feedback
-- **Every backend request MUST show a loading indicator**
+- **CRITICAL: Every backend request MUST show a loading indicator AND operation result (success/error)**
 - For form submissions: Use `window.toast(message, { type: "loading", description: "Please wait" })`
   - Dismiss on `turbo:submit-end` or response received
   - Applies to: create, update, delete, move, toggle, defer, reparent
@@ -311,6 +329,65 @@ Example implementation (see `app/views/accounting/invoices/_list.rb` and `app/vi
 - All clickable filter/pagination elements must have `action: "click->controller#showSpinner"`
 - Content area must have the `content` target
 - Spinner must have the `spinner` target
+
+#### CRUD Operations (CREATE, UPDATE, DELETE)
+**CRITICAL: ALL CREATE, UPDATE, AND DELETE ACTIONS MUST FOLLOW THIS PATTERN:**
+
+**Requirements for every CRUD operation:**
+1. **Show loading toast while operation executes**
+   - Use `form_loading_controller.js` for form submissions
+   - Add `data: { controller: "form-loading", form_loading_message_value: "Creating..." }` to forms
+   - The controller automatically shows loading toast on submit and dismisses on completion
+
+2. **Show success or error toast after completion**
+   - Controller must send success toast in turbo_stream response
+   - Example: `turbo_stream.append("body", "<script>window.toast && window.toast('Note created successfully', { type: 'success' });</script>")`
+   - For errors, show error toast with descriptive message
+
+3. **Dismiss form modals/dialogs**
+   - Controller must remove dialog/modal from DOM in turbo_stream response
+   - Example: `turbo_stream.remove("note_dialog")`
+   - This must happen BEFORE showing success toast
+
+4. **Update views with Turbo Streams**
+   - Use turbo_stream.replace, turbo_stream.append, or turbo_stream.remove to update relevant views
+   - Example: After creating a note, append it to the list AND remove the dialog AND show toast
+   - All three actions in a single turbo_stream array response
+
+**Example Complete CRUD Action:**
+```ruby
+def create
+  @note = current_user.notes.build(note_params)
+
+  if @note.save
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.remove("note_dialog"),                    # 1. Close modal
+          turbo_stream.prepend("notes_list", ...),               # 2. Update view
+          turbo_stream.append("body", "<script>window.toast && window.toast('Note created successfully', { type: 'success' });</script>")  # 3. Success toast
+        ]
+      end
+    end
+  else
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "form_errors",
+          "<div class='text-sm text-destructive'>#{@note.errors.full_messages.join(', ')}</div>"
+        ), status: :unprocessable_entity
+      end
+    end
+  end
+end
+```
+
+**NEVER:**
+- ❌ Skip loading indicators
+- ❌ Forget to dismiss modals/dialogs
+- ❌ Skip success/error feedback
+- ❌ Leave stale UI elements after operations
+- ❌ Use full page redirects when turbo_stream updates would work
 
 ### Drawer Navigation (CRITICAL - READ CAREFULLY)
 **THIS IS EXTREMELY IMPORTANT. VIOLATING THESE RULES CREATES MULTIPLE OVERLAYS AND WASTES USER MONEY.**
@@ -442,14 +519,56 @@ Active items can move within their array IF:
 
 Do NOT check item state (deferred, dropped, done) - only check day state and array position.
 
-### Button Variants
-Follow Ruby UI button conventions:
-- Primary action: `Button(variant: :primary)`
-- Secondary action: `Button(variant: :secondary)`
-- Destructive action: `Button(variant: :destructive)`
-- Options: `Button(variant: :outline)`
-- Add `icon: true` for icon-only buttons
-- Add `type: :submit` for form submission buttons
+### Component Usage (CRITICAL - MUST FOLLOW EXACTLY)
+**CRITICAL: Always use the correct component for each UI element. NEVER create custom HTML/CSS when a component exists.**
+
+1. **Forms** - Use the pattern from `app/views/lists/form.rb`:
+   - Form wrapper with CSRF token
+   - Input fields with labels and error messages
+   - Submit and cancel buttons at the bottom
+
+2. **SVG Icons** - Use `app/components/icon.rb`:
+   ```ruby
+   render ::Components::Icon.new(name: :calendar, size: "16", class: "text-red-500")
+   ```
+
+3. **Buttons** - Use `app/components/ruby_ui/button/button.rb`:
+   ```ruby
+   Button(variant: :primary, type: :submit) { "Submit" }
+   Button(variant: :outline, href: some_path) { "Cancel" }
+   ```
+   - Variants: `:primary`, `:secondary`, `:destructive`, `:outline`, `:ghost`
+   - Add `icon: true` for icon-only buttons
+   - Add `type: :submit` for form submission buttons
+   - Can accept `href:` parameter to render as a link
+
+4. **Links styled as buttons** - Use `app/components/colored_link.rb`:
+   ```ruby
+   render ::Components::ColoredLink.new(href: path, variant: :primary) { "Click me" }
+   ```
+   - Same variants as Button
+   - Additional color variants: `:red`, `:blue`, `:green`, etc.
+   - Ghost variants: `:ghost_red`, `:ghost_blue`, etc.
+
+5. **Badges** - Three options:
+   - **Simple badge** - Use `app/components/ruby_ui/badge/badge.rb`:
+     ```ruby
+     Badge(variant: :primary, size: :md) { "New" }
+     ```
+   - **Badge with icon** - Use `app/components/badge_with_icon.rb`:
+     ```ruby
+     render ::Components::BadgeWithIcon.new(icon: :calendar, variant: :blue) { "Date" }
+     ```
+   - **Badge as link** - Use `app/components/badge_link.rb`:
+     ```ruby
+     render ::Components::BadgeLink.new(href: path, variant: :sky, active: true) { "Filter" }
+     ```
+
+**NEVER:**
+- ❌ Create raw `<button>` or `<a>` tags with custom classes
+- ❌ Use inline styles or custom Tailwind classes when a component exists
+- ❌ Create custom icon SVGs - use the Icon component
+- ❌ Manually create badge HTML - use Badge components
 
 ## Routes Structure
 

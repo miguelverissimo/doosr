@@ -26,12 +26,20 @@ class ::Components::AppSidebar < ::Components::Base
         is_day_view = @pathname == "/" || @pathname.start_with?("/day")
         is_well_page = @pathname == "/well"
         is_lists_page = @pathname.start_with?("/lists")
+        is_notes_page = @pathname.start_with?("/notes")
         is_accounting_page = @pathname.start_with?("/accounting")
         is_checklists_page = @pathname.start_with?("/checklists")
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
         is_admin_page = @pathname.start_with?("/admin")
 
-        is_app_page_not_day_view = is_well_page || is_lists_page || is_accounting_page || is_checklists_page || is_fixed_calendar_page || is_admin_page
+        is_app_page_not_day_view = \
+          is_well_page || \
+          is_lists_page || \
+          is_notes_page || \
+          is_accounting_page || \
+          is_checklists_page || \
+          is_fixed_calendar_page || \
+          is_admin_page
 
         if is_day_view
           # Show calendar for day view
@@ -68,6 +76,16 @@ class ::Components::AppSidebar < ::Components::Base
             ) do
               render ::Components::Icon.new(name: :list, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
+            end
+          end
+          SidebarMenuItem do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.notes_path,
+              data: { action: "click->nav-loader#show" }
+            ) do
+              render ::Components::Icon.new(name: :sticky_note, size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Notes" }
             end
           end
           SidebarMenuItem do

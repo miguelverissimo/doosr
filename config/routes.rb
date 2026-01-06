@@ -101,6 +101,24 @@ Rails.application.routes.draw do
       patch "update_recurrence", to: "items#update_recurrence", as: "update_recurrence"
       get "debug", to: "items#debug", as: "debug"
     end
+
+    # Item notes - notes attached to items
+    resources :item_notes, only: [ :create ], path: "notes"
+  end
+
+  # Notes - text notes attached to days/items
+  resources :notes do
+    member do
+      get "actions", to: "notes#actions_sheet", as: "actions_sheet"
+      patch "move", to: "notes#move", as: "move"
+      patch "reparent", to: "notes#reparent", as: "reparent"
+      get "debug", to: "notes#debug", as: "debug"
+    end
+  end
+
+  # Day notes - notes attached to days
+  resources :days, only: [] do
+    resources :day_notes, only: [ :new, :create ], path: "notes"
   end
 
   # Settings - user preferences and configuration

@@ -187,7 +187,7 @@ module Views
                 end
 
                 render RubyUI::DialogMiddle.new do
-                  render ::Components::Accounting::Invoices::FromTemplateForm.new(invoice_template: @invoice_template)
+                  render ::Components::Accounting::Invoices::FromTemplateForm.new(user: @user)
                 end
               end
             end

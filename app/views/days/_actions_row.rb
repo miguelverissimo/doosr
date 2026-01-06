@@ -16,6 +16,8 @@ module Views
             render_separator
             render_checklist_selector
             render_separator
+            render_add_note_button
+            render_separator
           end
 
           # Form takes remaining space
@@ -165,6 +167,22 @@ module Views
               end
             end
           end
+        end
+      end
+
+      def render_add_note_button
+        # Button to add a note to the day
+        Button(
+          variant: :secondary,
+          size: :md,
+          data: {
+            controller: "day-note",
+            day_note_day_id_value: @day.id,
+            action: "click->day-note#openDialog"
+          }
+        ) do
+          render ::Components::Icon.new(name: :sticky_note, size: "14")
+          plain " Add note"
         end
       end
 

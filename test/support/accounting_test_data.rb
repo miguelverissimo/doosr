@@ -96,5 +96,3 @@ class AccountingTestData
     template
   end
 end
-
-

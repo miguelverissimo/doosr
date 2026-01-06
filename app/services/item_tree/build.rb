@@ -1,8 +1,8 @@
 # app/services/item_tree/build.rb
 module ItemTree
   class Build
-    Node = Struct.new(:label, :item, :list, :checklist, :children, keyword_init: true) do
-      def initialize(label:, item: nil, list: nil, checklist: nil, children: [])
+    Node = Struct.new(:label, :item, :list, :checklist, :note, :children, keyword_init: true) do
+      def initialize(label:, item: nil, list: nil, checklist: nil, note: nil, children: [])
         super
       end
     end
@@ -44,11 +44,14 @@ module ItemTree
                  descendant.extract_inactive_ids_by_type("List")
       checklist_ids = descendant.extract_active_ids_by_type("Checklist") +
                       descendant.extract_inactive_ids_by_type("Checklist")
+      note_ids = descendant.extract_active_ids_by_type("Note") +
+                 descendant.extract_inactive_ids_by_type("Note")
 
-      # Fetch items, lists, and checklists
+      # Fetch items, lists, checklists, and notes
       items_by_id = fetch_items_indexed(item_ids)
       lists_by_id = fetch_lists_indexed(list_ids)
       checklists_by_id = fetch_checklists_indexed(checklist_ids)
+      notes_by_id = fetch_notes_indexed(note_ids)
 
       # Process tuples in order, creating nodes based on type
       all_tuples.filter_map do |tuple|
@@ -95,6 +98,17 @@ module ItemTree
             checklist: checklist,
             children: []
           )
+
+        when "Note"
+          note = notes_by_id[id]
+          next unless note # stale reference => skip
+
+          # Notes are leaf nodes (no children)
+          Node.new(
+            label: note.content_preview,
+            note: note,
+            children: []
+          )
         end
       end
     ensure
@@ -116,6 +130,11 @@ module ItemTree
     def fetch_checklists_indexed(ids)
       return {} if ids.empty?
       Checklist.where(id: ids).index_by(&:id)
+    end
+
+    def fetch_notes_indexed(ids)
+      return {} if ids.empty?
+      Note.where(id: ids).index_by(&:id)
     end
   end
 end

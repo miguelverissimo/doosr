@@ -12,7 +12,7 @@ module Views
       end
 
       def view_template
-        record = @node.item || @node.list || @node.checklist
+        record = @node.item || @node.list || @node.checklist || @node.note
         return unless record
 
         # Wrap in a container div
@@ -34,9 +34,16 @@ module Views
               list: @list,
               is_public_list: @public_view
             )
+          elsif @node.note
+            render ::Views::Notes::NoteItem.new(
+              note: @node.note,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
           end
 
-          # Render children (only for items, not lists/checklists in day context)
+          # Render children (only for items, not lists/checklists/notes in day context)
           if @node.children.any? && @node.item
             div(class: "ml-6 mt-2 space-y-2 border-l-2 border-border/50 pl-3") do
               @node.children.each do |child_node|

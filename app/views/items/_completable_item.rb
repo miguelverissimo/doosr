@@ -46,6 +46,13 @@ module Views
             plain "recurring"
           end
         end
+
+        # Notes indicator
+        if @record.has_notes?
+          span(class: "shrink-0 flex items-center justify-center h-5 w-5") do
+            render ::Components::Icon.new(name: :sticky_note, size: "14", class: "text-yellow-600 dark:text-yellow-400")
+          end
+        end
       end
 
       def stimulus_data

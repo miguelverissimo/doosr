@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :checklists, dependent: :destroy
   has_many :push_subscriptions, dependent: :destroy
   has_many :notification_logs, dependent: :destroy
+  has_many :notes, dependent: :destroy
 
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy
@@ -97,6 +98,14 @@ class User < ApplicationRecord
   def remove_role(role)
     roles.delete(role.to_s)
     save
+  end
+
+  def active_for_authentication?
+    super && access_confirmed?
+  end
+
+  def inactive_message
+    access_confirmed? ? super : :not_approved
   end
 
   private

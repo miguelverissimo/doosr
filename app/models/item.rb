@@ -271,6 +271,19 @@ class Item < ApplicationRecord
     descendant.extract_active_item_ids.count + descendant.extract_inactive_item_ids.count
   end
 
+  # Notes support
+  def has_notes?
+    return false unless descendant
+    note_ids = descendant.extract_active_ids_by_type("Note") + descendant.extract_inactive_ids_by_type("Note")
+    note_ids.any?
+  end
+
+  def note_count
+    return 0 unless descendant
+    note_ids = descendant.extract_active_ids_by_type("Note") + descendant.extract_inactive_ids_by_type("Note")
+    note_ids.count
+  end
+
   # Import from source item
   def import_from!(source)
     update!(

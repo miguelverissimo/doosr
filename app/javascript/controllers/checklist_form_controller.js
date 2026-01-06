@@ -32,7 +32,7 @@ export default class extends Controller {
 		}
 		// If no value, load from existing item rows
 		const items = [];
-		this.itemRowTargets.forEach((row, index) => {
+		this.itemRowTargets.forEach((row, _index) => {
 			const titleInput = row.querySelector(
 				'[data-checklist-form-target="itemTitle"]',
 			);
@@ -127,7 +127,7 @@ export default class extends Controller {
 	startDrag(event) {
 		// Simple drag implementation - could be enhanced with drag-and-drop API
 		event.preventDefault();
-		const index = parseInt(event.currentTarget.dataset.itemIndex);
+		const _index = parseInt(event.currentTarget.dataset.itemIndex);
 		// For now, we'll use move up/down buttons instead of drag
 		// This can be enhanced later with proper drag-and-drop
 	}
