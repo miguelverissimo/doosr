@@ -37,7 +37,7 @@ module Accounting
 
             format.turbo_stream do
               render turbo_stream: [
-                turbo_stream.update("customers_content", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
+                turbo_stream.update("customers_list", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
                 turbo_stream.append("body", "<script>window.toast && window.toast('Customer created successfully', { type: 'success' });</script>")
               ]
             end
@@ -82,7 +82,7 @@ module Accounting
 
         render turbo_stream: [
           turbo_stream.update(
-            "customers_content",
+            "customers_list",
             ::Views::Accounting::Customers::ListContent.new(user: current_user)
           ),
           turbo_stream.append(
@@ -104,7 +104,7 @@ module Accounting
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.update("customers_content", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
+            turbo_stream.update("customers_list", ::Views::Accounting::Customers::ListContent.new(user: current_user)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Customer deleted successfully', { type: 'success' });</script>")
           ]
         end

@@ -2,12 +2,13 @@ module Views
   module Accounting
     module Customers
       class Index < ::Views::Base
-        def initialize
+        def initialize(user:)
+          @user = user
         end
 
         def view_template
           turbo_frame_tag "customers_tab_content" do
-            div(class: "flex h-full flex-col", data: { controller: "lazy-tab" }) do
+            div(class: "flex h-full flex-col") do
               render RubyUI::Dialog.new do
                 div(class: "flex items-center justify-between mb-2") do
                   render RubyUI::DialogTitle.new { "Customers" }
@@ -16,7 +17,9 @@ module Views
                   end
                 end
 
-                render ::Views::Accounting::Customers::List.new(user: view_context.current_user)
+                div(id: "customers_list") do
+                  render ::Views::Accounting::Customers::ListContent.new(user: @user)
+                end
                 render_customer_form_dialog
               end
             end

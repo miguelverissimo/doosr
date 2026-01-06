@@ -2,12 +2,13 @@ module Views
   module Accounting
     module Settings
       class Index < ::Views::Base
-        def initialize
+        def initialize(user:)
+          @user = user
         end
 
         def view_template
           turbo_frame_tag "settings_tab_content" do
-            div(class: "flex h-full flex-col", data: { controller: "lazy-tab" }) do
+            div(class: "flex h-full flex-col") do
               h1(class: "text-xl font-bold") { "Settings" }
 
             # Tax Brackets
@@ -19,7 +20,9 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Tax Bracket" }
                   end
                 end
-                render ::Views::Accounting::Settings::TaxBrackets::List.new(user: view_context.current_user)
+                div(id: "tax_brackets_list") do
+                  render ::Views::Accounting::Settings::TaxBrackets::ListContent.new(user: @user)
+                end
                 render_tax_bracket_form_dialog
               end
             end
@@ -33,7 +36,9 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Address" }
                   end
                 end
-                render ::Views::Accounting::Settings::UserAddresses::List.new(user: view_context.current_user)
+                div(id: "user_addresses_list") do
+                  render ::Views::Accounting::Settings::UserAddresses::ListContent.new(user: @user)
+                end
                 render_address_form_dialog
               end
             end
@@ -47,7 +52,9 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Logo" }
                   end
                 end
-                render ::Views::Accounting::Settings::Logos::List.new(user: view_context.current_user)
+                div(id: "logos_list") do
+                  render ::Views::Accounting::Settings::Logos::ListContents.new(user: @user)
+                end
                 render_logo_form_dialog
               end
             end
@@ -61,7 +68,9 @@ module Views
                     Button(variant: :primary, size: :sm, class: "w-full sm:w-auto") { "Add Bank Info" }
                   end
                 end
-                render ::Views::Accounting::Settings::BankInfos::List.new(user: view_context.current_user)
+                div(id: "bank_infos_list") do
+                  render ::Views::Accounting::Settings::BankInfos::ListContent.new(user: @user)
+                end
                 render_bank_info_form_dialog
               end
             end

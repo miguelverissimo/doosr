@@ -17,7 +17,7 @@ module Accounting
         if @accounting_item.save
           format.turbo_stream do
             render turbo_stream: [
-              turbo_stream.update("accounting_items_content", ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)),
+              turbo_stream.update("accounting_items_list", ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)),
               turbo_stream.append("body", "<script>window.toast && window.toast('Accounting item created successfully', { type: 'success' });</script>")
             ]
           end
@@ -37,7 +37,7 @@ module Accounting
       if @accounting_item.update(params_hash)
         render turbo_stream: [
           turbo_stream.update(
-            "accounting_items_content",
+            "accounting_items_list",
             ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)
           ),
           turbo_stream.append(
@@ -59,7 +59,7 @@ module Accounting
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
-            turbo_stream.update("accounting_items_content", ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)),
+            turbo_stream.update("accounting_items_list", ::Views::Accounting::AccountingItems::ListContent.new(user: current_user)),
             turbo_stream.append("body", "<script>window.toast && window.toast('Accounting item deleted successfully', { type: 'success' });</script>")
           ]
         end
