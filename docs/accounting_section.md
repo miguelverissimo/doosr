@@ -1,4 +1,4 @@
-# Accounting section
+## Accounting section
 
 - shows interface with 6 tabs:
   - invoices (default)
@@ -144,3 +144,15 @@
     - item status (active, inactive)
     - tax bracket
     - convert currency (boolean)
+
+## Testing and stability guardrails
+
+- The invoicing UI (including invoice list, filters, and creation from templates) is **considered feature-complete**.
+- Core user journeys for invoices are covered by **system tests** in `test/system/accounting_invoices_test.rb`:
+  - navigating to the Accounting section and viewing the invoices list
+  - creating an invoice from a template via the "From Template" dialog
+- Any structural changes to:
+  - `app/views/accounting/invoices/*.rb`
+  - `app/components/accounting/invoices/*.rb`
+  - `app/controllers/accounting/invoices_controller.rb`
+  should be accompanied by corresponding updates to these system tests to avoid regressions in the view layer.
