@@ -199,6 +199,12 @@ input[type="checkbox"] {
   opacity: 1;
 }
 
+/* Make native date input calendar icon light only in dark mode */
+.dark .date-input-icon-light-dark::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 1;
+}
+
 /* Safelist: Dynamically generated classes for invoice rows */
 /* These classes are generated dynamically in Ruby code and need to be included in the bundle */
 /* Format: class="!bg-muted hover:!bg-muted/50 !bg-secondary hover:!bg-secondary/50 !bg-accent hover:!bg-accent/50 !bg-destructive hover:!bg-destructive/50 text-green-500 text-blue-500 text-red-500" */

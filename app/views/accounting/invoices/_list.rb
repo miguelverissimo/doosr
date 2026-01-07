@@ -135,7 +135,7 @@ module Views
                   render RubyUI::Input.new(
                     type: :date,
                     name: "date_from",
-                    class: "date-input-icon-light text-primary-foreground",
+                    class: "date-input-icon-light-dark",
                     value: @date_from
                   )
                 end
@@ -145,7 +145,7 @@ module Views
                   render RubyUI::Input.new(
                     type: :date,
                     name: "date_to",
-                    class: "date-input-icon-light text-primary-foreground",
+                    class: "date-input-icon-light-dark",
                     value: @date_to
                   )
                 end

@@ -10,8 +10,14 @@ module Views
       end
 
       def view_template
-        # Date display with import status
-        div do
+        # Mobile: Simple date with popover
+        div(class: "block md:hidden") do
+          render_mobile_date_popover
+        end
+
+        # Desktop: Full date display with import status
+        div(class: "hidden md:block") do
+          div do
             h1(class: "font-semibold text-base") { full_date }
             p(class: "text-sm") do
               # Fixed Calendar date
@@ -31,6 +37,7 @@ module Views
               end
             end
           end
+        end
 
         # Spacer
         div(class: "flex-1")
@@ -92,6 +99,36 @@ module Views
         end
 
         Badge(variant: badge_variant, class: "text-xs") { badge_text }
+      end
+
+      def render_mobile_date_popover
+        render RubyUI::Popover.new(options: { trigger: "click" }) do
+          render RubyUI::PopoverTrigger.new do
+            h1(class: "font-semibold text-base cursor-pointer") { full_date }
+          end
+
+          render RubyUI::PopoverContent.new do
+            div(class: "p-3 space-y-2 min-w-[200px]") do
+              # Fixed Calendar date link
+              div(class: "text-sm") do
+                render_fixed_calendar_date_link
+              end
+
+              # Import status
+              if @day&.imported_from_day || @day&.imported_to_day
+                div(class: "text-xs text-muted-foreground space-y-1 pt-2 border-t") do
+                  if @day&.imported_from_day
+                    div { "Imported from #{format_date(@day.imported_from_day.date)}" }
+                  end
+
+                  if @day&.imported_to_day
+                    div { "Imported to #{format_date(@day.imported_to_day.date)}" }
+                  end
+                end
+              end
+            end
+          end
+        end
       end
 
       def render_actions_menu

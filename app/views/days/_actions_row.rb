@@ -9,7 +9,7 @@ module Views
         # only show if day is not closed
         return if @day&.closed?
 
-        div(class: "flex items-baseline gap-2") do
+        div(class: "flex flex-wrap items-baseline gap-2 w-full") do
           # Add list link dropdown - only show if day exists and is not closed
           if @day && !@day.closed?
             render_list_selector
@@ -21,7 +21,7 @@ module Views
           end
 
           # Form takes remaining space
-          div(class: "flex-1") do
+          div(class: "flex-1 min-w-[12rem]") do
             render_add_item_form
           end
         end

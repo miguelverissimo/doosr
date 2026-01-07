@@ -232,6 +232,13 @@ Located in `app/services/`:
   - Example: Instead of `onclick="alert('hi')"`, create a Stimulus controller method
 - Use Ruby UI components from the ruby_ui gem - do not create raw HTML/JS
 
+### SVG Icons (CRITICAL)
+- ❌ **IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS**
+- ❌ **NEVER create inline SVG elements in any component file**
+- ✅ **ALL ICONS MUST BE ADDED AND REFERENCED FROM @app/components/icon.rb**
+- ✅ **NO EXCEPTIONS** - all icons must go through the Icon component
+- Use: `render ::Components::Icon.new(name: :icon_name, size: "16", class: "text-red-500")`
+
 ### UI Feedback
 - **CRITICAL: Every backend request MUST show a loading indicator AND operation result (success/error)**
 - For form submissions: Use `window.toast(message, { type: "loading", description: "Please wait" })`
@@ -522,15 +529,57 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
 ### Component Usage (CRITICAL - MUST FOLLOW EXACTLY)
 **CRITICAL: Always use the correct component for each UI element. NEVER create custom HTML/CSS when a component exists.**
 
-1. **Forms** - Use the pattern from `app/views/lists/form.rb`:
-   - Form wrapper with CSRF token
-   - Input fields with labels and error messages
-   - Submit and cancel buttons at the bottom
+1. **Forms** - **ALWAYS USE `RubyUI::Form` - NEVER USE PLAIN `form`**:
+   ```ruby
+   render RubyUI::Form.new(
+     action: form_url,
+     method: "post",
+     class: "space-y-6",
+     data: {
+       turbo: true,
+       controller: "modal-form",
+       modal_form_loading_message_value: "Creating...",
+       modal_form_success_message_value: "Created successfully"
+     }
+   ) do
+     # CSRF token - ALWAYS use RubyUI::Input.new even for hidden fields
+     render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+     render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch") unless @record.new_record?
+
+     # Each field MUST use FormField wrapper
+     render RubyUI::FormField.new do
+       render RubyUI::FormFieldLabel.new { "Field Name" }
+       render RubyUI::Input.new(
+         type: :text,
+         name: "record[field]",
+         placeholder: "Enter value",
+         value: @record.field,
+         required: true
+       )
+       render RubyUI::FormFieldError.new
+     end
+
+     # Buttons
+     div(class: "flex gap-2 justify-end") do
+       Button(variant: :outline, type: :button, data: { action: "click->modal-form#cancelDialog" }) { "Cancel" }
+       Button(variant: :primary, type: :submit) { "Submit" }
+     end
+   end
+   ```
+   - **CRITICAL**: ALWAYS use `RubyUI::Form.new` instead of plain `form()`
+   - **CRITICAL**: ALWAYS wrap each field in `RubyUI::FormField.new`
+   - **CRITICAL**: ALWAYS use `RubyUI::FormFieldLabel.new` for labels
+   - **CRITICAL**: ALWAYS use `RubyUI::FormFieldError.new` for error messages
+   - **CRITICAL**: Use `RubyUI::Input.new` or `RubyUI::Textarea.new` for ALL inputs including hidden fields
+   - **CRITICAL**: Even CSRF tokens and hidden fields MUST use `RubyUI::Input.new(type: :hidden, ...)`
+   - Reference: `app/components/accounting/customers/form.rb`
 
 2. **SVG Icons** - Use `app/components/icon.rb`:
    ```ruby
    render ::Components::Icon.new(name: :calendar, size: "16", class: "text-red-500")
    ```
+   - **CRITICAL**: IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS
+   - **CRITICAL**: ALL ICONS MUST BE ADDED AND REFERENCED FROM @app/components/icon.rb NO EXCEPTIONS
 
 3. **Buttons** - Use `app/components/ruby_ui/button/button.rb`:
    ```ruby
@@ -564,11 +613,240 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
      render ::Components::BadgeLink.new(href: path, variant: :sky, active: true) { "Filter" }
      ```
 
+6. **Date Inputs** - Use `app/components/ruby_ui/input/input.rb`:
+   ```ruby
+   render RubyUI::Input.new(
+     type: :date,
+     name: "date_from",
+     class: "date-input-icon-light-dark",
+     value: @date_from
+   )
+   ```
+   - **CRITICAL**: Every `RubyUI::Input` with `type: :date` MUST include `class: "date-input-icon-light-dark"`
+   - This ensures the calendar icon is visible in dark mode (light icon) while remaining dark in light mode
+   - The class applies a CSS filter to invert the calendar picker indicator icon only when inside a `.dark` container
+
 **NEVER:**
+- ❌ **NEVER USE PLAIN `form()` - ALWAYS USE `RubyUI::Form.new`**
+- ❌ **NEVER USE PLAIN `label()` IN FORMS - ALWAYS USE `RubyUI::FormFieldLabel.new`**
+- ❌ **NEVER USE PLAIN `input()` FOR ANY INPUTS - ALWAYS USE `RubyUI::Input.new` (INCLUDING HIDDEN FIELDS AND CSRF TOKENS)**
+- ❌ **NEVER USE PLAIN `textarea()` - ALWAYS USE `RubyUI::Textarea.new`**
 - ❌ Create raw `<button>` or `<a>` tags with custom classes
 - ❌ Use inline styles or custom Tailwind classes when a component exists
 - ❌ Create custom icon SVGs - use the Icon component
+- ❌ **NEVER CREATE SVG ELEMENTS FOR ICONS - ALL ICONS MUST GO IN @app/components/icon.rb**
 - ❌ Manually create badge HTML - use Badge components
+
+### Buttons That Open Dialogs (CRITICAL - THE ONLY PATTERN THAT WORKS)
+**THIS IS THE ONLY WAY TO CREATE BUTTONS THAT OPEN TURBO STREAM DIALOGS. FOLLOW THIS PATTERN EXACTLY.**
+
+When you need a button to fetch and display a dialog via Turbo Streams, you MUST use this pattern (see `app/javascript/controllers/day_note_controller.js` and `app/javascript/controllers/journal_new_controller.js` as reference):
+
+#### 1. Create a Stimulus Controller (e.g., `app/javascript/controllers/journal_new_controller.js`):
+```javascript
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  openDialog() {
+    const url = "/journals/new"  // Replace with your endpoint
+
+    fetch(url, {
+      headers: {
+        "Accept": "text/vnd.turbo-stream.html"
+      }
+    })
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, "text/html")
+        const template = doc.querySelector("turbo-stream template")
+
+        if (template) {
+          const content = template.content.cloneNode(true)
+          document.body.appendChild(content)
+        } else {
+          console.error("No template found in turbo-stream")
+        }
+      })
+      .catch(error => {
+        console.error("Error opening dialog:", error)
+        window.toast && window.toast("Failed to open dialog", { type: "error" })
+      })
+  }
+}
+```
+
+#### 2. Create the Button with Stimulus Action:
+```ruby
+Button(
+  variant: :primary,
+  data: {
+    controller: "journal-new",
+    action: "click->journal-new#openDialog"
+  }
+) { "New Journal" }
+```
+
+#### 3. Controller Action Returns Turbo Stream:
+```ruby
+def new
+  @journal = current_user.journals.build(date: Date.today)
+
+  respond_to do |format|
+    format.turbo_stream do
+      render turbo_stream: turbo_stream.append(
+        "body",
+        render_to_string(::Views::Journals::FormDialog.new(journal: @journal))
+      )
+    end
+  end
+end
+```
+
+#### 4. Dialog View with Unique ID:
+```ruby
+Dialog(open: true, id: "journal_dialog") do
+  DialogContent do
+    DialogHeader do
+      DialogTitle { "New Journal Entry" }
+    end
+
+    form(
+      action: view_context.journals_path,
+      method: "post",
+      data: {
+        controller: "modal-form",
+        modal_form_loading_message_value: "Creating...",
+        turbo: true
+      }
+    ) do
+      csrf_token_field
+
+      div(id: "journal_form_errors", class: "mb-4")
+
+      # ... form fields ...
+
+      div(class: "flex gap-2 justify-end") do
+        # CRITICAL: Cancel button MUST use cancelDialog action
+        Button(
+          variant: :outline,
+          type: :button,
+          data: { action: "click->modal-form#cancelDialog" }
+        ) { "Cancel" }
+        Button(variant: :primary, type: :submit) { "Create" }
+      end
+    end
+  end
+end
+```
+
+#### 5. Cancel Button Implementation in modal_form_controller.js:
+```javascript
+cancelDialog(event) {
+  event.preventDefault()
+  // Find the dialog element and remove it from DOM
+  const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
+  if (dialog) {
+    dialog.remove()
+  }
+}
+```
+
+#### CRITICAL NOTES:
+- **NEVER use `ColoredLink` with `data: { turbo_stream: true }` to open dialogs** - it doesn't work
+- **NEVER use `Button` with `href:` parameter** - buttons need Stimulus actions, links don't work
+- **ALWAYS use the DOMParser pattern** to extract and append the turbo-stream template content
+- **ALWAYS give dialogs a unique ID** so they can be removed later
+- **ALWAYS use `Button` component** with Stimulus controller + action pattern
+- **CRITICAL: Cancel buttons MUST use `click->modal-form#cancelDialog`** - NOT `click->ruby-ui--dialog#close`
+- **ALWAYS use `modal-form` controller on forms inside dialogs** for loading states and proper dismissal
+- **Reference implementations**: `day_note_controller.js`, `journal_new_controller.js`, `journal_controller.js`, `modal_form_controller.js`
+
+#### What DOESN'T Work (DO NOT USE):
+```ruby
+# ❌ WRONG - ColoredLink with turbo_stream doesn't work
+render ::Components::ColoredLink.new(
+  href: view_context.new_journal_path,
+  variant: :primary,
+  data: { turbo_stream: true }
+) { "New Journal" }
+
+# ❌ WRONG - Button with href doesn't work for dialogs
+Button(
+  variant: :primary,
+  href: view_context.new_journal_path,
+  data: { turbo_stream: true }
+) { "New Journal" }
+
+# ❌ WRONG - Cancel button with ruby-ui--dialog#close doesn't work
+Button(
+  variant: :outline,
+  type: :button,
+  data: { action: "click->ruby-ui--dialog#close" }
+) { "Cancel" }
+
+# ❌ WRONG - Turbo.renderStreamMessage doesn't work
+Turbo.renderStreamMessage(html)  # This is broken
+
+# ❌ WRONG - Using fetch without parsing the template doesn't work
+fetch(url).then(response => response.text())  // Missing DOMParser step
+```
+
+#### What DOES Work (ALWAYS USE THIS):
+```ruby
+# ✅ CORRECT - Button with Stimulus controller to open dialog
+Button(
+  variant: :primary,
+  data: {
+    controller: "journal-new",
+    action: "click->journal-new#openDialog"
+  }
+) { "New Journal" }
+
+# ✅ CORRECT - Cancel button with modal-form#cancelDialog
+Button(
+  variant: :outline,
+  type: :button,
+  data: { action: "click->modal-form#cancelDialog" }
+) { "Cancel" }
+
+# ✅ CORRECT - Form with modal-form controller
+form(
+  action: view_context.journals_path,
+  method: "post",
+  data: {
+    controller: "modal-form",
+    modal_form_loading_message_value: "Creating...",
+    turbo: true
+  }
+) do
+  # ... form content ...
+end
+```
+
+```javascript
+// ✅ CORRECT - Fetch with DOMParser and manual append
+fetch(url, { headers: { "Accept": "text/vnd.turbo-stream.html" } })
+  .then(response => response.text())
+  .then(html => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, "text/html")
+    const template = doc.querySelector("turbo-stream template")
+    if (template) {
+      const content = template.content.cloneNode(true)
+      document.body.appendChild(content)
+    }
+  })
+
+// ✅ CORRECT - Cancel button handler
+cancelDialog(event) {
+  event.preventDefault()
+  const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
+  if (dialog) {
+    dialog.remove()
+  }
+}
+```
 
 ## Routes Structure
 

@@ -27,6 +27,7 @@ class ::Components::AppSidebar < ::Components::Base
         is_well_page = @pathname == "/well"
         is_lists_page = @pathname.start_with?("/lists")
         is_notes_page = @pathname.start_with?("/notes")
+        is_journals_page = @pathname.start_with?("/journals") || @pathname.start_with?("/journal_")
         is_accounting_page = @pathname.start_with?("/accounting")
         is_checklists_page = @pathname.start_with?("/checklists")
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
@@ -36,6 +37,7 @@ class ::Components::AppSidebar < ::Components::Base
           is_well_page || \
           is_lists_page || \
           is_notes_page || \
+          is_journals_page || \
           is_accounting_page || \
           is_checklists_page || \
           is_fixed_calendar_page || \
@@ -86,6 +88,16 @@ class ::Components::AppSidebar < ::Components::Base
             ) do
               render ::Components::Icon.new(name: :sticky_note, size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Notes" }
+            end
+          end
+          SidebarMenuItem do
+            SidebarMenuButton(
+              as: :a,
+              href: "#",
+              data: { action: "click->nav-loader#show" }
+            ) do
+              render ::Components::Icon.new(name: :journal, size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Journals" }
             end
           end
           SidebarMenuItem do
@@ -185,6 +197,25 @@ class ::Components::AppSidebar < ::Components::Base
           render RubyUI::DropdownMenuItem.new(href: "#") do
             render ::Components::Icon.new(name: :user, size: "16", class: "shrink-0")
             span(class: "ml-2") { "Edit Profile" }
+          end
+
+          render RubyUI::DropdownMenuSeparator.new
+
+          # Theme toggle section - using DropdownMenuItem for consistent styling
+          ThemeToggle do |toggle|
+            toggle.SetLightMode do
+              render RubyUI::DropdownMenuItem.new(href: "#") do
+                render ::Components::Icon.new(name: :sun, size: "16", class: "shrink-0")
+                span(class: "ml-2") { "Light mode" }
+              end
+            end
+
+            toggle.SetDarkMode do
+              render RubyUI::DropdownMenuItem.new(href: "#") do
+                render ::Components::Icon.new(name: :moon, size: "16", class: "shrink-0")
+                span(class: "ml-2") { "Dark mode" }
+              end
+            end
           end
 
           render RubyUI::DropdownMenuSeparator.new
