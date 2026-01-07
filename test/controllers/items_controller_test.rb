@@ -7,7 +7,8 @@ class ItemsControllerTest < ActionDispatch::IntegrationTest
     @user = User.create!(
       email: "test@example.com",
       password: "password123",
-      password_confirmation: "password123"
+      password_confirmation: "password123",
+      access_confirmed: true
     )
     sign_in @user
   end

@@ -20,7 +20,7 @@ class ReusableItemsController < ApplicationController
             ::Views::Items::Errors.new(item: @item)
           )
         end
-        format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
+        format.html { redirect_back(fallback_location: list_path(@list), alert: "Invalid item type for list") }
       end
       return
     end
@@ -51,7 +51,7 @@ class ReusableItemsController < ApplicationController
         format.turbo_stream do
           render_list_update
         end
-        format.html { redirect_back(fallback_location: root_path, notice: "Item created") }
+        format.html { redirect_back(fallback_location: list_path(@list), notice: "Item created") }
       end
     else
       respond_to do |format|
@@ -61,7 +61,7 @@ class ReusableItemsController < ApplicationController
             ::Views::Items::Errors.new(item: @item)
           )
         end
-        format.html { redirect_back(fallback_location: root_path, alert: "Failed to create item") }
+        format.html { redirect_back(fallback_location: list_path(@list), alert: "Failed to create item") }
       end
     end
   end
@@ -201,7 +201,7 @@ class ReusableItemsController < ApplicationController
 
         render turbo_stream: streams
       end
-      format.html { redirect_back(fallback_location: root_path) }
+      format.html { redirect_back(fallback_location: list_path(@list)) }
     end
   end
 
@@ -267,7 +267,7 @@ class ReusableItemsController < ApplicationController
 
         render turbo_stream: streams
       end
-      format.html { redirect_back(fallback_location: root_path) }
+      format.html { redirect_back(fallback_location: list_path(@list)) }
     end
   end
 
@@ -287,7 +287,7 @@ class ReusableItemsController < ApplicationController
               ::Views::Items::Errors.new(item: @item)
             )
           end
-          format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
+          format.html { redirect_back(fallback_location: list_path(@list), alert: "Invalid item type for list") }
         end
         return
       end
@@ -380,7 +380,7 @@ class ReusableItemsController < ApplicationController
             render turbo_stream: stream
           end
         end
-        format.html { redirect_back(fallback_location: root_path, notice: "Item updated") }
+        format.html { redirect_back(fallback_location: list_path(@list), notice: "Item updated") }
       end
     else
       respond_to do |format|
@@ -390,7 +390,7 @@ class ReusableItemsController < ApplicationController
             ::Views::Items::Errors.new(item: @item)
           )
         end
-        format.html { redirect_back(fallback_location: root_path, alert: "Failed to update item") }
+        format.html { redirect_back(fallback_location: list_path(@list), alert: "Failed to update item") }
       end
     end
   end
@@ -412,7 +412,7 @@ class ReusableItemsController < ApplicationController
             )
           )
         end
-        format.html { redirect_back(fallback_location: root_path, alert: "Confirmation required") }
+        format.html { redirect_back(fallback_location: list_path(@list), alert: "Confirmation required") }
       end
       return
     end
@@ -468,7 +468,7 @@ class ReusableItemsController < ApplicationController
             "<script>window.toast && window.toast('Cannot move this item type to a list. Lists can only contain reusable or section items.', { type: 'danger' })</script>"
           )
         end
-        format.html { redirect_back(fallback_location: root_path, alert: "Invalid item type for list") }
+        format.html { redirect_back(fallback_location: list_path(@list), alert: "Invalid item type for list") }
       end
       return
     end
@@ -507,7 +507,7 @@ class ReusableItemsController < ApplicationController
 
         render turbo_stream: stream
       end
-      format.html { redirect_back(fallback_location: root_path, notice: "Item moved successfully") }
+      format.html { redirect_back(fallback_location: list_path(@list), notice: "Item moved successfully") }
     end
   end
 
@@ -543,7 +543,7 @@ class ReusableItemsController < ApplicationController
         @acting_user = @list.user
         @is_public_list = true
       else
-        redirect_to root_path, alert: "List not found or not accessible"
+        redirect_to lists_path, alert: "List not found or not accessible"
       end
     end
   end
@@ -595,7 +595,7 @@ class ReusableItemsController < ApplicationController
       format.turbo_stream do
         render_list_update(toast_message)
       end
-      format.html { redirect_back(fallback_location: root_path, notice: toast_message) }
+      format.html { redirect_back(fallback_location: list_path(@list), notice: toast_message) }
     end
   end
 

@@ -4,7 +4,7 @@ require "test_helper"
 
 class ReusableItemsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @user = User.create!(email: "test@example.com", password: "password123", password_confirmation: "password123")
+    @user = User.create!(email: "test@example.com", password: "password123", password_confirmation: "password123", access_confirmed: true)
     @list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list")
 
     # Descendant is automatically created by List after_create callback
