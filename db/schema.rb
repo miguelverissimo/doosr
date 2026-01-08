@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_06_054030) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_07_071804) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -300,6 +300,46 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_06_054030) do
     t.index ["source_item_id"], name: "index_items_on_source_item_id"
     t.index ["state"], name: "index_items_on_state"
     t.index ["user_id"], name: "index_items_on_user_id"
+  end
+
+  create_table "journal_fragments", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.bigint "journal_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["journal_id"], name: "index_journal_fragments_on_journal_id"
+    t.index ["user_id"], name: "index_journal_fragments_on_user_id"
+  end
+
+  create_table "journal_prompt_templates", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.text "prompt_text", null: false
+    t.jsonb "schedule_rule", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["schedule_rule"], name: "index_journal_prompt_templates_on_schedule_rule", using: :gin
+    t.index ["user_id"], name: "index_journal_prompt_templates_on_user_id"
+  end
+
+  create_table "journal_prompts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "journal_id", null: false
+    t.text "prompt_text", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["journal_id"], name: "index_journal_prompts_on_journal_id"
+    t.index ["user_id"], name: "index_journal_prompts_on_user_id"
+  end
+
+  create_table "journals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "date"], name: "index_journals_on_user_id_and_date", unique: true
+    t.index ["user_id"], name: "index_journals_on_user_id"
   end
 
   create_table "lists", force: :cascade do |t|
@@ -603,6 +643,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_06_054030) do
   add_foreign_key "items", "items", column: "recurring_next_item_id", on_delete: :nullify
   add_foreign_key "items", "items", column: "source_item_id", on_delete: :nullify
   add_foreign_key "items", "users"
+  add_foreign_key "journal_fragments", "journals"
+  add_foreign_key "journal_fragments", "users"
+  add_foreign_key "journal_prompt_templates", "users"
+  add_foreign_key "journal_prompts", "journals"
+  add_foreign_key "journal_prompts", "users"
+  add_foreign_key "journals", "users"
   add_foreign_key "lists", "descendants"
   add_foreign_key "lists", "users"
   add_foreign_key "note_links", "notes"

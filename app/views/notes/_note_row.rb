@@ -62,24 +62,38 @@ module Views
             end
 
             # Delete button
-            form(
-              action: view_context.note_path(@note),
-              method: "post",
-              data: {
-                turbo_method: :delete,
-                turbo_confirm: "Are you sure you want to delete this note?"
-              },
-              class: "inline-block"
-            ) do
-              csrf_token_field
-              Button(
-                variant: :ghost,
-                icon: true,
-                size: :sm,
-                type: :submit,
-                class: "hover:bg-destructive/10 hover:text-destructive"
-              ) do
-                render ::Components::Icon.new(name: :delete, size: "16")
+            render RubyUI::AlertDialog.new do
+              render RubyUI::AlertDialogTrigger.new do
+                Button(
+                  variant: :ghost,
+                  icon: true,
+                  size: :sm,
+                  class: "hover:bg-destructive/10 hover:text-destructive"
+                ) do
+                  render ::Components::Icon.new(name: :delete, size: "16")
+                end
+              end
+
+              render RubyUI::AlertDialogContent.new do
+                render RubyUI::AlertDialogHeader.new do
+                  render RubyUI::AlertDialogTitle.new { "Delete this note?" }
+                  render RubyUI::AlertDialogDescription.new { "This action cannot be undone." }
+                end
+
+                render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
+                  render RubyUI::AlertDialogCancel.new { "Cancel" }
+
+                  form(
+                    action: view_context.note_path(@note),
+                    method: "post",
+                    data: { turbo_stream: true, action: "submit@document->ruby-ui--alert-dialog#dismiss" },
+                    class: "inline"
+                  ) do
+                    csrf_token_field
+                    input(type: "hidden", name: "_method", value: "delete")
+                    render RubyUI::AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
+                  end
+                end
               end
             end
           end

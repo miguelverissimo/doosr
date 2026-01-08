@@ -46,6 +46,7 @@ module Views
                   render_list_selector
                   render_checklist_selector
                   render_add_note_button
+                  render_add_journal_button
                 end
               end
             end
@@ -62,7 +63,10 @@ module Views
 
           if available_lists.any?
             div(class: "border-b border-border last:border-0") do
-              div(class: "px-2 py-1.5 text-xs font-medium text-muted-foreground") { plain "Link list" }
+              div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
+                render ::Components::Icon.new(name: :list, size: "14", class: "mr-2")
+                plain "Link list"
+              end
 
               div(class: "max-h-56 overflow-y-auto") do
                 available_lists.each do |list|
@@ -95,7 +99,8 @@ module Views
               end
             end
           else
-            div(class: "px-2 py-2 text-xs text-muted-foreground") do
+            div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
+              render ::Components::Icon.new(name: :list, size: "14", class: "mr-2")
               plain "No lists available"
             end
           end
@@ -120,7 +125,10 @@ module Views
 
           if available_templates.any?
             div(class: "border-b border-border last:border-0") do
-              div(class: "px-2 py-1.5 text-xs font-medium text-muted-foreground") { plain "Add checklist" }
+              div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
+                render ::Components::Icon.new(name: :checklist, size: "14", class: "mr-2")
+                plain "Add checklist"
+              end
 
               div(class: "max-h-56 overflow-y-auto") do
                 available_templates.each do |template|
@@ -153,14 +161,15 @@ module Views
               end
             end
           else
-            div(class: "px-2 py-2 text-xs text-muted-foreground") do
+            div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
+              render ::Components::Icon.new(name: :checklist, size: "14", class: "mr-2")
               plain "No templates available"
             end
           end
         end
 
         def render_add_note_button
-          div(class: "px-2 py-1.5") do
+          div(class: "py-1.5") do
             Button(
               variant: :ghost,
               size: :sm,
@@ -173,6 +182,39 @@ module Views
             ) do
               render ::Components::Icon.new(name: :sticky_note, size: "14", class: "mr-2")
               plain "Add note"
+            end
+          end
+        end
+
+        def render_add_journal_button
+          # Check if journal already linked
+          existing_journal_ids = @day.descendant.extract_active_ids_by_type("Journal")
+          already_linked = existing_journal_ids.any?
+
+          form(
+            action: day_journal_links_path,
+            method: "post",
+            data: {
+              turbo_stream: true,
+              controller: "form-loading",
+              form_loading_message_value: "Adding journal link...",
+              action: "submit->form-loading#submit"
+            }
+          ) do
+            csrf_token_field
+            input(type: "hidden", name: "day_id", value: @day.id)
+
+            div(class: "py-1.5") do
+              Button(
+                type: :submit,
+                variant: :ghost,
+                class: "w-full justify-start",
+                size: :sm,
+                disabled: already_linked
+              ) do
+                render ::Components::Icon.new(name: :journal, size: "14", class: "mr-2")
+                plain "Add journal"
+              end
             end
           end
         end

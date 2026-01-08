@@ -93,7 +93,7 @@ class ::Components::AppSidebar < ::Components::Base
           SidebarMenuItem do
             SidebarMenuButton(
               as: :a,
-              href: "#",
+              href: view_context.journals_path,
               data: { action: "click->nav-loader#show" }
             ) do
               render ::Components::Icon.new(name: :journal, size: "16", class: "shrink-0")

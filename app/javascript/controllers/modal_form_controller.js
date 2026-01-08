@@ -37,18 +37,38 @@ export default class extends Controller {
   }
 
   handleSubmitEnd(event) {
-    const response = event.detail.fetchResponse?.response
-
+    // Dismiss loading toast
     if (window.toast && window.toast.dismiss && this.loadingToastId) {
       window.toast.dismiss(this.loadingToastId)
       this.loadingToastId = null
     }
 
-    if (response && response.ok) {
-      if (window.toast) {
-        window.toast(this.successMessageValue, { type: "success" })
-      }
-      this.dismissModal()
+    // If submission was successful (not an error response), dismiss the dialog
+    const { success, fetchResponse } = event.detail
+    if (success && fetchResponse && fetchResponse.response.ok) {
+      // Small delay to allow turbo streams to process first
+      setTimeout(() => {
+        this.dismissModal()
+      }, 100)
+    }
+  }
+
+  selectTemplate(event) {
+    event.preventDefault()
+    const templateText = event.currentTarget.dataset.templateText
+    const textarea = this.element.querySelector("textarea")
+    if (textarea && templateText) {
+      textarea.value = templateText
+      textarea.focus()
+    }
+  }
+
+  cancelDialog(event) {
+    event.preventDefault()
+    // Find the dialog element and remove it from DOM
+    const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
+    if (dialog) {
+      dialog.remove()
     }
   }
 

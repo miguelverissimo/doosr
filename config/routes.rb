@@ -56,6 +56,15 @@ Rails.application.routes.draw do
     end
   end
 
+  # Day journal links - linking journals to days
+  resources :day_journal_links, only: [ :create, :destroy ] do
+    member do
+      get "actions", to: "day_journal_links#actions_sheet", as: "actions_sheet"
+      patch "move", to: "day_journal_links#move", as: "move"
+      get "debug", to: "day_journal_links#debug", as: "debug"
+    end
+  end
+
   # Ephemeries
   get "ephemeries", to: "ephemeries#index", as: :ephemeries
 
@@ -119,7 +128,30 @@ Rails.application.routes.draw do
   # Day notes - notes attached to days
   resources :days, only: [] do
     resources :day_notes, only: [ :new, :create ], path: "notes"
+    resources :day_journals, only: [ :create ], path: "journals"
   end
+
+  # Journals - daily journal entries
+  resources :journals, only: [ :index, :show, :new, :create, :destroy ] do
+    resources :journal_fragments, only: [ :new, :create ], path: "fragments"
+  end
+
+  # Journal Fragments
+  resources :journal_fragments, only: [ :edit, :update, :destroy ] do
+    member do
+      patch :move
+    end
+  end
+
+  # Journal Prompts
+  resources :journal_prompts, only: [ :destroy ] do
+    member do
+      patch :move
+    end
+  end
+
+  # Journal Prompt Templates
+  resources :journal_prompt_templates
 
   # Settings - user preferences and configuration
   resource :settings, only: [ :show, :update ] do

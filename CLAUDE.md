@@ -222,6 +222,14 @@ Located in `app/services/`:
 
 **If you find yourself thinking "but it would be better if..." - STOP. Do what was instructed.**
 
+### Delete Confirmations (ABSOLUTELY CRITICAL)
+**❌ IT IS ABSOLUTELY FORBIDDEN TO USE `turbo_confirm` OR BROWSER CONFIRMATIONS FOR DELETE ACTIONS ❌**
+
+- **CRITICAL**: ALL delete confirmations MUST use `RubyUI::AlertDialog` component
+- **NEVER** use `turbo_confirm` or `data-turbo-confirm` attributes
+- **NEVER** use browser's native confirm() function
+- See the "Delete Confirmations" section below for the complete pattern
+
 ### Phlex Components
 - ❌ **ABSOLUTELY NEVER EVER USE `onclick`, `onchange`, or ANY `on*` EVENT ATTRIBUTES IN PHLEX** ❌
   - They throw `Phlex::ArgumentError` and will break the application
@@ -396,6 +404,193 @@ end
 - ❌ Leave stale UI elements after operations
 - ❌ Use full page redirects when turbo_stream updates would work
 
+### Edit Dialogs (CRITICAL - ALWAYS USE DIALOGS FOR EDIT)
+**CRITICAL: ALL EDIT ACTIONS MUST OPEN A DIALOG, NEVER INLINE REPLACE THE ITEM WITH AN EDIT FORM.**
+
+#### The Universal Rule
+**WHEN A USER CLICKS AN EDIT BUTTON, THEY MUST GET A DIALOG. NO EXCEPTIONS.**
+
+#### Why Dialogs for Edit?
+1. **Consistent UX** - Users expect dialogs for editing, just like they get for creating
+2. **Easy dismissal** - Dialogs can be closed with Cancel or after successful save
+3. **No state management** - No need to track "edit mode" vs "view mode" inline
+4. **Reusable components** - Same FormDialog component works for both create and edit
+
+#### The Pattern (ALWAYS FOLLOW THIS)
+
+**1. Single FormDialog Component:**
+```ruby
+# app/views/journal_fragments/_form_dialog.rb
+class FormDialog < ::Views::Base
+  def initialize(fragment:, journal:, prompt: nil)
+    @fragment = fragment
+    @journal = journal
+    @prompt = prompt
+  end
+
+  def view_template
+    Dialog(open: true, id: "fragment_dialog") do
+      DialogContent do
+        DialogHeader do
+          DialogTitle { @fragment.new_record? ? "New Entry" : "Edit Entry" }
+        end
+
+        render RubyUI::Form.new(
+          action: @fragment.new_record? ? create_path : update_path,
+          method: "post",
+          data: {
+            controller: "modal-form",
+            modal_form_loading_message_value: @fragment.new_record? ? "Creating..." : "Updating...",
+            turbo: true
+          }
+        ) do
+          render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+          render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch") unless @fragment.new_record?
+
+          # Form fields...
+
+          div(class: "flex gap-2 justify-end") do
+            Button(variant: :outline, type: :button, data: { action: "click->modal-form#cancelDialog" }) { "Cancel" }
+            Button(variant: :primary, type: :submit) { @fragment.new_record? ? "Create" : "Update" }
+          end
+        end
+      end
+    end
+  end
+end
+```
+
+**2. Controller Edit Action (Appends Dialog):**
+```ruby
+def edit
+  @fragment = current_user.fragments.find(params[:id])
+  @journal = @fragment.journal
+
+  respond_to do |format|
+    format.turbo_stream do
+      render turbo_stream: turbo_stream.append(
+        "body",
+        render_to_string(::Views::Fragments::FormDialog.new(fragment: @fragment, journal: @journal))
+      )
+    end
+  end
+end
+```
+
+**3. Controller Update Action (Removes Dialog):**
+```ruby
+def update
+  @fragment = current_user.fragments.find(params[:id])
+  @journal = @fragment.journal
+
+  if @fragment.update(fragment_params)
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.remove("fragment_dialog"),           # 1. Close dialog
+          turbo_stream.replace("fragment_#{@fragment.id}", ...), # 2. Update item view
+          turbo_stream.append("body", "<script>window.toast && window.toast('Updated successfully', { type: 'success' });</script>")  # 3. Success toast
+        ]
+      end
+    end
+  else
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "fragment_form_errors",
+          "<div class='text-sm text-destructive'>#{@fragment.errors.full_messages.join(', ')}</div>"
+        ), status: :unprocessable_entity
+      end
+    end
+  end
+end
+```
+
+**4. Stimulus Controller for Edit Button:**
+```javascript
+// app/javascript/controllers/journal_fragment_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static values = {
+    url: String
+  }
+
+  openDialog(event) {
+    if (event) event.preventDefault()
+
+    fetch(this.urlValue, {
+      headers: { "Accept": "text/vnd.turbo-stream.html" }
+    })
+      .then(response => response.text())
+      .then(html => {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, "text/html")
+        const template = doc.querySelector("turbo-stream template")
+        if (template) {
+          document.body.appendChild(template.content.cloneNode(true))
+        }
+      })
+      .catch(error => {
+        console.error("Error opening dialog:", error)
+        window.toast && window.toast("Failed to open dialog", { type: "error" })
+      })
+  }
+}
+```
+
+**5. Edit Button in Item View:**
+```ruby
+Button(
+  variant: :secondary,
+  size: :sm,
+  icon: true,
+  data: {
+    controller: "journal-fragment",
+    journal_fragment_url_value: view_context.edit_journal_fragment_path(@fragment),
+    action: "click->journal-fragment#openDialog"
+  }
+) do
+  render ::Components::Icon.new(name: :edit, size: "12")
+end
+```
+
+#### What NOT To Do (NEVER DO THIS)
+❌ **NEVER replace the item inline with an edit form:**
+```ruby
+# ❌ WRONG - This replaces the item view with an edit form inline
+def edit
+  respond_to do |format|
+    format.turbo_stream do
+      render turbo_stream: turbo_stream.replace(
+        "fragment_#{@fragment.id}",
+        render_to_string(::Views::Fragments::EditForm.new(...))  # ❌ WRONG
+      )
+    end
+  end
+end
+```
+
+❌ **NEVER use a separate EditForm component - use FormDialog for both create and edit**
+
+❌ **NEVER use `href` with `turbo_stream: true` on edit buttons - always use Stimulus controller with openDialog method**
+
+#### When You See An Edit Button That Doesn't Open A Dialog
+**IMMEDIATELY recognize this as a bug and fix it using the pattern above.**
+
+Signs of the bug:
+- Edit button uses `href` with `turbo_stream: true`
+- Edit action does `turbo_stream.replace` instead of `turbo_stream.append`
+- There's a separate `_edit_form.rb` file instead of reusing `_form_dialog.rb`
+- Clicking edit replaces the item inline instead of opening a dialog
+
+**Fix it immediately** by:
+1. Making FormDialog support both create and edit
+2. Changing edit action to append dialog to body
+3. Changing update action to remove dialog
+4. Creating Stimulus controller for edit button
+5. Deleting the inline edit form file
+
 ### Drawer Navigation (CRITICAL - READ CAREFULLY)
 **THIS IS EXTREMELY IMPORTANT. VIOLATING THESE RULES CREATES MULTIPLE OVERLAYS AND WASTES USER MONEY.**
 
@@ -457,7 +652,8 @@ end
 - **CRITICAL**: All Cancel buttons in drawer option screens MUST return to the item actions drawer
 - **MUST include `from_edit_form: true` parameter**:
   ```ruby
-  a(
+  render ::Components::ColoredLink.new(
+    variant: :secondary,
     href: actions_sheet_item_path(@item, day_id: @day&.id, from_edit_form: true),
     data: { turbo_stream: true },
     class: "flex-1 h-12 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md font-medium transition-colors flex items-center justify-center"
@@ -627,6 +823,7 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
    - The class applies a CSS filter to invert the calendar picker indicator icon only when inside a `.dark` container
 
 **NEVER:**
+- ❌ **NEVER USE PLAIN `a()` - ALWAYS USE `::Components::ColoredLink.new`**
 - ❌ **NEVER USE PLAIN `form()` - ALWAYS USE `RubyUI::Form.new`**
 - ❌ **NEVER USE PLAIN `label()` IN FORMS - ALWAYS USE `RubyUI::FormFieldLabel.new`**
 - ❌ **NEVER USE PLAIN `input()` FOR ANY INPUTS - ALWAYS USE `RubyUI::Input.new` (INCLUDING HIDDEN FIELDS AND CSRF TOKENS)**
@@ -636,6 +833,81 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
 - ❌ Create custom icon SVGs - use the Icon component
 - ❌ **NEVER CREATE SVG ELEMENTS FOR ICONS - ALL ICONS MUST GO IN @app/components/icon.rb**
 - ❌ Manually create badge HTML - use Badge components
+
+**ALWAYS:**
+- ADD PROPER EDIT BUTTONS FOR EDIT ACTIONS
+  ```ruby
+  Button(
+    variant: :secondary,
+    size: :sm,
+    icon: true,
+    data: {
+      controller: "journal-template",
+      journal_template_url_value: view_context.edit_journal_prompt_template_path(@template),
+      action: "click->journal-template#openDialog"
+    }
+  ) do
+    render ::Components::Icon.new(name: :edit, size: "12")
+  end
+  ```
+### Delete Confirmations (CRITICAL - NEVER USE BROWSER CONFIRM)
+**❌ ABSOLUTELY FORBIDDEN TO USE `turbo_confirm` OR `data-turbo-confirm` FOR DELETE CONFIRMATIONS ❌**
+
+**CRITICAL: ALL DELETE ACTIONS MUST USE AlertDialog COMPONENT, NEVER BROWSER CONFIRMATION.**
+
+#### Why AlertDialog Only?
+- ❌ **Browser confirmations (`turbo_confirm`) are ugly and inconsistent across browsers**
+- ✅ **AlertDialog provides consistent styled UI across all browsers**
+- ✅ **AlertDialog automatically dismisses on submit**
+- ✅ **AlertDialog integrates with Turbo Streams**
+
+#### The ONLY Correct Pattern for Delete Buttons:
+```ruby
+render RubyUI::AlertDialog.new do
+  render RubyUI::AlertDialogTrigger.new do
+    Button(variant: :destructive, size: :sm, icon: true) do
+      render ::Components::Icon.new(name: :delete, size: "12")
+    end
+  end
+
+  render RubyUI::AlertDialogContent.new do
+    render RubyUI::AlertDialogHeader.new do
+      render RubyUI::AlertDialogTitle.new { "Delete this item?" }
+      render RubyUI::AlertDialogDescription.new { "This action cannot be undone." }
+    end
+
+    render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
+      render RubyUI::AlertDialogCancel.new { "Cancel" }
+
+      form(
+        action: view_context.item_path(@item),
+        method: "post",
+        data: { turbo_stream: true, action: "submit@document->ruby-ui--alert-dialog#dismiss" },
+        class: "inline"
+      ) do
+        csrf_token_field
+        input(type: "hidden", name: "_method", value: "delete")
+        render RubyUI::AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
+      end
+    end
+  end
+end
+```
+
+#### What NOT To Do (NEVER DO THIS):
+❌ **NEVER use `turbo_confirm`:**
+```ruby
+# ❌ WRONG - Browser confirmation is forbidden
+Button(
+  variant: :destructive,
+  type: :submit,
+  data: { turbo_confirm: "Delete this?" }  # ❌ FORBIDDEN
+) { "Delete" }
+```
+
+❌ **NEVER use `data-turbo-confirm` in forms or links**
+
+✅ **ALWAYS use AlertDialog for delete confirmations**
 
 ### Buttons That Open Dialogs (CRITICAL - THE ONLY PATTERN THAT WORKS)
 **THIS IS THE ONLY WAY TO CREATE BUTTONS THAT OPEN TURBO STREAM DIALOGS. FOLLOW THIS PATTERN EXACTLY.**
