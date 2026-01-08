@@ -12,7 +12,7 @@ module Views
       end
 
       def view_template
-        record = @node.item || @node.list || @node.checklist || @node.note
+        record = @node.item || @node.list || @node.checklist || @node.note || @node.journal || @node.journal_prompt || @node.journal_fragment
         return unless record
 
         # Wrap in a container div
@@ -41,10 +41,29 @@ module Views
               list: @list,
               is_public_list: @public_view
             )
+          elsif @node.journal
+            render ::Views::Items::JournalLinkItem.new(
+              record: @node.journal,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
+          elsif @node.journal_prompt
+            # Note: journal_prompts appear in journal view, not day view
+            # This branch handles prompts when rendering journal trees
+            render ::Views::Journals::PromptItem.new(
+              prompt: @node.journal_prompt
+            )
+          elsif @node.journal_fragment
+            # Note: fragments appear in journal view, not day view
+            # This branch handles fragments when rendering journal trees
+            render ::Views::Journals::FragmentItem.new(
+              fragment: @node.journal_fragment
+            )
           end
 
-          # Render children (only for items, not lists/checklists/notes in day context)
-          if @node.children.any? && @node.item
+          # Render children (only for items and prompts, not lists/checklists/notes/journals in day context)
+          if @node.children.any? && (@node.item || @node.journal_prompt)
             div(class: "ml-6 mt-2 space-y-2 border-l-2 border-border/50 pl-3") do
               @node.children.each do |child_node|
                 render ::Views::Items::TreeNode.new(

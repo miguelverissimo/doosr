@@ -18,6 +18,8 @@ module Views
             render_separator
             render_add_note_button
             render_separator
+            render_add_journal_button
+            render_separator
           end
 
           # Form takes remaining space
@@ -44,13 +46,14 @@ module Views
         div(class: "relative mt-2", data: { controller: "dropdown" }) do
           # Dropdown trigger button
           Button(
-            variant: :secondary,
+            variant: :tinted,
+            tint: :orange,
             size: :md,
+            icon: true,
             data: { action: "click->dropdown#toggle" },
             disabled: available_lists.empty?
           ) do
-            render ::Components::Icon.new(name: :link, size: "14")
-            plain " Link list"
+            render ::Components::Icon.new(name: :list, size: "14")
           end
 
           # Dropdown menu (hidden by default)
@@ -117,13 +120,14 @@ module Views
         div(class: "relative mt-2", data: { controller: "dropdown" }) do
           # Dropdown trigger button
           Button(
-            variant: :secondary,
+            variant: :tinted,
+            tint: :purple,
             size: :md,
+            icon: true,
             data: { action: "click->dropdown#toggle" },
             disabled: available_templates.empty?
           ) do
             render ::Components::Icon.new(name: :checklist, size: "14")
-            plain " Add checklist"
           end
 
           # Dropdown menu (hidden by default)
@@ -173,7 +177,9 @@ module Views
       def render_add_note_button
         # Button to add a note to the day
         Button(
-          variant: :secondary,
+          variant: :tinted,
+          tint: :yellow,
+          icon: true,
           size: :md,
           data: {
             controller: "day-note",
@@ -182,7 +188,37 @@ module Views
           }
         ) do
           render ::Components::Icon.new(name: :sticky_note, size: "14")
-          plain " Add note"
+        end
+      end
+
+      def render_add_journal_button
+        # Check if journal already linked
+        existing_journal_ids = @day.descendant.extract_active_ids_by_type("Journal")
+        already_linked = existing_journal_ids.any?
+
+        form(
+          action: day_journal_links_path,
+          method: "post",
+          data: {
+            turbo_stream: true,
+            controller: "form-loading",
+            form_loading_message_value: "Adding journal link...",
+            action: "submit->form-loading#submit"
+          }
+        ) do
+          csrf_token_field
+          input(type: "hidden", name: "day_id", value: @day.id)
+
+          Button(
+            type: :submit,
+            variant: :tinted,
+            tint: :teal,
+            icon: true,
+            size: :md,
+            disabled: already_linked
+          ) do
+            render ::Components::Icon.new(name: :journal, size: "14")
+          end
         end
       end
 

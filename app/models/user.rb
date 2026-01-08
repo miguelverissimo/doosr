@@ -17,6 +17,10 @@ class User < ApplicationRecord
   has_many :push_subscriptions, dependent: :destroy
   has_many :notification_logs, dependent: :destroy
   has_many :notes, dependent: :destroy
+  has_many :journals, dependent: :destroy
+  has_many :journal_fragments, dependent: :destroy
+  has_many :journal_prompts, dependent: :destroy
+  has_many :journal_prompt_templates, dependent: :destroy
 
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy
