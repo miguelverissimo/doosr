@@ -32,14 +32,29 @@ class Items::UrlUnfurlerService
   def call
     # Only unfurl if title contains a URL
     url = detect_url
-    return success_result unless url
+    unless url
+      ::Rails.logger.debug("URL unfurling: No URL detected in title: #{item.title}")
+      return success_result
+    end
+
+    ::Rails.logger.info("URL unfurling: Detected URL in item #{item.id}: #{url}")
+    ::Rails.logger.info("URL unfurling: URL length: #{url.length}")
+
+    # Normalize URL (ensure it's properly formatted)
+    normalized_url = normalize_url(url)
+    ::Rails.logger.info("URL unfurling: Normalized URL: #{normalized_url}")
 
     # Fetch metadata with timeout
-    page = fetch_metadata(url)
-    return success_result unless page
+    page = fetch_metadata(normalized_url)
+    unless page
+      ::Rails.logger.warn("URL unfurling: Failed to fetch metadata for #{normalized_url}")
+      return success_result(error: "Failed to fetch metadata")
+    end
+
+    ::Rails.logger.info("URL unfurling: Successfully fetched metadata for #{normalized_url}")
 
     # Update item with unfurled data
-    unfurl_item(page, url)
+    unfurl_item(page, normalized_url)
 
     success_result
   rescue StandardError => e
@@ -60,11 +75,36 @@ class Items::UrlUnfurlerService
     # Only unfurl HTTP/HTTPS URLs
     return nil unless url.match?(/\Ahttps?:\/\//i)
 
+    # Remove trailing punctuation that might have been captured
+    url = url.chomp(".").chomp(",").chomp(")").chomp("]").chomp("}")
+
     url
   end
 
+  def normalize_url(url)
+    # Ensure URL is properly formatted
+    # Remove any whitespace
+    url = url.strip
+
+    # Validate it's a proper URI
+    begin
+      uri = ::URI.parse(url)
+      # Reconstruct URL to ensure proper encoding
+      normalized = uri.to_s
+      ::Rails.logger.debug("URL unfurling: Normalized from #{url.length} to #{normalized.length} chars")
+      normalized
+    rescue ::URI::InvalidURIError => e
+      ::Rails.logger.warn("URL unfurling: Invalid URI #{url}: #{e.message}")
+      # Return original if parsing fails
+      url
+    end
+  end
+
   def fetch_metadata(url)
-    ::Timeout.timeout(METADATA_TIMEOUT) do
+    ::Rails.logger.info("URL unfurling: Attempting to fetch metadata from #{url}")
+    start_time = ::Time.current
+
+    result = ::Timeout.timeout(METADATA_TIMEOUT) do
       ::MetaInspector.new(
         url,
         connection: {
@@ -78,8 +118,23 @@ class Items::UrlUnfurlerService
         warn_level: :store
       )
     end
-  rescue ::Timeout::Error, ::MetaInspector::RequestError, ::MetaInspector::ParserError => e
-    ::Rails.logger.warn("Failed to fetch metadata for #{url}: #{e.message}")
+
+    elapsed = ((::Time.current - start_time) * 1000).round
+    ::Rails.logger.info("URL unfurling: Successfully fetched metadata in #{elapsed}ms")
+    result
+  rescue ::Timeout::Error => e
+    ::Rails.logger.warn("URL unfurling: Timeout after #{METADATA_TIMEOUT}s while fetching #{url}")
+    nil
+  rescue ::MetaInspector::RequestError => e
+    ::Rails.logger.warn("URL unfurling: Request error for #{url}: #{e.message}")
+    ::Rails.logger.warn("URL unfurling: Error class: #{e.class}")
+    nil
+  rescue ::MetaInspector::ParserError => e
+    ::Rails.logger.warn("URL unfurling: Parser error for #{url}: #{e.message}")
+    nil
+  rescue StandardError => e
+    ::Rails.logger.error("URL unfurling: Unexpected error fetching #{url}: #{e.class} - #{e.message}")
+    ::Rails.logger.error("URL unfurling: Backtrace: #{e.backtrace.first(5).join("\n")}")
     nil
   end
 
@@ -126,6 +181,10 @@ class Items::UrlUnfurlerService
             page.title.presence ||
             "Untitled"
 
+    # Handle arrays (MetaInspector sometimes returns arrays)
+    title = title.is_a?(Array) ? title.first : title
+    title = title.to_s unless title.is_a?(String)
+
     # Clean up title (remove extra whitespace, newlines)
     title.strip.gsub(/\s+/, " ")
   end
@@ -136,6 +195,10 @@ class Items::UrlUnfurlerService
                   page.meta_tags["property"]&.dig("og:description")
 
     return nil unless description
+
+    # Handle arrays (MetaInspector sometimes returns arrays for meta tags)
+    description = description.is_a?(Array) ? description.first : description
+    return nil unless description.is_a?(String)
 
     # Clean up description
     description.strip.gsub(/\s+/, " ")

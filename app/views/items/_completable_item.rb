@@ -81,8 +81,8 @@ module Views
           end
 
           # Title + description
-          div(class: "flex-1 min-w-0") do
-            title_classes = [ "text-sm truncate" ]
+          div(class: "flex-1 min-w-0 flex flex-col gap-0.5") do
+            title_classes = [ "text-sm truncate block" ]
             title_classes << "line-through text-muted-foreground" if @record.done?
 
             # Clickable link - stop propagation to prevent drawer opening
@@ -96,7 +96,7 @@ module Views
 
             # Optional: Show description (truncated to 80 chars)
             if @record.unfurled_description.present?
-              p(class: "text-xs text-muted-foreground truncate") do
+              p(class: "text-xs text-muted-foreground truncate block") do
                 view_context.truncate(@record.unfurled_description, length: 80)
               end
             end
