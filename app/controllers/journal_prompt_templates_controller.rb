@@ -120,7 +120,7 @@ class JournalPromptTemplatesController < ApplicationController
   end
 
   def template_params
-    params.require(:journal_prompt_template).permit(:prompt_text, :active, schedule_rule: [:frequency, :day_of_month, :interval, days_of_week: []])
+    params.require(:journal_prompt_template).permit(:prompt_text, :active, schedule_rule: [ :frequency, :day_of_month, :interval, days_of_week: [] ])
   end
 
   def clean_schedule_rule!(params)

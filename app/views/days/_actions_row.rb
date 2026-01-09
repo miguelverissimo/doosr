@@ -45,15 +45,22 @@ module Views
 
         div(class: "relative mt-2", data: { controller: "dropdown" }) do
           # Dropdown trigger button
-          Button(
-            variant: :tinted,
-            tint: :orange,
-            size: :md,
-            icon: true,
-            data: { action: "click->dropdown#toggle" },
-            disabled: available_lists.empty?
-          ) do
-            render ::Components::Icon.new(name: :list, size: "14")
+          Tooltip do
+            TooltipTrigger do
+              Button(
+                variant: :tinted,
+                tint: :orange,
+                size: :md,
+                icon: true,
+                data: { action: "click->dropdown#toggle" },
+                disabled: available_lists.empty?
+              ) do
+                render ::Components::Icon.new(name: :list, size: "14")
+              end
+            end
+            TooltipContent do
+              span(class: "text-xs") { plain(available_lists.empty? ? "No lists available" : "Link a list") }
+            end
           end
 
           # Dropdown menu (hidden by default)
@@ -119,15 +126,22 @@ module Views
 
         div(class: "relative mt-2", data: { controller: "dropdown" }) do
           # Dropdown trigger button
-          Button(
-            variant: :tinted,
-            tint: :purple,
-            size: :md,
-            icon: true,
-            data: { action: "click->dropdown#toggle" },
-            disabled: available_templates.empty?
-          ) do
-            render ::Components::Icon.new(name: :checklist, size: "14")
+          Tooltip do
+            TooltipTrigger do
+              Button(
+                variant: :tinted,
+                tint: :purple,
+                size: :md,
+                icon: true,
+                data: { action: "click->dropdown#toggle" },
+                disabled: available_templates.empty?
+              ) do
+                render ::Components::Icon.new(name: :checklist, size: "14")
+              end
+            end
+            TooltipContent do
+              span(class: "text-xs") { plain(available_templates.empty? ? "No checklists available" : "Add a checklist") }
+            end
           end
 
           # Dropdown menu (hidden by default)
@@ -176,18 +190,25 @@ module Views
 
       def render_add_note_button
         # Button to add a note to the day
-        Button(
-          variant: :tinted,
-          tint: :yellow,
-          icon: true,
-          size: :md,
-          data: {
-            controller: "day-note",
-            day_note_day_id_value: @day.id,
-            action: "click->day-note#openDialog"
-          }
-        ) do
-          render ::Components::Icon.new(name: :sticky_note, size: "14")
+        Tooltip do
+          TooltipTrigger do
+            Button(
+              variant: :tinted,
+              tint: :yellow,
+              icon: true,
+              size: :md,
+              data: {
+                controller: "day-note",
+                day_note_day_id_value: @day.id,
+                action: "click->day-note#openDialog"
+              }
+            ) do
+              render ::Components::Icon.new(name: :sticky_note, size: "14")
+            end
+          end
+          TooltipContent do
+            span(class: "text-xs") { plain "Add a note" }
+          end
         end
       end
 
@@ -209,15 +230,22 @@ module Views
           csrf_token_field
           input(type: "hidden", name: "day_id", value: @day.id)
 
-          Button(
-            type: :submit,
-            variant: :tinted,
-            tint: :teal,
-            icon: true,
-            size: :md,
-            disabled: already_linked
-          ) do
-            render ::Components::Icon.new(name: :journal, size: "14")
+          Tooltip do
+            TooltipTrigger do
+              Button(
+                type: :submit,
+                variant: :tinted,
+                tint: :teal,
+                icon: true,
+                size: :md,
+                disabled: already_linked
+              ) do
+                render ::Components::Icon.new(name: :journal, size: "14")
+              end
+            end
+            TooltipContent do
+              span(class: "text-xs") { plain(already_linked ? "Journal already linked" : "Add a journal") }
+            end
           end
         end
       end
@@ -249,33 +277,47 @@ module Views
           # Type selector buttons
           div(class: "flex gap-1") do
             # Completable button (selected by default)
-            Button(
-              type: :button,
-              variant: :outline,
-              icon: true,
-              size: :sm,
-              class: "shrink-0 h-9 w-9 bg-secondary text-secondary-foreground hover:bg-secondary/90",
-              data: {
-                action: "click->item-form#selectCompletable",
-                item_form_target: "completableButton"
-              }
-            ) do
-              render ::Components::Icon.new(name: :completable, size: "16")
+            Tooltip do
+              TooltipTrigger do
+                Button(
+                  type: :button,
+                  variant: :outline,
+                  icon: true,
+                  size: :sm,
+                  class: "shrink-0 h-9 w-9 bg-secondary text-secondary-foreground hover:bg-secondary/90",
+                  data: {
+                    action: "click->item-form#selectCompletable",
+                    item_form_target: "completableButton"
+                  }
+                ) do
+                  render ::Components::Icon.new(name: :completable, size: "16")
+                end
+              end
+              TooltipContent do
+                span(class: "text-xs") { plain "Completable" }
+              end
             end
 
             # Section button
-            Button(
-              type: :button,
-              variant: :outline,
-              icon: true,
-              size: :sm,
-              class: "shrink-0 h-9 w-9",
-              data: {
-                action: "click->item-form#selectSection",
-                item_form_target: "sectionButton"
-              }
-            ) do
-              render ::Components::Icon.new(name: :section, size: "16")
+            Tooltip do
+              TooltipTrigger do
+                Button(
+                  type: :button,
+                  variant: :outline,
+                  icon: true,
+                  size: :sm,
+                  class: "shrink-0 h-9 w-9",
+                  data: {
+                    action: "click->item-form#selectSection",
+                    item_form_target: "sectionButton"
+                  }
+                ) do
+                  render ::Components::Icon.new(name: :section, size: "16")
+                end
+              end
+              TooltipContent do
+                span(class: "text-xs") { plain "Section" }
+              end
             end
           end
 
