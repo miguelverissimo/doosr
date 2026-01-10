@@ -58,7 +58,7 @@ module Views
           data: { turbo_stream: true },
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
         ) do
-          render ::Components::Icon.new(name: :edit, size: "20")
+          render ::Components::Icon::Edit.new(size: "20")
         end
 
         # Delete (not drop - permanently delete)
@@ -84,7 +84,7 @@ module Views
             action: "click->item-move#startMoving"
           }
         ) do
-          render ::Components::Icon.new(name: :move, size: "20")
+          render ::Components::Icon::Move.new(size: "20")
         end
 
         # Move Up
@@ -119,7 +119,7 @@ module Views
             action: "click->item#openDebug"
           }
         ) do
-          render ::Components::Icon.new(name: :bug, size: "20")
+          render ::Components::Icon::Bug.new(size: "20")
         end
       end
 
@@ -140,7 +140,7 @@ module Views
           data: { turbo_stream: true },
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
         ) do
-          render ::Components::Icon.new(name: :edit, size: "20")
+          render ::Components::Icon::Edit.new(size: "20")
         end
 
         # Delete (not drop - permanently delete)
@@ -166,7 +166,7 @@ module Views
             action: "click->item-move#startMoving"
           }
         ) do
-          render ::Components::Icon.new(name: :move, size: "20")
+          render ::Components::Icon::Move.new(size: "20")
         end
 
         # Move Up
@@ -201,7 +201,7 @@ module Views
             action: "click->item#openDebug"
           }
         ) do
-          render ::Components::Icon.new(name: :bug, size: "20")
+          render ::Components::Icon::Bug.new(size: "20")
         end
       end
 
@@ -212,7 +212,7 @@ module Views
           data: { turbo_stream: true },
           class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
         ) do
-          render ::Components::Icon.new(name: :edit, size: "20")
+          render ::Components::Icon::Edit.new(size: "20")
         end
       end
 
@@ -228,7 +228,7 @@ module Views
             action: "click->item-move#startMoving"
           }
         ) do
-          render ::Components::Icon.new(name: :move, size: "20")
+          render ::Components::Icon::Move.new(size: "20")
         end
 
         # Move Up
@@ -263,7 +263,7 @@ module Views
             action: "click->item#openDebug"
           }
         ) do
-          render ::Components::Icon.new(name: :bug, size: "20")
+          render ::Components::Icon::Bug.new(size: "20")
         end
       end
 
@@ -283,7 +283,8 @@ module Views
             disabled: true,
             class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
           ) do
-            render ::Components::Icon.new(name: icon, size: "20")
+            icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
           end
         else
           form(
@@ -307,14 +308,16 @@ module Views
               type: "submit",
               class: button_classes
             ) do
-              render ::Components::Icon.new(name: icon, size: "20")
+              icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
             end
           end
         end
       end
 
       def render_icon(name, size: "24")
-        render ::Components::Icon.new(name: name, size: size)
+        icon_class = ::Components::Icon::Base.for(name)
+        render icon_class.new(size: size)
       end
     end
   end

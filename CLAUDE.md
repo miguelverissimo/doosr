@@ -242,10 +242,29 @@ Located in `app/services/`:
 
 ### SVG Icons (CRITICAL)
 - ❌ **IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS**
-- ❌ **NEVER create inline SVG elements in any component file**
-- ✅ **ALL ICONS MUST BE ADDED AND REFERENCED FROM @app/components/icon.rb**
-- ✅ **NO EXCEPTIONS** - all icons must go through the Icon component
-- Use: `render ::Components::Icon.new(name: :icon_name, size: "16", class: "text-red-500")`
+- ❌ **NEVER create inline SVG elements in any view file**
+- ✅ **ALL ICONS MUST USE DEDICATED ICON CLASSES FROM @app/components/icon/**
+- ✅ **NO EXCEPTIONS** - all icons must go through icon classes
+
+**How to use icons:**
+1. Use existing icon classes: `render ::Components::Icon::Edit.new(size: "16", class: "text-red-500")`
+2. To add a new icon, create a new class in `app/components/icon/` following this pattern:
+   ```ruby
+   # app/components/icon/my_icon.rb
+   module Components
+     module Icon
+       class MyIcon < Base
+         private
+
+         def render_icon_path(s)
+           s.path(d: "M...")
+           # Add more SVG paths as needed
+         end
+       end
+     end
+   end
+   ```
+3. Then use it: `render ::Components::Icon::MyIcon.new(size: "16")`
 
 ### UI Feedback
 - **CRITICAL: Every backend request MUST show a loading indicator AND operation result (success/error)**
@@ -551,7 +570,7 @@ Button(
     action: "click->journal-fragment#openDialog"
   }
 ) do
-  render ::Components::Icon.new(name: :edit, size: "12")
+  render ::Components::Icon::Edit.new(size: "12")
 end
 ```
 
@@ -770,12 +789,13 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
    - **CRITICAL**: Even CSRF tokens and hidden fields MUST use `RubyUI::Input.new(type: :hidden, ...)`
    - Reference: `app/components/accounting/customers/form.rb`
 
-2. **SVG Icons** - Use `app/components/icon.rb`:
+2. **SVG Icons** - Use icon classes from `app/components/icon/`:
    ```ruby
-   render ::Components::Icon.new(name: :calendar, size: "16", class: "text-red-500")
+   render ::Components::Icon::Calendar.new(size: "16", class: "text-red-500")
    ```
    - **CRITICAL**: IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS
-   - **CRITICAL**: ALL ICONS MUST BE ADDED AND REFERENCED FROM @app/components/icon.rb NO EXCEPTIONS
+   - **CRITICAL**: ALL ICONS MUST USE DEDICATED CLASSES FROM @app/components/icon/ directory
+   - To add a new icon, create a new class inheriting from `::Components::Icon::Base` (see section above)
 
 3. **Buttons** - Use `app/components/ruby_ui/button/button.rb`:
    ```ruby
@@ -830,8 +850,8 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
 - ❌ **NEVER USE PLAIN `textarea()` - ALWAYS USE `RubyUI::Textarea.new`**
 - ❌ Create raw `<button>` or `<a>` tags with custom classes
 - ❌ Use inline styles or custom Tailwind classes when a component exists
-- ❌ Create custom icon SVGs - use the Icon component
-- ❌ **NEVER CREATE SVG ELEMENTS FOR ICONS - ALL ICONS MUST GO IN @app/components/icon.rb**
+- ❌ Create custom icon SVGs - use icon classes
+- ❌ **NEVER CREATE SVG ELEMENTS FOR ICONS - ALL ICONS MUST BE CLASSES IN @app/components/icon/ DIRECTORY**
 - ❌ Manually create badge HTML - use Badge components
 
 **ALWAYS:**
@@ -847,7 +867,7 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
       action: "click->journal-template#openDialog"
     }
   ) do
-    render ::Components::Icon.new(name: :edit, size: "12")
+    render ::Components::Icon::Edit.new(size: "12")
   end
   ```
 ### Delete Confirmations (CRITICAL - NEVER USE BROWSER CONFIRM)
@@ -866,7 +886,7 @@ Do NOT check item state (deferred, dropped, done) - only check day state and arr
 render RubyUI::AlertDialog.new do
   render RubyUI::AlertDialogTrigger.new do
     Button(variant: :destructive, size: :sm, icon: true) do
-      render ::Components::Icon.new(name: :delete, size: "12")
+      render ::Components::Icon::Delete.new(size: "12")
     end
   end
 

@@ -9,7 +9,7 @@ module Views
 
       def render_icon
         div(class: "flex h-3.5 w-3.5 items-center justify-center shrink-0") do
-          render ::Components::Icon.new(name: :hash, size: "14", class: "text-muted-foreground")
+          render ::Components::Icon::Hash.new(size: "14", class: "text-muted-foreground")
         end
       end
 
@@ -23,7 +23,7 @@ module Views
         # Notes indicator
         if @record.has_notes?
           span(class: "shrink-0 flex items-center justify-center h-5 w-5") do
-            render ::Components::Icon.new(name: :sticky_note, size: "14", class: "text-yellow-600 dark:text-yellow-400")
+            render ::Components::Icon::StickyNote.new(size: "14", class: "text-yellow-600 dark:text-yellow-400")
           end
         end
       end

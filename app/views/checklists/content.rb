@@ -38,7 +38,7 @@ module Views
               ) do
                 csrf_token_field
                 Button(variant: :outline, size: :md, type: :submit) do
-                  render ::Components::Icon.new(name: :refresh, size: "16")
+                  render ::Components::Icon::Refresh.new(size: "16")
                   plain " Reset Checklist"
                 end
               end
@@ -83,10 +83,10 @@ module Views
           # Flow type indicator
           div(class: "text-xs text-muted-foreground") do
             if @checklist.sequential?
-              render ::Components::Icon.new(name: :arrow_right, size: "12", class: "inline")
+              render ::Components::Icon::ArrowRight.new(size: "12", class: "inline")
               plain " Sequential - complete in order"
             else
-              render ::Components::Icon.new(name: :grid, size: "12", class: "inline")
+              render ::Components::Icon::Grid.new(size: "12", class: "inline")
               plain " Parallel - complete in any order"
             end
           end

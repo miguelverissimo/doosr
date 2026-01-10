@@ -50,7 +50,7 @@ module Views
                   action: "click->note-search#showSpinner"
                 }
               ) do
-                render ::Components::Icon.new(name: :chevron_left, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronLeft.new(size: "12", class: "w-5 h-5")
                 plain("Prev")
               end
             end
@@ -67,7 +67,7 @@ module Views
                   action: "click->note-search#showSpinner"
                 }
               ) do
-                render ::Components::Icon.new(name: :chevron_right, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronRight.new(size: "12", class: "w-5 h-5")
                 plain("Next")
               end
             end

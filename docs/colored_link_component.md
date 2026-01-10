@@ -166,7 +166,7 @@ render Components::ColoredLink.new(href: "/remove", variant: :ghost_red) { "Remo
 ```ruby
 # Icon-only link
 render Components::ColoredLink.new(href: "/settings", variant: :ghost, icon: true) do
-  render Components::Icon.new(name: :settings, size: "16")
+  render ::Components::Icon::Settings.new(size: "16")
 end
 ```
 

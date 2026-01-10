@@ -103,7 +103,7 @@ module Views
                     action: "click->invoice-filter#showSpinner"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :chevrons_left, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::ChevronsLeft.new(size: "12", class: "w-5 h-5")
                   plain("First")
                 end
               end
@@ -117,7 +117,7 @@ module Views
                     action: "click->invoice-filter#showSpinner"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :chevron_left, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::ChevronLeft.new(size: "12", class: "w-5 h-5")
                   plain("Prev")
                 end
               end
@@ -134,7 +134,7 @@ module Views
                     action: "click->invoice-filter#showSpinner"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :chevron_right, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::ChevronRight.new(size: "12", class: "w-5 h-5")
                   plain("Next")
                 end
               end
@@ -148,7 +148,7 @@ module Views
                     action: "click->invoice-filter#showSpinner"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :chevrons_right, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::ChevronsRight.new(size: "12", class: "w-5 h-5")
                   plain("Last")
                 end
               end

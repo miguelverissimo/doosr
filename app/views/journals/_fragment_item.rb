@@ -13,7 +13,7 @@ module Views
           class: "p-4 bg-card border rounded-lg hover:shadow-sm transition-shadow"
         ) do
           div(class: "flex items-start gap-3") do
-            render ::Components::Icon.new(name: :journal_entry, size: "16", class: "text-muted-foreground mt-1")
+            render ::Components::Icon::JournalEntry.new(size: "16", class: "text-muted-foreground mt-1")
 
             div(class: "flex-1 min-w-0") do
               div(class: "prose prose-sm dark:prose-invert max-w-none") do
@@ -31,13 +31,13 @@ module Views
                     action: "click->journal-fragment#openDialog"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :edit, size: "12")
+                  render ::Components::Icon::Edit.new(size: "12")
                 end
 
                 render RubyUI::AlertDialog.new do
                   render RubyUI::AlertDialogTrigger.new do
                     Button(variant: :destructive, size: :sm, icon: true) do
-                      render ::Components::Icon.new(name: :delete, size: "12")
+                      render ::Components::Icon::Delete.new(size: "12")
                     end
                   end
 

@@ -31,8 +31,8 @@ class ::Components::BadgeWithIcon < ::Components::Base
   end
 
   def render_icon
-    render ::Components::Icon.new(
-      name: @icon,
+    icon_class = ::Components::Icon::Base.for(@icon)
+    render icon_class.new(
       size: icon_size,
       class: "shrink-0"
     )

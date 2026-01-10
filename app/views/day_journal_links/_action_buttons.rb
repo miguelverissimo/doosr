@@ -19,7 +19,7 @@ module Views
               href: journal_path(@journal),
               class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
             ) do
-              render ::Components::Icon.new(name: :link, size: "20")
+              render ::Components::Icon::Link.new(size: "20")
             end
 
             # Remove from Day
@@ -29,7 +29,7 @@ module Views
                 disabled: true,
                 class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
               ) do
-                render ::Components::Icon.new(name: :delete, size: "20")
+                render ::Components::Icon::Delete.new(size: "20")
               end
             else
               form(
@@ -49,7 +49,7 @@ module Views
                   type: "submit",
                   class: "flex h-10 w-10 items-center justify-center rounded-lg border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
                 ) do
-                  render ::Components::Icon.new(name: :delete, size: "20")
+                  render ::Components::Icon::Delete.new(size: "20")
                 end
               end
             end
@@ -77,7 +77,7 @@ module Views
                   type: "submit",
                   class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
                 ) do
-                  render ::Components::Icon.new(name: :arrow_up, size: "20")
+                  render ::Components::Icon::ArrowUp.new(size: "20")
                 end
               end
             else
@@ -86,7 +86,7 @@ module Views
                 disabled: true,
                 class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
               ) do
-                render ::Components::Icon.new(name: :arrow_up, size: "20")
+                render ::Components::Icon::ArrowUp.new(size: "20")
               end
             end
 
@@ -110,7 +110,7 @@ module Views
                   type: "submit",
                   class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
                 ) do
-                  render ::Components::Icon.new(name: :arrow_down, size: "20")
+                  render ::Components::Icon::ArrowDown.new(size: "20")
                 end
               end
             else
@@ -119,7 +119,7 @@ module Views
                 disabled: true,
                 class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
               ) do
-                render ::Components::Icon.new(name: :arrow_down, size: "20")
+                render ::Components::Icon::ArrowDown.new(size: "20")
               end
             end
 
@@ -137,7 +137,7 @@ module Views
                   day_id: @day.id
                 }
               ) do
-                render ::Components::Icon.new(name: :bug, size: "20")
+                render ::Components::Icon::Bug.new(size: "20")
               end
             end
           end

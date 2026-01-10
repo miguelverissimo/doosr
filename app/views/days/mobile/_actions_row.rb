@@ -35,7 +35,7 @@ module Views
                 data: { action: "click->dropdown#toggle" }
               ) do
                 plain "More actions "
-                render ::Components::Icon.new(name: :chevron_down, size: "16")
+                render ::Components::Icon::ChevronDown.new(size: "16")
               end
 
               div(
@@ -64,7 +64,7 @@ module Views
           if available_lists.any?
             div(class: "border-b border-border last:border-0") do
               div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
-                render ::Components::Icon.new(name: :list, size: "14", class: "mr-2")
+                render ::Components::Icon::List.new(size: "14", class: "mr-2")
                 plain "Link list"
               end
 
@@ -100,7 +100,7 @@ module Views
             end
           else
             div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
-              render ::Components::Icon.new(name: :list, size: "14", class: "mr-2")
+              render ::Components::Icon::List.new(size: "14", class: "mr-2")
               plain "No lists available"
             end
           end
@@ -126,7 +126,7 @@ module Views
           if available_templates.any?
             div(class: "border-b border-border last:border-0") do
               div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
-                render ::Components::Icon.new(name: :checklist, size: "14", class: "mr-2")
+                render ::Components::Icon::Checklist.new(size: "14", class: "mr-2")
                 plain "Add checklist"
               end
 
@@ -162,7 +162,7 @@ module Views
             end
           else
             div(class: "px-2 py-2 text-xs text-muted-foreground flex items-center") do
-              render ::Components::Icon.new(name: :checklist, size: "14", class: "mr-2")
+              render ::Components::Icon::Checklist.new(size: "14", class: "mr-2")
               plain "No templates available"
             end
           end
@@ -180,7 +180,7 @@ module Views
                 action: "click->day-note#openDialog"
               }
             ) do
-              render ::Components::Icon.new(name: :sticky_note, size: "14", class: "mr-2")
+              render ::Components::Icon::StickyNote.new(size: "14", class: "mr-2")
               plain "Add note"
             end
           end
@@ -212,7 +212,7 @@ module Views
                 size: :sm,
                 disabled: already_linked
               ) do
-                render ::Components::Icon.new(name: :journal, size: "14", class: "mr-2")
+                render ::Components::Icon::Journal.new(size: "14", class: "mr-2")
                 plain "Add journal"
               end
             end
@@ -256,7 +256,7 @@ module Views
                   item_form_target: "completableButton"
                 }
               ) do
-                render ::Components::Icon.new(name: :completable, size: "16")
+                render ::Components::Icon::Completable.new(size: "16")
               end
 
               Button(
@@ -270,7 +270,7 @@ module Views
                   item_form_target: "sectionButton"
                 }
               ) do
-                render ::Components::Icon.new(name: :section, size: "16")
+                render ::Components::Icon::Section.new(size: "16")
               end
             end
 

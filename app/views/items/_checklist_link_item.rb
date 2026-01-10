@@ -17,7 +17,7 @@ module Views
           },
           class: "shrink-0"
         ) do
-          render ::Components::Icon.new(name: :checklist, size: "16", class: "text-purple-600 dark:text-purple-400")
+          render ::Components::Icon::Checklist.new(size: "16", class: "text-purple-600 dark:text-purple-400")
         end
       end
 

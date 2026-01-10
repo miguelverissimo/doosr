@@ -41,13 +41,13 @@ module Views
                   action: "click->journal-template#openDialog"
                 }
               ) do
-                render ::Components::Icon.new(name: :edit, size: "12")
+                render ::Components::Icon::Edit.new(size: "12")
               end
 
               render RubyUI::AlertDialog.new do
                 render RubyUI::AlertDialogTrigger.new do
                   Button(variant: :destructive, size: :sm, icon: true) do
-                    render ::Components::Icon.new(name: :delete, size: "12")
+                    render ::Components::Icon::Delete.new(size: "12")
                   end
                 end
 

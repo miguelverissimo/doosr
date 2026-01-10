@@ -59,7 +59,7 @@ module Views
             div(class: "h-5 w-5 rounded-sm border border-primary bg-background peer-checked:bg-primary peer-checked:border-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 flex items-center justify-center transition-colors") do
               # Checkmark (conditionally rendered when checked)
               if completed?
-                render ::Components::Icon.new(name: :check, size: "14", class: "text-primary-foreground", stroke_width: "3")
+                render ::Components::Icon::Check.new(size: "14", class: "text-primary-foreground", stroke_width: "3")
               end
             end
           end

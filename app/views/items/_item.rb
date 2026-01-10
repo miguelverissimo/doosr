@@ -54,7 +54,7 @@ module Views
           if @item.has_recurrence?
             span(class: "shrink-0 rounded-full bg-blue-500 text-white px-2 py-0.5 text-xs flex items-center gap-1") do
               # Small recycle icon
-              render ::Components::Icon.new(name: :recycle, size: "12", class: "shrink-0")
+              render ::Components::Icon::Recycle.new(size: "12", class: "shrink-0")
               plain "recurring"
             end
           end
@@ -62,7 +62,7 @@ module Views
           # Actions menu (hidden, shown on hover)
           div(class: "opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1") do
             Button(variant: :ghost, icon: true, size: :sm, class: "h-7 w-7") do
-              render ::Components::Icon.new(name: :more_vertical, size: "14", class: "shrink-0")
+              render ::Components::Icon::MoreVertical.new(size: "14", class: "shrink-0")
             end
           end
         end
@@ -132,7 +132,7 @@ module Views
             div(class: "h-4 w-4 rounded-sm border border-primary bg-background peer-checked:bg-primary peer-checked:border-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 flex items-center justify-center transition-colors") do
               # Checkmark SVG (conditionally rendered when checked)
               if @item.done?
-                render ::Components::Icon.new(name: :check, size: "12", class: "h-3 w-3 text-primary-foreground", stroke_width: "3")
+                render ::Components::Icon::Check.new(size: "12", class: "h-3 w-3 text-primary-foreground", stroke_width: "3")
               end
             end
           end
@@ -141,7 +141,7 @@ module Views
 
       def render_section_icon
         div(class: "flex h-3.5 w-3.5 items-center justify-center shrink-0") do
-          render ::Components::Icon.new(name: :hash, size: "14", class: "text-muted-foreground")
+          render ::Components::Icon::Hash.new(size: "14", class: "text-muted-foreground")
         end
       end
     end

@@ -26,7 +26,7 @@ module Views
                 disabled: true,
                 class: "opacity-50"
               ) do
-                render ::Components::Icon.new(name: :edit, size: "20")
+                render ::Components::Icon::Edit.new(size: "20")
               end
             else
               Button(
@@ -36,7 +36,7 @@ module Views
                 size: :md,
                 data: { turbo_stream: true }
               ) do
-                render ::Components::Icon.new(name: :edit, size: "20")
+                render ::Components::Icon::Edit.new(size: "20")
               end
             end
 
@@ -49,7 +49,7 @@ module Views
                 disabled: true,
                 class: "opacity-50"
               ) do
-                render ::Components::Icon.new(name: :trash, size: "20")
+                render ::Components::Icon::Trash.new(size: "20")
               end
             else
               Button(
@@ -66,7 +66,7 @@ module Views
                   action: "click->note#confirmDelete"
                 }
               ) do
-                render ::Components::Icon.new(name: :trash, size: "20")
+                render ::Components::Icon::Trash.new(size: "20")
               end
             end
           end
@@ -82,7 +82,7 @@ module Views
                 disabled: true,
                 class: "opacity-50"
               ) do
-                render ::Components::Icon.new(name: :move, size: "20")
+                render ::Components::Icon::Move.new(size: "20")
               end
             else
               Button(
@@ -98,7 +98,7 @@ module Views
                   action: "click->note-move#startMoving"
                 }
               ) do
-                render ::Components::Icon.new(name: :move, size: "20")
+                render ::Components::Icon::Move.new(size: "20")
               end
             end
 
@@ -136,7 +136,7 @@ module Views
                 action: "click->note#openDebug"
               }
             ) do
-              render ::Components::Icon.new(name: :bug, size: "20")
+              render ::Components::Icon::Bug.new(size: "20")
             end
           end
         end
@@ -153,7 +153,8 @@ module Views
             disabled: true,
             class: "opacity-50"
           ) do
-            render ::Components::Icon.new(name: icon, size: "20")
+            icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
           end
         else
           form(
@@ -179,7 +180,8 @@ module Views
               size: :md,
               type: :submit
             ) do
-              render ::Components::Icon.new(name: icon, size: "20")
+              icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
             end
           end
         end

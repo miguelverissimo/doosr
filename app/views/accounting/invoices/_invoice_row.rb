@@ -26,11 +26,11 @@ module Views
               end
               div(class: "flex flex-row items-center justify-between w-full gap-2") do
                 div(class: "flex flex-row items-center gap-2") do
-                  render ::Components::Icon.new(name: :created_date, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::CreatedDate.new(size: "12", class: "w-5 h-5")
                   div(class: "text-sm font-bold") { @invoice.created_at.strftime("%d/%m/%Y") }
                 end
                 div(class: "flex flex-row items-center gap-2") do
-                  render ::Components::Icon.new(name: :due_date, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::DueDate.new(size: "12", class: "w-5 h-5")
                   div(class: "text-sm font-bold") { @invoice.due_at.strftime("%d/%m/%Y") }
                   if @invoice.state != "paid"
                     if @invoice.overdue?
@@ -117,7 +117,7 @@ module Views
                 type: :submit,
                 icon: true,
                 disabled: @invoice.state == "draft"
-              ) { render ::Components::Icon.new(name: :draft, size: "12", class: "w-4 h-4") }
+              ) { render ::Components::Icon::Draft.new(size: "12", class: "w-4 h-4") }
             end
 
             # Mark as sent (only if currently draft)
@@ -143,7 +143,7 @@ module Views
                 type: :submit,
                 icon: true,
                 disabled: @invoice.state != "draft"
-              ) { render ::Components::Icon.new(name: :send, size: "12", class: "w-4 h-4") }
+              ) { render ::Components::Icon::Send.new(size: "12", class: "w-4 h-4") }
             end
 
             # Mark as paid (only if currently sent) - with receipt prompt
@@ -174,7 +174,7 @@ module Views
                 action: "click->mark-invoice-paid#startFlow",
                 invoice_id: @invoice.id
               }
-            ) { render ::Components::Icon.new(name: :paid, size: "12", class: "w-4 h-4") }
+            ) { render ::Components::Icon::Paid.new(size: "12", class: "w-4 h-4") }
 
             # Preview button (always active) - opens preview in new tab
             a(
@@ -190,7 +190,7 @@ module Views
                 type: :button,
                 icon: true
               ) do
-                render ::Components::Icon.new(name: :eye, size: "12", class: "w-4 h-4")
+                render ::Components::Icon::Eye.new(size: "12", class: "w-4 h-4")
               end
             end
 
@@ -210,7 +210,7 @@ module Views
                   icon: true,
                   data: { pdf_download_target: "button" }
                 ) do
-                  render ::Components::Icon.new(name: :download, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon::Download.new(size: "12", class: "w-4 h-4")
                 end
               end
             end
@@ -225,7 +225,7 @@ module Views
                   icon: true,
                   disabled: @invoice.state != "draft"
                 ) do
-                  render ::Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon::Edit.new(size: "12", class: "w-4 h-4")
                 end
               end
 
@@ -250,7 +250,7 @@ module Views
                   icon: true,
                   disabled: @invoice.receipts.empty?
                 ) do
-                  render ::Components::Icon.new(name: :list, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon::List.new(size: "12", class: "w-4 h-4")
                 end
               end
 
@@ -275,7 +275,7 @@ module Views
                   variant: :destructive,
                   size: :md,
                   icon: true
-                ) { render ::Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4") }
+                ) { render ::Components::Icon::Delete.new(size: "12", class: "w-4 h-4") }
               end
 
               render RubyUI::AlertDialogContent.new do
@@ -488,11 +488,11 @@ module Views
         def render_currency_icon(size: "12")
           case @invoice.currency
           when "EUR"
-            render ::Components::Icon.new(name: :currency_euro, size: size, class: "w-5 h-5")
+            render ::Components::Icon::CurrencyEuro.new(size: size, class: "w-5 h-5")
           when "USD"
-            render ::Components::Icon.new(name: :currency_usd, size: size, class: "w-5 h-5")
+            render ::Components::Icon::CurrencyUsd.new(size: size, class: "w-5 h-5")
           when "CAD"
-            render ::Components::Icon.new(name: :currency_cad, size: size, class: "w-5 h-5")
+            render ::Components::Icon::CurrencyCad.new(size: size, class: "w-5 h-5")
           end
         end
 

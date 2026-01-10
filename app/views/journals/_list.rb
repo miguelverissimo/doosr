@@ -22,11 +22,12 @@ module Views
             end
             div(class: "flex gap-2") do
               Button(
-                variant: :outline,
+                variant: :tinted,
+                tint: :cyan,
                 href: view_context.journal_prompt_templates_path,
                 data: { action: "click->nav-loader#show" }
               ) do
-                render ::Components::Icon.new(name: :settings, size: "12")
+                render ::Components::Icon::Prompt.new(size: "12", class: "mr-2")
                 plain "Manage Prompts"
               end
               Button(

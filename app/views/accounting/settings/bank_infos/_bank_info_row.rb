@@ -42,7 +42,7 @@ module Views
                   render RubyUI::Dialog.new do
                     render RubyUI::DialogTrigger.new do
                       Button(variant: :outline, icon: true) do
-                        render ::Components::Icon.new(name: :edit, size: "12", class: "w-4 h-4")
+                        render ::Components::Icon::Edit.new(size: "12", class: "w-4 h-4")
                       end
                     end
                     render_edit_dialog
@@ -73,7 +73,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-4 h-4")
+                  render ::Components::Icon::Delete.new(size: "12", class: "w-4 h-4")
                 end
               end
 

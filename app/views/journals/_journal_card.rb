@@ -15,7 +15,7 @@ module Views
         ) do
           div(class: "flex items-center justify-between") do
             div(class: "flex items-center gap-3") do
-              render ::Components::Icon.new(name: :book_open, size: "16", class: "text-primary")
+              render ::Components::Icon::Journal.new(size: "16", class: "text-primary")
               div do
                 h3(class: "font-semibold") { @journal.date_display }
                 p(class: "text-sm text-muted-foreground") do
@@ -23,7 +23,7 @@ module Views
                 end
               end
             end
-            render ::Components::Icon.new(name: :chevron_right, size: "16", class: "text-muted-foreground")
+            render ::Components::Icon::ChevronRight.new(size: "16", class: "text-muted-foreground")
           end
         end
       end

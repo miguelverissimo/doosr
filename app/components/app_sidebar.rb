@@ -54,7 +54,7 @@ class ::Components::AppSidebar < ::Components::Base
                 href: authenticated_root_path,
                 data: { action: "click->nav-loader#show" }
               ) do
-                render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+                render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
                 span(class: "group-data-[collapsible=icon]:hidden") { "Today" }
               end
             end
@@ -66,7 +66,7 @@ class ::Components::AppSidebar < ::Components::Base
         SidebarMenu do
           SidebarMenuItem do
             SidebarMenuButton(as: :a, href: "#") do
-              render ::Components::Icon.new(name: :droplet, size: "16", class: "shrink-0")
+              render ::Components::Icon::Droplet.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "The Well" }
             end
           end
@@ -76,7 +76,7 @@ class ::Components::AppSidebar < ::Components::Base
               href: view_context.lists_path,
               data: { action: "click->nav-loader#show" }
             ) do
-              render ::Components::Icon.new(name: :list, size: "16", class: "shrink-0")
+              render ::Components::Icon::List.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
             end
           end
@@ -86,7 +86,7 @@ class ::Components::AppSidebar < ::Components::Base
               href: view_context.notes_path,
               data: { action: "click->nav-loader#show" }
             ) do
-              render ::Components::Icon.new(name: :sticky_note, size: "16", class: "shrink-0")
+              render ::Components::Icon::StickyNote.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Notes" }
             end
           end
@@ -96,7 +96,7 @@ class ::Components::AppSidebar < ::Components::Base
               href: view_context.journals_path,
               data: { action: "click->nav-loader#show" }
             ) do
-              render ::Components::Icon.new(name: :journal, size: "16", class: "shrink-0")
+              render ::Components::Icon::Journal.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Journals" }
             end
           end
@@ -106,7 +106,7 @@ class ::Components::AppSidebar < ::Components::Base
               href: view_context.checklists_path,
               data: { action: "click->nav-loader#show" }
             ) do
-              render ::Components::Icon.new(name: :checklist, size: "16", class: "shrink-0")
+              render ::Components::Icon::Checklist.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
             end
           end
@@ -116,7 +116,7 @@ class ::Components::AppSidebar < ::Components::Base
               href: view_context.fixed_calendar_path,
               data: { action: "click->nav-loader#show" }
             ) do
-              render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+              render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Fixed Calendar" }
             end
           end
@@ -132,7 +132,7 @@ class ::Components::AppSidebar < ::Components::Base
                 turbo_prefetch: false
               }
             ) do
-              render ::Components::Icon.new(name: :accounting, size: "16", class: "shrink-0")
+              render ::Components::Icon::Accounting.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
             end
           end
@@ -148,7 +148,7 @@ class ::Components::AppSidebar < ::Components::Base
                 turbo_prefetch: false
               }
             ) do
-              render ::Components::Icon.new(name: :settings, size: "16", class: "shrink-0")
+              render ::Components::Icon::Settings.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Admin" }
             end
           end
@@ -189,13 +189,13 @@ class ::Components::AppSidebar < ::Components::Base
               class: "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
               role: "menuitem"
             ) do
-              render ::Components::Icon.new(name: :settings, size: "16", class: "shrink-0")
+              render ::Components::Icon::Settings.new(size: "16", class: "shrink-0")
               span(class: "ml-2") { "Settings" }
             end
           end
 
           render RubyUI::DropdownMenuItem.new(href: "#") do
-            render ::Components::Icon.new(name: :user, size: "16", class: "shrink-0")
+            render ::Components::Icon::User.new(size: "16", class: "shrink-0")
             span(class: "ml-2") { "Edit Profile" }
           end
 
@@ -205,14 +205,14 @@ class ::Components::AppSidebar < ::Components::Base
           ThemeToggle do |toggle|
             toggle.SetLightMode do
               render RubyUI::DropdownMenuItem.new(href: "#") do
-                render ::Components::Icon.new(name: :sun, size: "16", class: "shrink-0")
+                render ::Components::Icon::Sun.new(size: "16", class: "shrink-0")
                 span(class: "ml-2") { "Light mode" }
               end
             end
 
             toggle.SetDarkMode do
               render RubyUI::DropdownMenuItem.new(href: "#") do
-                render ::Components::Icon.new(name: :moon, size: "16", class: "shrink-0")
+                render ::Components::Icon::Moon.new(size: "16", class: "shrink-0")
                 span(class: "ml-2") { "Dark mode" }
               end
             end
@@ -221,7 +221,7 @@ class ::Components::AppSidebar < ::Components::Base
           render RubyUI::DropdownMenuSeparator.new
 
           render RubyUI::DropdownMenuItem.new(href: view_context.destroy_user_session_path, data: { turbo_method: :delete }) do
-            render ::Components::Icon.new(name: :log_out, size: "16", class: "shrink-0")
+            render ::Components::Icon::LogOut.new(size: "16", class: "shrink-0")
             span(class: "ml-2 text-destructive") { "Log out" }
           end
         end
@@ -317,7 +317,7 @@ class ::Components::AppSidebar < ::Components::Base
           class: "inline-flex items-center justify-center w-full gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
           data: { action: "click->nav-loader#show" }
         ) do
-          render ::Components::Icon.new(name: :calendar, size: "16", class: "shrink-0")
+          render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
           span { "Today" }
         end
       end

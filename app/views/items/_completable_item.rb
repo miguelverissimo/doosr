@@ -42,7 +42,7 @@ module Views
         if @record.has_recurrence?
           span(class: "shrink-0 rounded-full bg-blue-500 text-white px-2 py-0.5 text-xs flex items-center gap-1") do
             # Small recycle icon
-            render ::Components::Icon.new(name: :recycle, size: "12", class: "shrink-0")
+            render ::Components::Icon::Recycle.new(size: "12", class: "shrink-0")
             plain "recurring"
           end
         end
@@ -50,7 +50,7 @@ module Views
         # Notes indicator
         if @record.has_notes?
           span(class: "shrink-0 flex items-center justify-center h-5 w-5") do
-            render ::Components::Icon.new(name: :sticky_note, size: "14", class: "text-yellow-600 dark:text-yellow-400")
+            render ::Components::Icon::StickyNote.new(size: "14", class: "text-yellow-600 dark:text-yellow-400")
           end
         end
       end
@@ -148,7 +148,7 @@ module Views
             div(class: "h-4 w-4 rounded-sm border border-primary bg-background peer-checked:bg-primary peer-checked:border-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 flex items-center justify-center transition-colors") do
               # Checkmark SVG (conditionally rendered when checked)
               if @record.done?
-                render ::Components::Icon.new(name: :check, size: "12", class: "h-3 w-3 text-primary-foreground", stroke_width: "3")
+                render ::Components::Icon::Check.new(size: "12", class: "h-3 w-3 text-primary-foreground", stroke_width: "3")
               end
             end
           end

@@ -27,9 +27,9 @@ module Views
 
                 div(class: "flex flex-row items-center gap-2") do
                   if @accounting_item.convert_currency
-                    span(class: "text-lime-500") { render ::Components::Icon.new(name: :convert_currency, size: "12", class: "w-5 h-5") }
+                    span(class: "text-lime-500") { render ::Components::Icon::ConvertCurrency.new(size: "12", class: "w-5 h-5") }
                   else
-                    span(class: "text-red-500") { render ::Components::Icon.new(name: :no_currency_conversion, size: "12", class: "w-5 h-5") }
+                    span(class: "text-red-500") { render ::Components::Icon::NoCurrencyConversion.new(size: "12", class: "w-5 h-5") }
                   end
                 end
               end
@@ -38,7 +38,7 @@ module Views
                 render RubyUI::Dialog.new do
                   render RubyUI::DialogTrigger.new do
                     Button(variant: :outline, icon: true) do
-                      render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                      render ::Components::Icon::Edit.new(size: "12", class: "w-5 h-5")
                     end
                   end
                   render_edit_dialog
@@ -67,7 +67,7 @@ module Views
           render RubyUI::AlertDialog.new do
             render RubyUI::AlertDialogTrigger.new do
               Button(variant: :destructive, icon: true) do
-                render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::Delete.new(size: "12", class: "w-5 h-5")
               end
             end
 

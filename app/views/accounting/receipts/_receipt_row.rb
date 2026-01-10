@@ -17,11 +17,11 @@ module Views
             end
             div(class: "flex flex-row items-center justify-between w-full gap-2") do
               div(class: "flex flex-row items-center gap-2") do
-                render ::Components::Icon.new(name: :created_date, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::CreatedDate.new(size: "12", class: "w-5 h-5")
                 div(class: "text-sm") { @receipt.issue_date.strftime("%d/%m/%Y") }
               end
               div(class: "flex flex-row items-center gap-2") do
-                render ::Components::Icon.new(name: :payment_date, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::PaymentDate.new(size: "12", class: "w-5 h-5")
                 div(class: "text-sm") { @receipt.payment_date.strftime("%d/%m/%Y") }
               end
               render_file_link
@@ -71,7 +71,7 @@ module Views
             render RubyUI::Dialog.new do
               render RubyUI::DialogTrigger.new do
                 Button(variant: :outline, icon: true) do
-                  render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::Edit.new(size: "12", class: "w-5 h-5")
                 end
               end
               render_edit_dialog
@@ -98,7 +98,7 @@ module Views
           render RubyUI::AlertDialog.new do
             render RubyUI::AlertDialogTrigger.new do
               Button(variant: :destructive, icon: true) do
-                render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::Delete.new(size: "12", class: "w-5 h-5")
               end
             end
 
@@ -165,11 +165,11 @@ module Views
           Pagination do
             PaginationContent do
               PaginationItem(href: "#") do
-                render ::Components::Icon.new(name: :chevrons_left, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronsLeft.new(size: "12", class: "w-5 h-5")
                 plain("First")
               end
               PaginationItem(href: "#") do
-                render ::Components::Icon.new(name: :chevron_left, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronLeft.new(size: "12", class: "w-5 h-5")
                 plain("Prev")
               end
 
@@ -180,11 +180,11 @@ module Views
               PaginationItem(href: "#") { "6" }
 
               PaginationItem(href: "#") do
-                render ::Components::Icon.new(name: :chevron_right, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronRight.new(size: "12", class: "w-5 h-5")
                 plain("Next")
               end
               PaginationItem(href: "#") do
-                render ::Components::Icon.new(name: :chevrons_right, size: "12", class: "w-5 h-5")
+                render ::Components::Icon::ChevronsRight.new(size: "12", class: "w-5 h-5")
                 plain("Last")
               end
             end

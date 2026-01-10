@@ -16,7 +16,7 @@ module Views
           id: "journal_#{@journal.id}",
           class: "flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
         ) do
-          render ::Components::Icon.new(name: :book_open, size: "16", class: "text-purple-600 dark:text-purple-400")
+          render ::Components::Icon::BookOpen.new(size: "16", class: "text-purple-600 dark:text-purple-400")
 
           div(class: "flex-1 min-w-0") do
             p(class: "font-medium text-purple-900 dark:text-purple-100") do
@@ -27,7 +27,7 @@ module Views
             end
           end
 
-          render ::Components::Icon.new(name: :chevron_right, size: "16", class: "text-purple-600 dark:text-purple-400")
+          render ::Components::Icon::ChevronRight.new(size: "16", class: "text-purple-600 dark:text-purple-400")
         end
       end
     end

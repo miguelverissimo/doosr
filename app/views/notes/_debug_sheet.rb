@@ -54,7 +54,7 @@ module Views
               class: "absolute end-4 top-4",
               data: { action: "click->ruby-ui--sheet-content#close" }
             ) do
-              render ::Components::Icon.new(name: :x, size: "16")
+              render ::Components::Icon::X.new(size: "16")
             end
           end
         end

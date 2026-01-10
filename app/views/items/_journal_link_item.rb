@@ -17,7 +17,7 @@ module Views
           },
           class: "shrink-0"
         ) do
-          render ::Components::Icon.new(name: :journal, size: "16", class: "text-teal-600 dark:text-teal-400")
+          render ::Components::Icon::Journal.new(size: "16", class: "text-teal-600 dark:text-teal-400")
         end
       end
 

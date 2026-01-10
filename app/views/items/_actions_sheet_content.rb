@@ -22,7 +22,7 @@ module Views
               div { "#{@item.item_type.titleize} • #{@item.state.titleize}" }
               if @item.has_recurrence?
                 div(class: "flex items-center gap-1 text-blue-500") do
-                  render ::Components::Icon.new(name: :recycle, size: "12", class: "shrink-0")
+                  render ::Components::Icon::Recycle.new(size: "12", class: "shrink-0")
                   plain format_recurrence_rule(@item.recurrence_rule)
                 end
               end

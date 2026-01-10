@@ -50,7 +50,7 @@ module Views
       def render_actions_menu
         div(class: "opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1") do
           Button(variant: :ghost, icon: true, size: :sm, class: "h-7 w-7") do
-            render ::Components::Icon.new(name: :more_vertical, size: "14", class: "shrink-0")
+            render ::Components::Icon::MoreVertical.new(size: "14", class: "shrink-0")
           end
         end
       end

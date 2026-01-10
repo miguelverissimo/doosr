@@ -16,7 +16,7 @@ module Views
         ) do
           # Note icon
           div(class: "flex h-5 w-5 items-center justify-center shrink-0 mt-0.5") do
-            render ::Components::Icon.new(name: :sticky_note, size: "16", class: "text-yellow-600 dark:text-yellow-400")
+            render ::Components::Icon::StickyNote.new(size: "16", class: "text-yellow-600 dark:text-yellow-400")
           end
 
           # Content
@@ -31,10 +31,10 @@ module Views
                   span(class: "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground") do
                     case context[:type]
                     when "Day"
-                      render ::Components::Icon.new(name: :calendar, size: "12", class: "shrink-0")
+                      render ::Components::Icon::Calendar.new(size: "12", class: "shrink-0")
                       plain context[:object].date.strftime("%b %d, %Y")
                     when "Item"
-                      render ::Components::Icon.new(name: :check_square, size: "12", class: "shrink-0")
+                      render ::Components::Icon::CheckSquare.new(size: "12", class: "shrink-0")
                       plain context[:object].title.truncate(30)
                     end
                   end
@@ -58,7 +58,7 @@ module Views
               size: :sm,
               data: { turbo_stream: true }
             ) do
-              render ::Components::Icon.new(name: :edit, size: "16")
+              render ::Components::Icon::Edit.new(size: "16")
             end
 
             # Delete button
@@ -70,7 +70,7 @@ module Views
                   size: :sm,
                   class: "hover:bg-destructive/10 hover:text-destructive"
                 ) do
-                  render ::Components::Icon.new(name: :delete, size: "16")
+                  render ::Components::Icon::Delete.new(size: "16")
                 end
               end
 

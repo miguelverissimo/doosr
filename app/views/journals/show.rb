@@ -17,7 +17,7 @@ module Views
                 href: view_context.journals_path,
                 class: "text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
               ) do
-                render ::Components::Icon.new(name: :chevron_left, size: "12")
+                render ::Components::Icon::ChevronLeft.new(size: "12")
                 plain "Back to Journals"
               end
 
@@ -62,7 +62,7 @@ module Views
               size: :sm,
               data: { action: "click->journal#newFragment" }
             ) do
-              render ::Components::Icon.new(name: :add, size: "12")
+              render ::Components::Icon::Add.new(size: "12")
               span(class: "ml-1") { "Add Entry" }
             end
           end

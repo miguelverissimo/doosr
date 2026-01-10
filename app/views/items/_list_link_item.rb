@@ -17,7 +17,7 @@ module Views
           },
           class: "shrink-0"
         ) do
-          render ::Components::Icon.new(name: :link, size: "16", class: "text-blue-600 dark:text-blue-400")
+          render ::Components::Icon::Link.new(size: "16", class: "text-blue-600 dark:text-blue-400")
         end
       end
 

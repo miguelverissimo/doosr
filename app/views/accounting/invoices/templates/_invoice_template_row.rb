@@ -24,7 +24,7 @@ module Views
                   end
                   if @invoice_template.bank_info.present?
                     div(class: "flex flex-row items-center gap-2") do
-                      render ::Components::Icon.new(name: :bank, size: "12", class: "w-5 h-5")
+                      render ::Components::Icon::Bank.new(size: "12", class: "w-5 h-5")
                       div(class: "text-sm font-bold mt-1") { @invoice_template.bank_info.name }
                     end
                   end
@@ -37,7 +37,7 @@ module Views
                     render RubyUI::Dialog.new do
                       render RubyUI::DialogTrigger.new do
                         Button(variant: :outline, icon: true) do
-                          render ::Components::Icon.new(name: :edit, size: "12", class: "w-5 h-5")
+                          render ::Components::Icon::Edit.new(size: "12", class: "w-5 h-5")
                         end
                       end
                       render_edit_dialog
@@ -119,7 +119,7 @@ module Views
             render RubyUI::AlertDialog.new do
               render RubyUI::AlertDialogTrigger.new do
                 Button(variant: :destructive, icon: true) do
-                  render ::Components::Icon.new(name: :delete, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::Delete.new(size: "12", class: "w-5 h-5")
                 end
               end
 
@@ -154,11 +154,11 @@ module Views
           def render_currency_icon
             case @invoice_template.currency
             when "EUR"
-              render ::Components::Icon.new(name: :currency_euro, size: "12", class: "w-5 h-5")
+              render ::Components::Icon::CurrencyEuro.new(size: "12", class: "w-5 h-5")
             when "USD"
-              render ::Components::Icon.new(name: :currency_usd, size: "12", class: "w-5 h-5")
+              render ::Components::Icon::CurrencyUsd.new(size: "12", class: "w-5 h-5")
             when "CAD"
-              render ::Components::Icon.new(name: :currency_cad, size: "12", class: "w-5 h-5")
+              render ::Components::Icon::CurrencyCad.new(size: "12", class: "w-5 h-5")
             end
           end
 
@@ -177,7 +177,7 @@ module Views
             render RubyUI::Dialog.new do
               render RubyUI::DialogTrigger.new do
                 Button(variant: :primary, icon: true) do
-                  render ::Components::Icon.new(name: :new_invoice, size: "12", class: "w-5 h-5")
+                  render ::Components::Icon::NewInvoice.new(size: "12", class: "w-5 h-5")
                 end
               end
 

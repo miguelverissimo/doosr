@@ -13,7 +13,7 @@ module Views
           class: "p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
         ) do
           div(class: "flex items-start gap-3") do
-            render ::Components::Icon.new(name: :prompt, size: "16", class: "text-blue-600 dark:text-blue-400 mt-1")
+            render ::Components::Icon::Prompt.new(size: "16", class: "text-blue-600 dark:text-blue-400 mt-1")
 
             div(class: "flex-1") do
               p(class: "font-medium text-blue-900 dark:text-blue-100") { @prompt.prompt_text }
@@ -30,14 +30,14 @@ module Views
                     action: "click->journal-prompt#respondToPrompt"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :respond, size: "12")
+                  render ::Components::Icon::Respond.new(size: "12")
                   span(class: "ml-1") { "Respond" }
                 end
 
                 render RubyUI::AlertDialog.new do
                   render RubyUI::AlertDialogTrigger.new do
                     Button(variant: :destructive, size: :sm, icon: true) do
-                      render ::Components::Icon.new(name: :delete, size: "12")
+                      render ::Components::Icon::Delete.new(size: "12")
                     end
                   end
 

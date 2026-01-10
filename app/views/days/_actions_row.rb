@@ -55,7 +55,7 @@ module Views
                 data: { action: "click->dropdown#toggle" },
                 disabled: available_lists.empty?
               ) do
-                render ::Components::Icon.new(name: :list, size: "14")
+                render ::Components::Icon::List.new(size: "14")
               end
             end
             TooltipContent do
@@ -136,7 +136,7 @@ module Views
                 data: { action: "click->dropdown#toggle" },
                 disabled: available_templates.empty?
               ) do
-                render ::Components::Icon.new(name: :checklist, size: "14")
+                render ::Components::Icon::Checklist.new(size: "14")
               end
             end
             TooltipContent do
@@ -203,7 +203,7 @@ module Views
                 action: "click->day-note#openDialog"
               }
             ) do
-              render ::Components::Icon.new(name: :sticky_note, size: "14")
+              render ::Components::Icon::StickyNote.new(size: "14")
             end
           end
           TooltipContent do
@@ -240,7 +240,7 @@ module Views
                 size: :md,
                 disabled: already_linked
               ) do
-                render ::Components::Icon.new(name: :journal, size: "14")
+                render ::Components::Icon::Journal.new(size: "14")
               end
             end
             TooltipContent do
@@ -290,7 +290,7 @@ module Views
                     item_form_target: "completableButton"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :completable, size: "16")
+                  render ::Components::Icon::Completable.new(size: "16")
                 end
               end
               TooltipContent do
@@ -312,7 +312,7 @@ module Views
                     item_form_target: "sectionButton"
                   }
                 ) do
-                  render ::Components::Icon.new(name: :section, size: "16")
+                  render ::Components::Icon::Section.new(size: "16")
                 end
               end
               TooltipContent do
