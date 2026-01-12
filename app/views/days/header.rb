@@ -217,13 +217,14 @@ module Views
 
             # Show "Import from [date]" if latest importable day is available
             if @latest_importable_day
-              a(
-                href: view_context.new_day_migration_path(date: @date),
+              button(
+                type: "button",
+                class: "w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm",
                 data: {
-                  turbo_frame: "day_migration_modal",
-                  turbo_stream: true
-                },
-                class: "block w-full text-left px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+                  controller: "day-migration",
+                  day_migration_url_value: view_context.new_day_migration_path(date: @date),
+                  action: "click->ruby-ui--dropdown-menu#close click->day-migration#openDialog"
+                }
               ) do
                 plain "Import from #{format_date(@latest_importable_day.date)}"
               end

@@ -16,6 +16,7 @@ module Views
         div(
           id: container_id,
           class: item_classes,
+          style: "max-width: 100%; overflow: hidden; width: 100%;",
           data: stimulus_data
         ) do
           render_icon

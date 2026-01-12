@@ -98,7 +98,7 @@ module Views
           end
 
           # Items list
-          div(id: "items_list", class: "space-y-2 mt-3") do
+          div(id: "items_list", class: "space-y-2 mt-3 w-full min-w-0 max-w-full") do
             # Render tree nodes from the pre-built tree
             if @tree && @tree.children.any?
               @tree.children.each do |node|

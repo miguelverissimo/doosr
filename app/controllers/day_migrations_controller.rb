@@ -9,16 +9,16 @@ class DayMigrationsController < ApplicationController
     # Get user's migration settings or use defaults
     @migration_settings = current_user.settings.dig("day_migration_settings") || MigrationOptions.defaults
 
-    # Render the modal as a Turbo Stream
+    # Render the modal as a Turbo Stream - append to body for proper z-index layering
     respond_to do |format|
       format.turbo_stream do
-        render turbo_stream: turbo_stream.update(
-          "day_migration_modal",
-          ::Views::Days::MigrationModal.new(
+        render turbo_stream: turbo_stream.append(
+          "body",
+          render_to_string(::Views::Days::MigrationModal.new(
             date: @date,
             latest_importable_day: @latest_importable_day,
             migration_settings: @migration_settings
-          )
+          ))
         )
       end
     end

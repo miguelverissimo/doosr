@@ -4,7 +4,7 @@ module Views
   module Items
     class CompletableItem < BaseItem
       def item_classes
-        base_classes = "group flex items-center gap-2 rounded-lg border bg-card p-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+        base_classes = "group flex items-center gap-2 rounded-lg border bg-card p-2.5 hover:bg-accent/50 transition-colors cursor-pointer w-full min-w-0 max-w-full overflow-hidden"
 
         # Add opacity for deferred, done, or dropped items
         if @record.deferred? || @record.done? || @record.dropped?
@@ -19,13 +19,15 @@ module Views
       end
 
       def render_content
-        div(class: "flex-1 min-w-0") do
+        div(class: "flex-1 min-w-0 max-w-full overflow-hidden", style: "max-width: 100%; overflow: hidden; min-width: 0; flex: 1 1 0%;") do
           if @record.has_unfurled_url?
             render_unfurled_item
           else
-            title_classes = [ "text-sm truncate" ]
-            title_classes << "line-through text-muted-foreground" if @record.done?
-            p(class: title_classes.join(" ")) { @record.title }
+            div(class: "truncate min-w-0 max-w-full w-full", style: "max-width: 100%; overflow: hidden; min-width: 0; width: 100%;") do
+              title_classes = [ "text-sm truncate" ]
+              title_classes << "line-through text-muted-foreground" if @record.done?
+              p(class: title_classes.join(" ") + " w-full", style: "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; width: 100%; display: block; min-width: 0;") { @record.title }
+            end
           end
         end
       end
@@ -71,7 +73,7 @@ module Views
       private
 
       def render_unfurled_item
-        div(class: "flex gap-2 items-center min-w-0") do
+        div(class: "flex gap-2 items-center min-w-0 w-full max-w-full", style: "max-width: 100%; overflow: hidden;") do
           # Thumbnail image
           if @record.preview_image.attached?
             img(
@@ -81,23 +83,28 @@ module Views
           end
 
           # Title + description
-          div(class: "flex-1 min-w-0 flex flex-col gap-0.5") do
-            title_classes = [ "text-sm truncate block" ]
+          div(class: "flex-1 min-w-0 flex flex-col gap-0.5 overflow-hidden max-w-full", style: "max-width: 100%; overflow: hidden;") do
+            title_classes = [ "text-sm truncate" ]
             title_classes << "line-through text-muted-foreground" if @record.done?
 
             # Clickable link - stop propagation to prevent drawer opening
-            a(
-              href: @record.unfurled_url,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              class: title_classes.join(" ") + " hover:underline",
-              data: { action: "click->item#stopPropagation" }
-            ) { @record.title }
+            div(class: "truncate min-w-0 max-w-full", style: "max-width: 100%; overflow: hidden;") do
+              a(
+                href: @record.unfurled_url,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                class: title_classes.join(" ") + " hover:underline block truncate",
+                style: "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block;",
+                data: { action: "click->item#stopPropagation" }
+              ) { @record.title }
+            end
 
             # Optional: Show description (truncated to 80 chars)
             if @record.unfurled_description.present?
-              p(class: "text-xs text-muted-foreground truncate block") do
-                view_context.truncate(@record.unfurled_description, length: 80)
+              div(class: "truncate min-w-0 max-w-full", style: "max-width: 100%; overflow: hidden;") do
+                p(class: "text-xs text-muted-foreground truncate", style: "overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;") do
+                  view_context.truncate(@record.unfurled_description, length: 80)
+                end
               end
             end
           end

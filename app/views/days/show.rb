@@ -17,7 +17,8 @@ module Views
 
       def view_template
         div(
-          class: "flex h-full w-full flex-col",
+          class: "flex h-full w-full flex-col min-w-0 max-w-full overflow-x-hidden",
+          style: "max-width: 100%; overflow-x: hidden; width: 100%;",
           data: @day ? { controller: "day-move", day_move_day_id_value: @day.id } : {}
         ) do
           # Cancel button for moving mode (hidden by default)
@@ -33,7 +34,7 @@ module Views
           end
 
           # Content - no header needed, date is in top bar
-          div(id: "day_content", class: "flex-1 w-full") do
+          div(id: "day_content", class: "flex-1 w-full min-w-0 max-w-full") do
             render_day_content
           end
         end
@@ -42,7 +43,7 @@ module Views
       private
 
       def render_day_content
-        div(class: "space-y-3 w-full") do
+        div(class: "space-y-3 w-full min-w-0 max-w-full") do
           # Error container for form errors
           div(id: "item_form_errors")
 
@@ -65,7 +66,7 @@ module Views
           end
 
           # Items list
-          div(id: "items_list", class: "space-y-2 mt-3 w-full") do
+          div(id: "items_list", class: "space-y-2 mt-3 w-full min-w-0 max-w-full overflow-x-hidden", style: "max-width: 100%; overflow-x: hidden;") do
             # Render existing items and lists if any
             if @day
               # Build tree to get items and lists in proper order

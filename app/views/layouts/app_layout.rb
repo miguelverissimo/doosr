@@ -220,11 +220,8 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               end
             end
 
-            div(class: "vertical mx-auto mt-0 w-full max-w-[var(--container-max-width)] flex-1 px-4 py-4") do
+            div(class: "vertical mx-auto mt-0 w-full max-w-[var(--container-max-width)] flex-1 px-4 py-4 overflow-x-hidden", style: "max-width: min(100%, var(--container-max-width, 1400px)); overflow-x: hidden;") do
               render_flash_toasts
-
-              # Turbo frame for day migration modal
-              div(id: "day_migration_modal")
 
               # Container for ritual modals
               div(id: "ritual_modal_container")

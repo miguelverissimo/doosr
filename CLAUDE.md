@@ -1,1184 +1,209 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Doosr is a Rails 8.1 daily task management app using Hotwire (Turbo + Stimulus), Phlex components, and Ruby UI.
 
-## Project Overview
+## Tech Stack
+- **Backend**: Rails 8.1, PostgreSQL, Devise + OmniAuth (Google, GitHub)
+- **Frontend**: Hotwire, Phlex (no ERB), Tailwind CSS, Ruby UI components, importmap
+- **Infrastructure**: Solid Queue/Cache/Cable, Web Push API (VAPID), Coolify deployment
+- **Testing**: Minitest, Capybara + Selenium
 
-Doosr is a daily task management application built with Rails 8.1, Hotwire (Turbo + Stimulus), Phlex for components, and Ruby UI. Users manage their tasks through Days (daily views), Lists (reusable item collections), and Items (individual tasks/sections).
-
-## Technology Stack
-
-- **Backend**: Rails 8.1 with PostgreSQL
-- **Frontend**: Hotwire (Turbo + Stimulus), importmap for JS
-- **Styling**: Tailwind CSS
-- **Components**: Phlex (Ruby-based view components), Ruby UI component library
-- **Authentication**: Devise with OmniAuth (Google, GitHub)
-- **Job Queue**: Solid Queue
-- **Cache**: Solid Cache
-- **WebSockets**: Action Cable (Solid Cable)
-- **Push Notifications**: Web Push API with VAPID keys (works in Firefox; Chrome requires `gcm_sender_id` in manifest)
-- **Deployment**: Coolify (Docker-based deployment platform)
-
-## Deployment
-
-**CRITICAL: This application is deployed using Coolify, NOT Fly.io, Heroku, or other platforms.**
-
-### Coolify Deployment
-- **Platform**: Coolify (self-hosted Docker deployment)
-- **Container**: Uses Dockerfile in the repository root
-- **Environment Variables**: Set via Coolify UI (Settings → Environment Variables)
-- **Persistent Storage**: Configure via Coolify UI (Settings → Persistent Storage)
-  - Storage volume mounted at `/rails/storage` for ActiveStorage files
-- **Database Migrations**: Run automatically via `bin/docker-entrypoint` script
-- **Server**: Thruster web server (exposes port 80)
-
-### Setting Environment Variables in Coolify
-1. Go to your application in Coolify UI
-2. Navigate to Settings → Environment Variables
-3. Add/edit variables (e.g., `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, etc.)
-4. Redeploy the application for changes to take effect
-
-### Running Commands in Production
-Access the production container via Coolify's built-in terminal:
-1. Go to your application in Coolify UI
-2. Click on "Terminal" or "Execute Command"
-3. Run commands like `bin/rails db:migrate`, `bin/rails console`, etc.
-
-### Checking Logs
-View application logs in Coolify UI:
-1. Go to your application
-2. Click on "Logs" tab
-3. Filter by container/service as needed
-
-## Development Commands
-
-### Server Management
-- **CRITICAL**: Never start, stop, or restart the server unless explicitly requested by the user
-- If server restart is needed, ask the user to do it
-- Server runs via: `bin/rails server` (but don't run this)
-
-### Testing
-```bash
-# Run all tests
-bin/rails test
-
-# Run specific test file
-bin/rails test test/models/item_test.rb
-
-# Run specific test
-bin/rails test test/models/item_test.rb:10
-```
-
-### Database
-```bash
-# Run pending migrations
-bin/rails db:migrate
-
-# Check migration status
-bin/rails db:migrate:status
-
-# Rollback last migration
-bin/rails db:rollback
-
-# Reset database (development only)
-bin/rails db:reset
-```
-
-### Asset Pipeline
-```bash
-# Build Tailwind CSS
-bin/rails tailwindcss:build
-
-# Watch Tailwind CSS for changes (runs in background)
-bin/rails tailwindcss:watch
-
-# Add JavaScript packages via importmap
-bin/importmap pin <package-name>
-```
-
-### Code Quality
-```bash
-# Run RuboCop linter
-bin/rubocop
-
-# Run Brakeman security scanner
-bin/brakeman
-
-# Run Bundler audit for security vulnerabilities
-bin/bundler-audit
-```
-
-### Generators
-```bash
-# Generate model
-bin/rails generate model ModelName field:type
-
-# Generate controller
-bin/rails generate controller ControllerName action1 action2
-
-# Generate Phlex component
-bin/rails generate phlex:component ComponentName
-
-# View routes
-bin/rails routes
-```
+## Deployment (Coolify)
+Self-hosted Docker deployment. Environment variables and storage via Coolify UI. Migrations run automatically via `bin/docker-entrypoint`. Thruster web server on port 80. Access production console via Coolify Terminal.
 
 ## Core Architecture
 
-### Data Model Hierarchy
-
-The app uses a polymorphic tree structure via the `Descendant` model:
-
-```
-User
-├── Day (one per date)
-│   └── Descendant (contains active_items and inactive_items arrays)
-│       └── Item IDs in display order
-└── List (reusable collections)
-    └── Descendant (contains active_items and inactive_items arrays)
-        └── Item IDs in display order
-```
-
-**Descendant Model**: Central to the architecture. Stores ordered arrays of item IDs:
-- `active_items`: Array of item IDs in display order (visible, active tasks)
-- `inactive_items`: Array of item IDs in display order (completed/dropped/deferred)
-- Used by both Day and List models polymorphically
-- Items can be nested infinitely: any Item can have its own Descendant with child items
+### Data Model
+Polymorphic tree structure via `Descendant` model:
+- **User** → **Day** (one per date) → **Descendant** → Item IDs (ordered arrays)
+- **User** → **List** (reusable collections) → **Descendant** → Item IDs
+- **Descendant** stores `active_items` and `inactive_items` arrays (ordered item IDs)
+- **Items** can nest infinitely (each Item can have its own Descendant with children)
 
 ### Key Models
-
-**Item** (`app/models/item.rb`):
-- Core building block of the app
-- Types: `completable` (todos), `section` (headers), `reusable` (templates), `trackable` (habits)
-- States: `todo`, `done`, `dropped`, `deferred`
-- Can have nested items via its own Descendant record
-- State transitions (`set_done!`, `set_todo!`, etc.) automatically manage Descendant arrays
-
-**Day** (`app/models/day.rb`):
-- Represents a user's daily view (one per date per user)
-- States: `open` (active), `closed` (archived)
-- Has one Descendant containing the day's item IDs
-- Tracks import chains (days can be imported from previous days)
-
-**List** (`app/models/list.rb`):
-- Reusable item collections (e.g., shopping lists, checklists)
-- Types: `private_list`, `public_list`, `shared_list`
-- Has one Descendant containing list item IDs
-- Public lists accessible via slug: `/p/lists/:slug`
-
-**Descendant** (`app/models/descendant.rb`):
-- Stores ordered arrays of item IDs for polymorphic parents
-- Methods: `add_active_item`, `remove_active_item`, `add_inactive_item`, etc.
-- Query: `Descendant.containing_item(item_id)` finds which parent contains an item
+- **Item**: Core building block. Types: `completable`, `section`, `reusable`, `trackable`. States: `todo`, `done`, `dropped`, `deferred`. State transitions (`set_done!`, `set_todo!`, etc.) automatically manage Descendant arrays and recurrence.
+- **Day**: One per user per date. States: `open`, `closed`. Has one Descendant.
+- **List**: Types: `private_list`, `public_list`, `shared_list`. Public lists accessible via slug.
+- **Descendant**: Polymorphic parent for Day/List/Item. Methods: `add_active_item`, `remove_active_item`, etc.
 
 ### Controllers
-
-**Items vs Reusable Items**:
-- `ItemsController`: Handles items within Days
-- `ReusableItemsController`: Handles items within Lists
+- **ItemsController**: Day items
+- **ReusableItemsController**: List items
 - Both support: create, update, destroy, toggle_state, move, reparent, actions_sheet, edit_form
 
-### Service Objects
+### Services
+- `Days::ImportService`, `Days::OpenDayService`
+- `Items::DeferService`, `Items::ReparentService`
+- `ItemTree::Build` for nested item trees
 
-Located in `app/services/`:
-- `Days::ImportService`: Import items from a previous day
-- `Days::OpenDayService`: Open or create today's day
-- `Items::DeferService`: Defer items to future dates
-- `Items::ReparentService`: Move items between parents (new)
-- `ItemTree::Build`: Build tree structure for nested items (new)
+## Critical Rules
 
-### Frontend Architecture
-
-**Stimulus Controllers** (`app/javascript/controllers/`):
-- `item_controller.js`: Item interactions (delete, defer, state toggle)
-- `item_form_controller.js`: Item creation/edit forms
-- `day_move_controller.js`: Move items up/down in day view
-- `item_move_controller.js`: Move items up/down in list view
-- `defer_calendar_controller.js`: Calendar for deferring items
-- `item_autocomplete_controller.js`: Autocomplete for item titles
-
-**Phlex Components** (`app/views/`):
-- All views are Phlex components (Ruby-based, not ERB)
-- Layouts: `app/views/layouts/app_layout.rb`, `auth_layout.rb`
-- Components: `app/views/items/`, `app/views/days/`, `app/views/lists/`
-
-## Critical Development Rules
-
-### Following User Instructions (ABSOLUTELY CRITICAL)
+### Following Instructions (ABSOLUTELY CRITICAL)
 **❌ THERE IS ABSOLUTELY NO AUTONOMY TO CHANGE, INTERPRET, OR MODIFY USER INSTRUCTIONS ❌**
 
-- **CRITICAL**: When the user gives explicit instructions, follow them EXACTLY as stated
-- **DO NOT**:
-  - Make "improvements" or "optimizations" that weren't requested
-  - Change the approach because you think there's a "better way"
-  - Add extra features or functionality not explicitly requested
-  - Modify the scope or implementation details beyond what was instructed
-  - Interpret instructions loosely or make assumptions about intent
-- **DO**:
-  - Follow instructions to the letter
-  - Ask clarifying questions if instructions are ambiguous
-  - Implement exactly what was requested, nothing more, nothing less
-  - Respect the user's decisions about architecture, patterns, and approaches
+Follow user instructions EXACTLY as stated.
+
+**NEVER:**
+- Make "improvements" or "optimizations" that weren't requested
+- Change the approach because you think there's a "better way"
+- Add extra features or functionality not explicitly requested
+- Modify scope or implementation details beyond what was instructed
 
 **If you find yourself thinking "but it would be better if..." - STOP. Do what was instructed.**
 
-### Delete Confirmations (ABSOLUTELY CRITICAL)
-**❌ IT IS ABSOLUTELY FORBIDDEN TO USE `turbo_confirm` OR BROWSER CONFIRMATIONS FOR DELETE ACTIONS ❌**
-
-- **CRITICAL**: ALL delete confirmations MUST use `RubyUI::AlertDialog` component
-- **NEVER** use `turbo_confirm` or `data-turbo-confirm` attributes
-- **NEVER** use browser's native confirm() function
-- See the "Delete Confirmations" section below for the complete pattern
-
 ### Phlex Components
-- ❌ **ABSOLUTELY NEVER EVER USE `onclick`, `onchange`, or ANY `on*` EVENT ATTRIBUTES IN PHLEX** ❌
-  - They throw `Phlex::ArgumentError` and will break the application
-  - This includes: `onclick`, `onchange`, `onsubmit`, `onload`, `oninput`, `onfocus`, `onblur`, etc.
-  - **NO EXCEPTIONS** - even simple things like `onclick="event.stopPropagation()"` are forbidden
-- ✅ **ALWAYS use Stimulus controllers with data attributes instead**:
-  - `data: { action: "click->controller#method" }`
-  - Example: Instead of `onclick="alert('hi')"`, create a Stimulus controller method
-- Use Ruby UI components from the ruby_ui gem - do not create raw HTML/JS
+**❌ ABSOLUTELY NEVER USE `on*` EVENT ATTRIBUTES IN PHLEX ❌**
+
+They throw `Phlex::ArgumentError` and break the application.
+
+**NEVER:**
+- Use `onclick`, `onchange`, `onsubmit`, `onload`, `oninput`, `onfocus`, `onblur`, or ANY `on*` attributes
+- Even simple things like `onclick="event.stopPropagation()"` are FORBIDDEN
+
+**ALWAYS:**
+- Use Stimulus controllers with `data: { action: "click->controller#method" }`
 
 ### SVG Icons (CRITICAL)
-- ❌ **IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS**
-- ❌ **NEVER create inline SVG elements in any view file**
-- ✅ **ALL ICONS MUST USE DEDICATED ICON CLASSES FROM @app/components/icon/**
-- ✅ **NO EXCEPTIONS** - all icons must go through icon classes
+**❌ IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS ❌**
 
-**How to use icons:**
-1. Use existing icon classes: `render ::Components::Icon::Edit.new(size: "16", class: "text-red-500")`
-2. To add a new icon, create a new class in `app/components/icon/` following this pattern:
-   ```ruby
-   # app/components/icon/my_icon.rb
-   module Components
-     module Icon
-       class MyIcon < Base
-         private
+**NEVER:**
+- Create inline SVG elements in any view file
+- Use `<svg>` tags directly
 
-         def render_icon_path(s)
-           s.path(d: "M...")
-           # Add more SVG paths as needed
-         end
-       end
-     end
-   end
-   ```
-3. Then use it: `render ::Components::Icon::MyIcon.new(size: "16")`
+**ALWAYS:**
+- Use icon classes from `app/components/icon/`
+- Pattern: `render ::Components::Icon::Edit.new(size: "16")`
+- New icons: Create class in `app/components/icon/` inheriting from `::Components::Icon::Base`
+
+### State Transitions (ABSOLUTELY CRITICAL)
+**❌ NEVER USE `@item.update(state: ...)` TO CHANGE STATE ❌**
+
+This bypasses Descendant management, recurrence scheduling, and timestamp tracking.
+
+**ALWAYS:**
+- Use state transition methods: `set_done!`, `set_todo!`, `set_dropped!`, `set_deferred!(date)`
+- Route ALL UI state changes to `toggle_state` action, NOT `update` action
+- Single code path rule: same user action must go through same code regardless of trigger
+
+**Why this matters:** If checkbox uses `update` while button uses `toggle_state`, recurrence and Descendant arrays break.
+
+### Edit Actions (CRITICAL)
+**❌ NEVER REPLACE ITEM INLINE WITH EDIT FORM ❌**
+
+**WHEN A USER CLICKS EDIT, THEY MUST GET A DIALOG. NO EXCEPTIONS.**
+
+**NEVER:**
+- Use `turbo_stream.replace("item_#{@item.id}", EditForm)` - this is inline replacement
+- Create separate EditForm component - use FormDialog for both create and edit
+- Use `href` with `turbo_stream: true` on edit buttons
+
+**ALWAYS:**
+- Edit action: `turbo_stream.append("body", FormDialog)` - appends dialog
+- Update action: `turbo_stream.remove("dialog_id")` - removes dialog
+- Single FormDialog component for both create and edit
+- Edit button uses Stimulus controller with `openDialog` method
+
+### Delete Confirmations (ABSOLUTELY CRITICAL)
+**❌ IT IS ABSOLUTELY FORBIDDEN TO USE `turbo_confirm` OR BROWSER CONFIRMATIONS ❌**
+
+**NEVER:**
+- Use `turbo_confirm` or `data-turbo-confirm` attributes
+- Use browser's native confirm() function
+
+**ALWAYS:**
+- Use `RubyUI::AlertDialog` component
+- Form inside AlertDialogFooter with `data: { action: "submit@document->ruby-ui--alert-dialog#dismiss" }`
+
+### Drawer Navigation (CRITICAL)
+**THIS IS EXTREMELY IMPORTANT. VIOLATING CREATES MULTIPLE OVERLAYS.**
+
+**Opening drawer** (from day/list → actions):
+- `turbo_stream.append("body", ActionsSheet)` - creates full drawer with backdrop
+
+**Navigating within drawer** (actions → defer/recurrence/edit):
+- `turbo_stream.replace("sheet_content_area", OptionsView)` - ONLY replaces content
+
+**NEVER:**
+- Create backdrop divs in option views (defer, recurrence, edit)
+- Use `turbo_stream.append` for navigating within a drawer
+- Forget to wrap option content with `id="sheet_content_area"`
+- Create new drawer structures in option views
+
+### Component Usage (CRITICAL)
+
+#### Forms
+**NEVER:**
+- ❌ Use plain `form()` - ALWAYS use `RubyUI::Form.new`
+- ❌ Use plain `label()` - ALWAYS use `RubyUI::FormFieldLabel.new`
+- ❌ Use plain `input()` - ALWAYS use `RubyUI::Input.new` (even for hidden fields and CSRF tokens)
+- ❌ Use plain `textarea()` - ALWAYS use `RubyUI::Textarea.new`
+- ❌ Skip `RubyUI::FormField.new` wrapper for fields
+- ❌ Skip `RubyUI::FormFieldError.new` for error display
+
+**ALWAYS:**
+- Wrap each field in `RubyUI::FormField.new`
+- Use `RubyUI::Input.new(type: :hidden, ...)` even for CSRF tokens
+
+#### Links and Buttons
+**NEVER:**
+- ❌ Use plain `a()` - ALWAYS use `::Components::ColoredLink.new`
+- ❌ Use raw `<button>` or `<a>` tags with custom classes
+
+**ALWAYS:**
+- Buttons: `Button(variant: :primary)` - variants: primary, secondary, destructive, outline, ghost
+- Links as buttons: `::Components::ColoredLink.new(href: path, variant: :primary)`
+- Badges: `Badge(variant: :primary)`, `::Components::BadgeWithIcon.new(icon: :calendar)`, `::Components::BadgeLink.new(href: path)`
+
+#### Date Inputs
+**ALWAYS:**
+- Include `class: "date-input-icon-light-dark"` on all `RubyUI::Input` with `type: :date`
+- This ensures calendar icon is visible in dark mode
+
+#### Dialogs via Buttons
+**NEVER:**
+- ❌ Use `ColoredLink` with `data: { turbo_stream: true }` to open dialogs - doesn't work
+- ❌ Use `Button` with `href:` parameter for dialogs - doesn't work
+- ❌ Use `Turbo.renderStreamMessage(html)` - doesn't work
+- ❌ Cancel button with `click->ruby-ui--dialog#close` - doesn't work
+
+**ALWAYS:**
+- Create Stimulus controller with `openDialog()` method
+- `openDialog()` fetches turbo_stream, uses DOMParser to extract template, appends to body
+- Button has `data: { controller: "name", action: "click->name#openDialog" }`
+- Dialog has unique ID
+- Cancel button uses `click->modal-form#cancelDialog`
 
 ### UI Feedback
-- **CRITICAL: Every backend request MUST show a loading indicator AND operation result (success/error)**
-- For form submissions: Use `window.toast(message, { type: "loading", description: "Please wait" })`
-  - Dismiss on `turbo:submit-end` or response received
-  - Applies to: create, update, delete, move, toggle, defer, reparent
-- **For pagination and filters**: Use loading spinner pattern (see below)
-
-#### Pagination with Loading Spinner Pattern
-**CRITICAL: All paginated list views MUST show a loading spinner during data fetching.**
-
-Example implementation (see `app/views/accounting/invoices/_list.rb` and `app/views/accounting/invoices/_list_content.rb`):
-
-1. **Stimulus Controller** (`app/javascript/controllers/invoice_filter_controller.js`):
-   ```javascript
-   import { Controller } from "@hotwired/stimulus"
-
-   export default class extends Controller {
-     static targets = ["spinner", "content"]
-
-     connect() {
-       this.element.addEventListener("turbo:before-stream-render", () => this.hideSpinner())
-     }
-
-     showSpinner() {
-       if (this.hasSpinnerTarget && this.hasContentTarget) {
-         this.spinnerTarget.classList.remove("hidden")
-         this.contentTarget.classList.add("hidden")
-       }
-     }
-
-     hideSpinner() {
-       if (this.hasSpinnerTarget && this.hasContentTarget) {
-         this.spinnerTarget.classList.add("hidden")
-         this.contentTarget.classList.remove("hidden")
-       }
-     }
-   }
-   ```
-
-2. **Container View** (with controller, spinner, and content targets):
-   ```ruby
-   div(class: "flex flex-col gap-4", id: "container", data: { controller: "invoice-filter" }) do
-     # Filter/pagination controls with click action
-     div(class: "flex gap-2") do
-       render ::Components::BadgeLink.new(
-         href: view_context.invoices_path(filter: "unpaid"),
-         data: {
-           turbo_stream: true,
-           action: "click->invoice-filter#showSpinner"
-         }
-       ) { "Unpaid" }
-     end
-
-     # Loading spinner (hidden by default)
-     div(
-       id: "loading_spinner",
-       class: "hidden",
-       data: { invoice_filter_target: "spinner" }
-     ) do
-       render ::Components::Shared::LoadingSpinner.new(message: "Loading...")
-     end
-
-     # Content area
-     div(data: { invoice_filter_target: "content" }) do
-       render ::Views::ListContent.new(user: @user, filter: @filter, page: @page)
-     end
-   end
-   ```
-
-3. **Pagination Links** (in list content view):
-   ```ruby
-   PaginationItem(
-     href: view_context.invoices_path(filter: @filter, page: page_num),
-     active: page_num == current_page,
-     data: {
-       turbo_stream: true,
-       action: "click->invoice-filter#showSpinner"  # CRITICAL: Must trigger spinner
-     }
-   ) { page_num.to_s }
-   ```
-
-4. **Margin for Pagination**:
-   ```ruby
-   # Always wrap pagination in a div with top margin
-   if @items.total_pages > 1
-     div(class: "mt-6") do
-       render_pagination
-     end
-   end
-   ```
-
-**Key Points:**
-- Loading spinner MUST be shown for all filter changes and pagination navigation
-- Spinner automatically hides when turbo stream response is received
-- All clickable filter/pagination elements must have `action: "click->controller#showSpinner"`
-- Content area must have the `content` target
-- Spinner must have the `spinner` target
-
-#### CRUD Operations (CREATE, UPDATE, DELETE)
-**CRITICAL: ALL CREATE, UPDATE, AND DELETE ACTIONS MUST FOLLOW THIS PATTERN:**
-
-**Requirements for every CRUD operation:**
-1. **Show loading toast while operation executes**
-   - Use `form_loading_controller.js` for form submissions
-   - Add `data: { controller: "form-loading", form_loading_message_value: "Creating..." }` to forms
-   - The controller automatically shows loading toast on submit and dismisses on completion
-
-2. **Show success or error toast after completion**
-   - Controller must send success toast in turbo_stream response
-   - Example: `turbo_stream.append("body", "<script>window.toast && window.toast('Note created successfully', { type: 'success' });</script>")`
-   - For errors, show error toast with descriptive message
-
-3. **Dismiss form modals/dialogs**
-   - Controller must remove dialog/modal from DOM in turbo_stream response
-   - Example: `turbo_stream.remove("note_dialog")`
-   - This must happen BEFORE showing success toast
-
-4. **Update views with Turbo Streams**
-   - Use turbo_stream.replace, turbo_stream.append, or turbo_stream.remove to update relevant views
-   - Example: After creating a note, append it to the list AND remove the dialog AND show toast
-   - All three actions in a single turbo_stream array response
-
-**Example Complete CRUD Action:**
-```ruby
-def create
-  @note = current_user.notes.build(note_params)
-
-  if @note.save
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: [
-          turbo_stream.remove("note_dialog"),                    # 1. Close modal
-          turbo_stream.prepend("notes_list", ...),               # 2. Update view
-          turbo_stream.append("body", "<script>window.toast && window.toast('Note created successfully', { type: 'success' });</script>")  # 3. Success toast
-        ]
-      end
-    end
-  else
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.replace(
-          "form_errors",
-          "<div class='text-sm text-destructive'>#{@note.errors.full_messages.join(', ')}</div>"
-        ), status: :unprocessable_entity
-      end
-    end
-  end
-end
-```
+**CRITICAL: Every backend request MUST show loading indicator AND result (success/error)**
 
 **NEVER:**
 - ❌ Skip loading indicators
-- ❌ Forget to dismiss modals/dialogs
+- ❌ Forget to dismiss modals/dialogs after save
 - ❌ Skip success/error feedback
 - ❌ Leave stale UI elements after operations
 - ❌ Use full page redirects when turbo_stream updates would work
 
-### Edit Dialogs (CRITICAL - ALWAYS USE DIALOGS FOR EDIT)
-**CRITICAL: ALL EDIT ACTIONS MUST OPEN A DIALOG, NEVER INLINE REPLACE THE ITEM WITH AN EDIT FORM.**
-
-#### The Universal Rule
-**WHEN A USER CLICKS AN EDIT BUTTON, THEY MUST GET A DIALOG. NO EXCEPTIONS.**
-
-#### Why Dialogs for Edit?
-1. **Consistent UX** - Users expect dialogs for editing, just like they get for creating
-2. **Easy dismissal** - Dialogs can be closed with Cancel or after successful save
-3. **No state management** - No need to track "edit mode" vs "view mode" inline
-4. **Reusable components** - Same FormDialog component works for both create and edit
-
-#### The Pattern (ALWAYS FOLLOW THIS)
-
-**1. Single FormDialog Component:**
-```ruby
-# app/views/journal_fragments/_form_dialog.rb
-class FormDialog < ::Views::Base
-  def initialize(fragment:, journal:, prompt: nil)
-    @fragment = fragment
-    @journal = journal
-    @prompt = prompt
-  end
-
-  def view_template
-    Dialog(open: true, id: "fragment_dialog") do
-      DialogContent do
-        DialogHeader do
-          DialogTitle { @fragment.new_record? ? "New Entry" : "Edit Entry" }
-        end
-
-        render RubyUI::Form.new(
-          action: @fragment.new_record? ? create_path : update_path,
-          method: "post",
-          data: {
-            controller: "modal-form",
-            modal_form_loading_message_value: @fragment.new_record? ? "Creating..." : "Updating...",
-            turbo: true
-          }
-        ) do
-          render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
-          render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch") unless @fragment.new_record?
-
-          # Form fields...
-
-          div(class: "flex gap-2 justify-end") do
-            Button(variant: :outline, type: :button, data: { action: "click->modal-form#cancelDialog" }) { "Cancel" }
-            Button(variant: :primary, type: :submit) { @fragment.new_record? ? "Create" : "Update" }
-          end
-        end
-      end
-    end
-  end
-end
-```
-
-**2. Controller Edit Action (Appends Dialog):**
-```ruby
-def edit
-  @fragment = current_user.fragments.find(params[:id])
-  @journal = @fragment.journal
-
-  respond_to do |format|
-    format.turbo_stream do
-      render turbo_stream: turbo_stream.append(
-        "body",
-        render_to_string(::Views::Fragments::FormDialog.new(fragment: @fragment, journal: @journal))
-      )
-    end
-  end
-end
-```
-
-**3. Controller Update Action (Removes Dialog):**
-```ruby
-def update
-  @fragment = current_user.fragments.find(params[:id])
-  @journal = @fragment.journal
-
-  if @fragment.update(fragment_params)
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: [
-          turbo_stream.remove("fragment_dialog"),           # 1. Close dialog
-          turbo_stream.replace("fragment_#{@fragment.id}", ...), # 2. Update item view
-          turbo_stream.append("body", "<script>window.toast && window.toast('Updated successfully', { type: 'success' });</script>")  # 3. Success toast
-        ]
-      end
-    end
-  else
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.replace(
-          "fragment_form_errors",
-          "<div class='text-sm text-destructive'>#{@fragment.errors.full_messages.join(', ')}</div>"
-        ), status: :unprocessable_entity
-      end
-    end
-  end
-end
-```
-
-**4. Stimulus Controller for Edit Button:**
-```javascript
-// app/javascript/controllers/journal_fragment_controller.js
-import { Controller } from "@hotwired/stimulus"
-
-export default class extends Controller {
-  static values = {
-    url: String
-  }
-
-  openDialog(event) {
-    if (event) event.preventDefault()
-
-    fetch(this.urlValue, {
-      headers: { "Accept": "text/vnd.turbo-stream.html" }
-    })
-      .then(response => response.text())
-      .then(html => {
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, "text/html")
-        const template = doc.querySelector("turbo-stream template")
-        if (template) {
-          document.body.appendChild(template.content.cloneNode(true))
-        }
-      })
-      .catch(error => {
-        console.error("Error opening dialog:", error)
-        window.toast && window.toast("Failed to open dialog", { type: "error" })
-      })
-  }
-}
-```
-
-**5. Edit Button in Item View:**
-```ruby
-Button(
-  variant: :secondary,
-  size: :sm,
-  icon: true,
-  data: {
-    controller: "journal-fragment",
-    journal_fragment_url_value: view_context.edit_journal_fragment_path(@fragment),
-    action: "click->journal-fragment#openDialog"
-  }
-) do
-  render ::Components::Icon::Edit.new(size: "12")
-end
-```
-
-#### What NOT To Do (NEVER DO THIS)
-❌ **NEVER replace the item inline with an edit form:**
-```ruby
-# ❌ WRONG - This replaces the item view with an edit form inline
-def edit
-  respond_to do |format|
-    format.turbo_stream do
-      render turbo_stream: turbo_stream.replace(
-        "fragment_#{@fragment.id}",
-        render_to_string(::Views::Fragments::EditForm.new(...))  # ❌ WRONG
-      )
-    end
-  end
-end
-```
-
-❌ **NEVER use a separate EditForm component - use FormDialog for both create and edit**
-
-❌ **NEVER use `href` with `turbo_stream: true` on edit buttons - always use Stimulus controller with openDialog method**
-
-#### When You See An Edit Button That Doesn't Open A Dialog
-**IMMEDIATELY recognize this as a bug and fix it using the pattern above.**
-
-Signs of the bug:
-- Edit button uses `href` with `turbo_stream: true`
-- Edit action does `turbo_stream.replace` instead of `turbo_stream.append`
-- There's a separate `_edit_form.rb` file instead of reusing `_form_dialog.rb`
-- Clicking edit replaces the item inline instead of opening a dialog
-
-**Fix it immediately** by:
-1. Making FormDialog support both create and edit
-2. Changing edit action to append dialog to body
-3. Changing update action to remove dialog
-4. Creating Stimulus controller for edit button
-5. Deleting the inline edit form file
-
-### Drawer Navigation (CRITICAL - READ CAREFULLY)
-**THIS IS EXTREMELY IMPORTANT. VIOLATING THESE RULES CREATES MULTIPLE OVERLAYS AND WASTES USER MONEY.**
-
-#### Drawer Architecture
-The drawer system has two layers:
-1. **ActionsSheet**: The full drawer (backdrop + sheet container + close button) with `id="item_actions_sheet"`
-2. **Sheet Content**: The replaceable content area with `id="sheet_content_area"` inside the drawer
-
-#### Opening vs Navigating
-- **Opening a new drawer** (from day/list view → actions sheet):
-  - Use `turbo_stream.append("body", ActionsSheet.new(...))`
-  - This creates the ENTIRE drawer structure including backdrop
-
-- **Navigating within a drawer** (actions → defer/recurrence/edit):
-  - Use `turbo_stream.replace("sheet_content_area", OptionsView.new(...))`
-  - This ONLY replaces the content, keeping the same backdrop and close button
-
-#### Controller Pattern for Option Screens
-**ALWAYS use this exact pattern for defer_options, recurrence_options, edit_form, etc.**:
-```ruby
-def defer_options  # or recurrence_options, edit_form, etc.
-  @item = @acting_user.items.find(params[:id])
-  @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present?
-
-  respond_to do |format|
-    format.turbo_stream do
-      render turbo_stream: turbo_stream.replace(
-        "sheet_content_area",
-        ::Views::Items::DeferOptions.new(item: @item, day: @day)
-      )
-    end
-  end
-end
-```
-
-#### View Pattern for Option Screens
-**ALWAYS wrap your option view content in a div with id="sheet_content_area"**:
-```ruby
-def view_template
-  div(id: "sheet_content_area", data: { controller: "your-controller" }) do
-    SheetHeader do
-      SheetTitle { "Your Title" }
-    end
-    SheetMiddle do
-      # Your content
-    end
-    # Cancel button with from_edit_form: true
-  end
-end
-```
-
-#### Common Mistakes That Create Multiple Overlays
-- ❌ **NEVER** create backdrop divs in option views (defer, recurrence, edit)
-- ❌ **NEVER** use `turbo_stream.append` for navigating within a drawer
-- ❌ **NEVER** forget to wrap option content with `id="sheet_content_area"`
-- ❌ **NEVER** create new drawer structures in option views
-
-### Drawer Cancel Buttons
-- **CRITICAL**: All Cancel buttons in drawer option screens MUST return to the item actions drawer
-- **MUST include `from_edit_form: true` parameter**:
-  ```ruby
-  render ::Components::ColoredLink.new(
-    variant: :secondary,
-    href: actions_sheet_item_path(@item, day_id: @day&.id, from_edit_form: true),
-    data: { turbo_stream: true },
-    class: "flex-1 h-12 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md font-medium transition-colors flex items-center justify-center"
-  ) { "Cancel" }
-  ```
-
-### Item State Transitions (CRITICAL - READ CAREFULLY)
-**THIS IS ABSOLUTELY CRITICAL. VIOLATING THESE RULES BREAKS RECURRENCE, DESCENDANT MANAGEMENT, AND OTHER CORE FEATURES.**
-
-#### Single Code Path Rule
-**NEVER create multiple code paths for the same user action.** Every state change MUST go through the same code path regardless of where the user triggers it (checkbox, button, keyboard, etc.).
-
-#### State Transition Methods
-ALL item state changes MUST go through these methods in `Item` model:
-- `set_done!` - Mark item as done (handles Descendant arrays, recurrence scheduling)
-- `set_todo!` - Mark item as todo (handles Descendant arrays, deletes next recurrence)
-- `set_dropped!` - Mark item as dropped (handles Descendant arrays)
-- `set_deferred!(date)` - Defer item to future date (handles Descendant arrays)
-
-**NEVER use `@item.update(state: ...)` or `@item.update!(state: ...)` to change state** - this bypasses critical logic:
-- ❌ Descendant array management (moving between active_items/inactive_items)
-- ❌ Recurrence scheduling (creating next occurrence when completing recurring items)
-- ❌ Recurring item cleanup (deleting next occurrence when uncompleting)
-- ❌ Timestamp tracking (done_at, dropped_at, deferred_at)
-
-#### Controller Actions
-Use the `toggle_state` action for ALL state changes from the UI:
-- **For day items**: `toggle_state_item_path(@item)` → `ItemsController#toggle_state`
-- **For list items**: `toggle_state_reusable_item_path(@item)` → `ReusableItemsController#toggle_state`
-
-**NEVER route checkboxes, buttons, or other UI elements to the `update` action for state changes.**
-
-#### Example: Checkbox Implementation
-```ruby
-def render_checkbox
-  # ALWAYS use toggle_state endpoint for both days and lists
-  # This ensures state changes go through set_done!/set_todo! methods
-  toggle_path = if @list
-    toggle_state_reusable_item_path(@item)
-  else
-    toggle_state_item_path(@item)
-  end
-
-  form(action: toggle_path, method: "post", ...) do
-    csrf_token_field
-    input(type: "hidden", name: "_method", value: "patch")
-    # Always use state param (not item[state])
-    input(type: "hidden", name: "state", value: @item.done? ? "todo" : "done")
-    # checkbox input
-  end
-end
-```
-
-#### Why This Matters
-If a checkbox uses `item_path(@item)` (update action) while a button uses `toggle_state_item_path(@item)`:
-- ✓ Button → `toggle_state` → `set_done!` → Recurrence works, Descendant arrays updated
-- ✗ Checkbox → `update` → `@item.update(state: :done)` → Recurrence BROKEN, Descendant arrays NOT updated
-
-This creates an inconsistent user experience where the same action works differently depending on how it's triggered.
-
-### Item Movement Rules
-Active items can move within their array IF:
-1. The day/list is not closed
-2. The item is in the `active_items` array
-3. The item is not at array boundary (position 0 for up, last position for down)
-
-Do NOT check item state (deferred, dropped, done) - only check day state and array position.
-
-### Component Usage (CRITICAL - MUST FOLLOW EXACTLY)
-**CRITICAL: Always use the correct component for each UI element. NEVER create custom HTML/CSS when a component exists.**
-
-1. **Forms** - **ALWAYS USE `RubyUI::Form` - NEVER USE PLAIN `form`**:
-   ```ruby
-   render RubyUI::Form.new(
-     action: form_url,
-     method: "post",
-     class: "space-y-6",
-     data: {
-       turbo: true,
-       controller: "modal-form",
-       modal_form_loading_message_value: "Creating...",
-       modal_form_success_message_value: "Created successfully"
-     }
-   ) do
-     # CSRF token - ALWAYS use RubyUI::Input.new even for hidden fields
-     render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
-     render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch") unless @record.new_record?
-
-     # Each field MUST use FormField wrapper
-     render RubyUI::FormField.new do
-       render RubyUI::FormFieldLabel.new { "Field Name" }
-       render RubyUI::Input.new(
-         type: :text,
-         name: "record[field]",
-         placeholder: "Enter value",
-         value: @record.field,
-         required: true
-       )
-       render RubyUI::FormFieldError.new
-     end
-
-     # Buttons
-     div(class: "flex gap-2 justify-end") do
-       Button(variant: :outline, type: :button, data: { action: "click->modal-form#cancelDialog" }) { "Cancel" }
-       Button(variant: :primary, type: :submit) { "Submit" }
-     end
-   end
-   ```
-   - **CRITICAL**: ALWAYS use `RubyUI::Form.new` instead of plain `form()`
-   - **CRITICAL**: ALWAYS wrap each field in `RubyUI::FormField.new`
-   - **CRITICAL**: ALWAYS use `RubyUI::FormFieldLabel.new` for labels
-   - **CRITICAL**: ALWAYS use `RubyUI::FormFieldError.new` for error messages
-   - **CRITICAL**: Use `RubyUI::Input.new` or `RubyUI::Textarea.new` for ALL inputs including hidden fields
-   - **CRITICAL**: Even CSRF tokens and hidden fields MUST use `RubyUI::Input.new(type: :hidden, ...)`
-   - Reference: `app/components/accounting/customers/form.rb`
-
-2. **SVG Icons** - Use icon classes from `app/components/icon/`:
-   ```ruby
-   render ::Components::Icon::Calendar.new(size: "16", class: "text-red-500")
-   ```
-   - **CRITICAL**: IT IS FORBIDDEN TO HAVE SVG ICONS IN `svg` ELEMENTS
-   - **CRITICAL**: ALL ICONS MUST USE DEDICATED CLASSES FROM @app/components/icon/ directory
-   - To add a new icon, create a new class inheriting from `::Components::Icon::Base` (see section above)
-
-3. **Buttons** - Use `app/components/ruby_ui/button/button.rb`:
-   ```ruby
-   Button(variant: :primary, type: :submit) { "Submit" }
-   Button(variant: :outline, href: some_path) { "Cancel" }
-   ```
-   - Variants: `:primary`, `:secondary`, `:destructive`, `:outline`, `:ghost`
-   - Add `icon: true` for icon-only buttons
-   - Add `type: :submit` for form submission buttons
-   - Can accept `href:` parameter to render as a link
-
-4. **Links styled as buttons** - Use `app/components/colored_link.rb`:
-   ```ruby
-   render ::Components::ColoredLink.new(href: path, variant: :primary) { "Click me" }
-   ```
-   - Same variants as Button
-   - Additional color variants: `:red`, `:blue`, `:green`, etc.
-   - Ghost variants: `:ghost_red`, `:ghost_blue`, etc.
-
-5. **Badges** - Three options:
-   - **Simple badge** - Use `app/components/ruby_ui/badge/badge.rb`:
-     ```ruby
-     Badge(variant: :primary, size: :md) { "New" }
-     ```
-   - **Badge with icon** - Use `app/components/badge_with_icon.rb`:
-     ```ruby
-     render ::Components::BadgeWithIcon.new(icon: :calendar, variant: :blue) { "Date" }
-     ```
-   - **Badge as link** - Use `app/components/badge_link.rb`:
-     ```ruby
-     render ::Components::BadgeLink.new(href: path, variant: :sky, active: true) { "Filter" }
-     ```
-
-6. **Date Inputs** - Use `app/components/ruby_ui/input/input.rb`:
-   ```ruby
-   render RubyUI::Input.new(
-     type: :date,
-     name: "date_from",
-     class: "date-input-icon-light-dark",
-     value: @date_from
-   )
-   ```
-   - **CRITICAL**: Every `RubyUI::Input` with `type: :date` MUST include `class: "date-input-icon-light-dark"`
-   - This ensures the calendar icon is visible in dark mode (light icon) while remaining dark in light mode
-   - The class applies a CSS filter to invert the calendar picker indicator icon only when inside a `.dark` container
-
-**NEVER:**
-- ❌ **NEVER USE PLAIN `a()` - ALWAYS USE `::Components::ColoredLink.new`**
-- ❌ **NEVER USE PLAIN `form()` - ALWAYS USE `RubyUI::Form.new`**
-- ❌ **NEVER USE PLAIN `label()` IN FORMS - ALWAYS USE `RubyUI::FormFieldLabel.new`**
-- ❌ **NEVER USE PLAIN `input()` FOR ANY INPUTS - ALWAYS USE `RubyUI::Input.new` (INCLUDING HIDDEN FIELDS AND CSRF TOKENS)**
-- ❌ **NEVER USE PLAIN `textarea()` - ALWAYS USE `RubyUI::Textarea.new`**
-- ❌ Create raw `<button>` or `<a>` tags with custom classes
-- ❌ Use inline styles or custom Tailwind classes when a component exists
-- ❌ Create custom icon SVGs - use icon classes
-- ❌ **NEVER CREATE SVG ELEMENTS FOR ICONS - ALL ICONS MUST BE CLASSES IN @app/components/icon/ DIRECTORY**
-- ❌ Manually create badge HTML - use Badge components
-
 **ALWAYS:**
-- ADD PROPER EDIT BUTTONS FOR EDIT ACTIONS
-  ```ruby
-  Button(
-    variant: :secondary,
-    size: :sm,
-    icon: true,
-    data: {
-      controller: "journal-template",
-      journal_template_url_value: view_context.edit_journal_prompt_template_path(@template),
-      action: "click->journal-template#openDialog"
-    }
-  ) do
-    render ::Components::Icon::Edit.new(size: "12")
-  end
-  ```
-### Delete Confirmations (CRITICAL - NEVER USE BROWSER CONFIRM)
-**❌ ABSOLUTELY FORBIDDEN TO USE `turbo_confirm` OR `data-turbo-confirm` FOR DELETE CONFIRMATIONS ❌**
+- Forms use `modal-form` controller with loading/success message values
+- Paginated lists use loading spinner pattern (Stimulus controller with spinner/content targets, `showSpinner()` on click, auto-hide on turbo stream)
+- CRUD operations: loading toast → close modal → update view → success toast (all in single turbo_stream array)
 
-**CRITICAL: ALL DELETE ACTIONS MUST USE AlertDialog COMPONENT, NEVER BROWSER CONFIRMATION.**
-
-#### Why AlertDialog Only?
-- ❌ **Browser confirmations (`turbo_confirm`) are ugly and inconsistent across browsers**
-- ✅ **AlertDialog provides consistent styled UI across all browsers**
-- ✅ **AlertDialog automatically dismisses on submit**
-- ✅ **AlertDialog integrates with Turbo Streams**
-
-#### The ONLY Correct Pattern for Delete Buttons:
-```ruby
-render RubyUI::AlertDialog.new do
-  render RubyUI::AlertDialogTrigger.new do
-    Button(variant: :destructive, size: :sm, icon: true) do
-      render ::Components::Icon::Delete.new(size: "12")
-    end
-  end
-
-  render RubyUI::AlertDialogContent.new do
-    render RubyUI::AlertDialogHeader.new do
-      render RubyUI::AlertDialogTitle.new { "Delete this item?" }
-      render RubyUI::AlertDialogDescription.new { "This action cannot be undone." }
-    end
-
-    render RubyUI::AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
-      render RubyUI::AlertDialogCancel.new { "Cancel" }
-
-      form(
-        action: view_context.item_path(@item),
-        method: "post",
-        data: { turbo_stream: true, action: "submit@document->ruby-ui--alert-dialog#dismiss" },
-        class: "inline"
-      ) do
-        csrf_token_field
-        input(type: "hidden", name: "_method", value: "delete")
-        render RubyUI::AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
-      end
-    end
-  end
-end
-```
-
-#### What NOT To Do (NEVER DO THIS):
-❌ **NEVER use `turbo_confirm`:**
-```ruby
-# ❌ WRONG - Browser confirmation is forbidden
-Button(
-  variant: :destructive,
-  type: :submit,
-  data: { turbo_confirm: "Delete this?" }  # ❌ FORBIDDEN
-) { "Delete" }
-```
-
-❌ **NEVER use `data-turbo-confirm` in forms or links**
-
-✅ **ALWAYS use AlertDialog for delete confirmations**
-
-### Buttons That Open Dialogs (CRITICAL - THE ONLY PATTERN THAT WORKS)
-**THIS IS THE ONLY WAY TO CREATE BUTTONS THAT OPEN TURBO STREAM DIALOGS. FOLLOW THIS PATTERN EXACTLY.**
-
-When you need a button to fetch and display a dialog via Turbo Streams, you MUST use this pattern (see `app/javascript/controllers/day_note_controller.js` and `app/javascript/controllers/journal_new_controller.js` as reference):
-
-#### 1. Create a Stimulus Controller (e.g., `app/javascript/controllers/journal_new_controller.js`):
-```javascript
-import { Controller } from "@hotwired/stimulus"
-
-export default class extends Controller {
-  openDialog() {
-    const url = "/journals/new"  // Replace with your endpoint
-
-    fetch(url, {
-      headers: {
-        "Accept": "text/vnd.turbo-stream.html"
-      }
-    })
-      .then(response => response.text())
-      .then(html => {
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, "text/html")
-        const template = doc.querySelector("turbo-stream template")
-
-        if (template) {
-          const content = template.content.cloneNode(true)
-          document.body.appendChild(content)
-        } else {
-          console.error("No template found in turbo-stream")
-        }
-      })
-      .catch(error => {
-        console.error("Error opening dialog:", error)
-        window.toast && window.toast("Failed to open dialog", { type: "error" })
-      })
-  }
-}
-```
-
-#### 2. Create the Button with Stimulus Action:
-```ruby
-Button(
-  variant: :primary,
-  data: {
-    controller: "journal-new",
-    action: "click->journal-new#openDialog"
-  }
-) { "New Journal" }
-```
-
-#### 3. Controller Action Returns Turbo Stream:
-```ruby
-def new
-  @journal = current_user.journals.build(date: Date.today)
-
-  respond_to do |format|
-    format.turbo_stream do
-      render turbo_stream: turbo_stream.append(
-        "body",
-        render_to_string(::Views::Journals::FormDialog.new(journal: @journal))
-      )
-    end
-  end
-end
-```
-
-#### 4. Dialog View with Unique ID:
-```ruby
-Dialog(open: true, id: "journal_dialog") do
-  DialogContent do
-    DialogHeader do
-      DialogTitle { "New Journal Entry" }
-    end
-
-    form(
-      action: view_context.journals_path,
-      method: "post",
-      data: {
-        controller: "modal-form",
-        modal_form_loading_message_value: "Creating...",
-        turbo: true
-      }
-    ) do
-      csrf_token_field
-
-      div(id: "journal_form_errors", class: "mb-4")
-
-      # ... form fields ...
-
-      div(class: "flex gap-2 justify-end") do
-        # CRITICAL: Cancel button MUST use cancelDialog action
-        Button(
-          variant: :outline,
-          type: :button,
-          data: { action: "click->modal-form#cancelDialog" }
-        ) { "Cancel" }
-        Button(variant: :primary, type: :submit) { "Create" }
-      end
-    end
-  end
-end
-```
-
-#### 5. Cancel Button Implementation in modal_form_controller.js:
-```javascript
-cancelDialog(event) {
-  event.preventDefault()
-  // Find the dialog element and remove it from DOM
-  const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
-  if (dialog) {
-    dialog.remove()
-  }
-}
-```
-
-#### CRITICAL NOTES:
-- **NEVER use `ColoredLink` with `data: { turbo_stream: true }` to open dialogs** - it doesn't work
-- **NEVER use `Button` with `href:` parameter** - buttons need Stimulus actions, links don't work
-- **ALWAYS use the DOMParser pattern** to extract and append the turbo-stream template content
-- **ALWAYS give dialogs a unique ID** so they can be removed later
-- **ALWAYS use `Button` component** with Stimulus controller + action pattern
-- **CRITICAL: Cancel buttons MUST use `click->modal-form#cancelDialog`** - NOT `click->ruby-ui--dialog#close`
-- **ALWAYS use `modal-form` controller on forms inside dialogs** for loading states and proper dismissal
-- **Reference implementations**: `day_note_controller.js`, `journal_new_controller.js`, `journal_controller.js`, `modal_form_controller.js`
-
-#### What DOESN'T Work (DO NOT USE):
-```ruby
-# ❌ WRONG - ColoredLink with turbo_stream doesn't work
-render ::Components::ColoredLink.new(
-  href: view_context.new_journal_path,
-  variant: :primary,
-  data: { turbo_stream: true }
-) { "New Journal" }
-
-# ❌ WRONG - Button with href doesn't work for dialogs
-Button(
-  variant: :primary,
-  href: view_context.new_journal_path,
-  data: { turbo_stream: true }
-) { "New Journal" }
-
-# ❌ WRONG - Cancel button with ruby-ui--dialog#close doesn't work
-Button(
-  variant: :outline,
-  type: :button,
-  data: { action: "click->ruby-ui--dialog#close" }
-) { "Cancel" }
-
-# ❌ WRONG - Turbo.renderStreamMessage doesn't work
-Turbo.renderStreamMessage(html)  # This is broken
-
-# ❌ WRONG - Using fetch without parsing the template doesn't work
-fetch(url).then(response => response.text())  // Missing DOMParser step
-```
-
-#### What DOES Work (ALWAYS USE THIS):
-```ruby
-# ✅ CORRECT - Button with Stimulus controller to open dialog
-Button(
-  variant: :primary,
-  data: {
-    controller: "journal-new",
-    action: "click->journal-new#openDialog"
-  }
-) { "New Journal" }
-
-# ✅ CORRECT - Cancel button with modal-form#cancelDialog
-Button(
-  variant: :outline,
-  type: :button,
-  data: { action: "click->modal-form#cancelDialog" }
-) { "Cancel" }
-
-# ✅ CORRECT - Form with modal-form controller
-form(
-  action: view_context.journals_path,
-  method: "post",
-  data: {
-    controller: "modal-form",
-    modal_form_loading_message_value: "Creating...",
-    turbo: true
-  }
-) do
-  # ... form content ...
-end
-```
-
-```javascript
-// ✅ CORRECT - Fetch with DOMParser and manual append
-fetch(url, { headers: { "Accept": "text/vnd.turbo-stream.html" } })
-  .then(response => response.text())
-  .then(html => {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(html, "text/html")
-    const template = doc.querySelector("turbo-stream template")
-    if (template) {
-      const content = template.content.cloneNode(true)
-      document.body.appendChild(content)
-    }
-  })
-
-// ✅ CORRECT - Cancel button handler
-cancelDialog(event) {
-  event.preventDefault()
-  const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
-  if (dialog) {
-    dialog.remove()
-  }
-}
-```
-
-## Routes Structure
-
-Key route patterns:
-- Days: `GET /day`, `POST /days`, `PATCH /days/:id/close`, `POST /days/import`
-- Lists: `resources :lists` with `GET /p/lists/:slug` for public access
-- Items: `resources :items` (day items) and `resources :reusable_items` (list items)
-- Both item controllers have: `actions`, `edit_form`, `toggle_state`, `move`, `reparent`, `debug`
-- Settings: `resource :settings` with nested section management
-
-## Authentication
-
-- Devise with email/password
-- OmniAuth providers: Google, GitHub
-- Controllers in `app/controllers/users/`
-- Authenticated users see day view, unauthenticated see sign-in
-
-## Testing
-
-- Minitest framework
-- Test files mirror app structure: `test/models/`, `test/controllers/`, `test/services/`
-- Fixtures in `test/fixtures/`
-- System tests use Capybara + Selenium WebDriver
+### Item Movement
+Active items can move if: day/list not closed, item in active_items, not at boundary. Don't check item state.
 
 ## Key Patterns
+1. State transitions automatically manage Descendant arrays
+2. Items nest infinitely via their own Descendant
+3. Days track import chains via `imported_from_day`/`imported_to_day`
+4. Public lists use ULID slugs
+5. Class references ALWAYS use `::` prefix to avoid namespace collisions
+6. Single `private` keyword per class, all public methods before it
 
-1. **State transitions manage arrays**: When an item state changes (todo → done), the state transition method automatically moves the item between `active_items` and `inactive_items` arrays in the containing Descendant.
+## Commands
+**Never start/stop server** unless explicitly requested.
 
-2. **Infinite nesting**: Items can have their own Descendant with nested items. Use `ItemTree::Build` service to construct tree views.
-
-3. **Import chains**: Days can be imported from previous days, creating chains tracked via `imported_from_day` and `imported_to_day`.
-
-4. **Public lists**: Lists with `list_type: :public_list` are accessible via slug without authentication.
-
-5. **ULID for slugs**: Public lists use ULID for URL-safe unique identifiers.
-
-6. **Class organization**: Never use the `public` keyword and use a single `private` keyword per class. Keep all public methods before the `private` keyword.
-
-7. **Class references with :: prefix**: ALWAYS prefix class references with `::` to reference top-level constants and avoid namespace collisions. This is especially critical when referencing classes from within module namespaces.
-   - ✅ CORRECT: `::FixedCalendar::Converter.ritual_for_day`
-   - ❌ WRONG: `FixedCalendar::Converter.ritual_for_day` (inside `Views::FixedCalendar` module)
-   - The `::` prefix ensures Ruby looks for the class at the top level, not within the current module
-   - Example error without `::`: `NameError (uninitialized constant Views::FixedCalendar::Converter)` when trying to reference `FixedCalendar::Converter` from within `Views::FixedCalendar` module
+**Tests**: `bin/rails test [file[:line]]`
+**DB**: `bin/rails db:migrate`, `bin/rails db:migrate:status`, `bin/rails db:rollback`
+**Assets**: `bin/rails tailwindcss:build`, `bin/importmap pin <package>`
+**Linting**: `bin/rubocop`, `bin/brakeman`, `bin/bundler-audit`
+**Routes**: `bin/rails routes`

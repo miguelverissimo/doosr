@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="migration-form"
 export default class extends Controller {
-  submit(event) {
+  handleSubmit(event) {
     // Show loading toast
     const toastId = window.toast && window.toast("Migrating items...", {
       type: "loading",
@@ -11,47 +11,19 @@ export default class extends Controller {
 
     // Store the toast ID to dismiss later
     this.toastId = toastId
-
-    // Listen for submission end to dismiss toast
-    const handleSubmitEnd = () => {
-      if (this.toastId && window.toast) {
-        window.toast.dismiss(this.toastId)
-      }
-      document.removeEventListener("turbo:submit-end", handleSubmitEnd)
-    }
-
-    document.addEventListener("turbo:submit-end", handleSubmitEnd)
   }
 
-  cancel(event) {
-    event.preventDefault()
+  handleSubmitEnd(event) {
+    // Dismiss loading toast
+    if (this.toastId && window.toast && window.toast.dismiss) {
+      window.toast.dismiss(this.toastId)
+      this.toastId = null
+    }
 
-    // Try to dispatch ESC key to close the dialog (RubyUI dialogs typically close on ESC)
-    document.dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'Escape',
-      code: 'Escape',
-      keyCode: 27,
-      bubbles: true,
-      cancelable: true
-    }))
-
-    // Also try to remove dialog elements directly
-    setTimeout(() => {
-      // Clear the modal div
-      const modalDiv = document.getElementById("day_migration_modal")
-      if (modalDiv) {
-        modalDiv.innerHTML = ""
-      }
-
-      // Remove any dialog overlays/backdrops
-      document.querySelectorAll('[data-controller*="ruby-ui--dialog"]').forEach(el => {
-        el.remove()
-      })
-
-      // Remove any elements with data-state="open" that might be overlays
-      document.querySelectorAll('[data-state="open"]').forEach(el => {
-        el.remove()
-      })
-    }, 100)
+    // Remove the modal from DOM after submission
+    const modalDiv = document.getElementById("day_migration_modal")
+    if (modalDiv) {
+      modalDiv.remove()
+    }
   }
 }
