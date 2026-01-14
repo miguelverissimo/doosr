@@ -131,9 +131,22 @@ Rails.application.routes.draw do
     resources :day_journals, only: [ :create ], path: "journals"
   end
 
+  # Journal unlock - password entry to unlock encrypted journals
+  # Must be defined BEFORE resources :journals to avoid "unlock" and "recover" being treated as :id
+  get "journals/unlock", to: "journal_unlock#new", as: :new_journal_unlock
+  post "journals/unlock", to: "journal_unlock#create", as: :journal_unlock
+  get "journals/recover", to: "journal_recovery#new", as: :new_journal_recovery
+  post "journals/recover", to: "journal_recovery#create", as: :journal_recovery
+
   # Journals - daily journal entries
   resources :journals, only: [ :index, :show, :new, :create, :destroy ] do
     resources :journal_fragments, only: [ :new, :create ], path: "fragments"
+    collection do
+      post :lock
+    end
+    member do
+      post :lock
+    end
   end
 
   # Journal Fragments
@@ -161,6 +174,13 @@ Rails.application.routes.draw do
     patch "sections/:section_name/move", to: "settings#move_section", as: "move_section"
     patch "migration_settings", to: "settings#update_migration_settings", as: "update_migration_settings"
     post "migration_settings", to: "settings#update_migration_settings" # Temporary fallback
+
+    # Journal protection settings
+    get "journal_protection", to: "journal_protection#show", as: "journal_protection"
+    post "journal_protection", to: "journal_protection#create"
+    patch "journal_protection", to: "journal_protection#update"
+    patch "journal_protection/session_timeout", to: "journal_protection#update_session_timeout", as: "update_session_timeout_journal_protection"
+    delete "journal_protection", to: "journal_protection#destroy"
   end
 
   # Push Notifications

@@ -40,11 +40,18 @@ module Views
       end
 
       def render_badges
-        # Show fragment count badge
-        fragment_count = @record.journal_fragments.count
-        if fragment_count > 0
-          span(class: "shrink-0 rounded-full bg-teal-600 text-white px-2 py-0.5 text-xs") do
-            plain "#{fragment_count} #{fragment_count == 1 ? 'entry' : 'entries'}"
+        if journal_locked?
+          # Show lock icon when journal is protected and locked
+          span(class: "shrink-0 flex items-center gap-1 rounded-full bg-teal-600 text-white px-2 py-0.5 text-xs") do
+            render ::Components::Icon::Lock.new(size: "12", class: "inline")
+          end
+        else
+          # Show fragment count badge when unlocked or no protection
+          fragment_count = @record.journal_fragments.count
+          if fragment_count > 0
+            span(class: "shrink-0 rounded-full bg-teal-600 text-white px-2 py-0.5 text-xs") do
+              plain "#{fragment_count} #{fragment_count == 1 ? 'entry' : 'entries'}"
+            end
           end
         end
       end
@@ -61,6 +68,13 @@ module Views
 
       def render_actions_menu
         # No three-dot menu for journal links (mobile-first, no hover)
+      end
+
+      private
+
+      def journal_locked?
+        user = @record.respond_to?(:user) ? @record.user : @day&.user
+        user&.journal_protection_enabled? && Current.encryption_key.nil?
       end
     end
   end

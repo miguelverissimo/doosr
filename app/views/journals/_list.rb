@@ -21,6 +21,21 @@ module Views
               p(class: "text-sm text-muted-foreground") { "Your daily journal entries" }
             end
             div(class: "flex gap-2") do
+              # Lock button (only show if protection is enabled)
+              if view_context.current_user.journal_protection_enabled?
+                render RubyUI::Form.new(
+                  action: view_context.lock_journals_path,
+                  method: "post",
+                  data: { turbo: true }
+                ) do
+                  render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+                  Button(variant: :outline, size: :default, type: :submit) do
+                    render ::Components::Icon::Lock.new(size: "14", class: "mr-2")
+                    plain "Lock"
+                  end
+                end
+              end
+
               Button(
                 variant: :tinted,
                 tint: :cyan,

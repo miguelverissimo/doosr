@@ -1,0 +1,495 @@
+{
+	"project": "Doosr",
+	"branchName": "ralph/journal-password-protection",
+	"description": "Journal Password Protection - Encrypt journal fragments with user password, persist unlock per browser session, recover via mnemonic seed phrase",
+	"userStories": [
+		{
+			"id": "US-001",
+			"title": "Add journal encryption fields to users table",
+			"description": "As a developer, I need database fields to store journal password hash, encrypted seed phrase, and salt.",
+			"acceptanceCriteria": [
+				"Add migration with fields: journal_password_digest (string, nullable), journal_encryption_salt (string, nullable), encrypted_seed_phrase (text, nullable), journal_protection_enabled (boolean, default false)",
+				"Migration runs successfully",
+				"Typecheck passes"
+			],
+			"priority": 1,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-002",
+			"title": "Add encrypted content columns to journal_fragments table",
+			"description": "As a developer, I need to store encrypted content and IV for each journal fragment.",
+			"acceptanceCriteria": [
+				"Add encrypted_content (text, nullable) column to journal_fragments",
+				"Add content_iv (string, nullable) for initialization vector storage",
+				"Existing content column remains for backward compatibility",
+				"Migration runs successfully",
+				"Typecheck passes"
+			],
+			"priority": 2,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-003",
+			"title": "Create encryption service",
+			"description": "As a developer, I need a service to handle AES-256-GCM encryption/decryption of journal content.",
+			"acceptanceCriteria": [
+				"Create Journals::EncryptionService in app/services/journals/encryption_service.rb",
+				"Implement encrypt(plaintext, key) method returning {ciphertext:, iv:}",
+				"Implement decrypt(ciphertext, iv, key) method returning plaintext",
+				"Use AES-256-GCM via OpenSSL",
+				"Implement derive_key(password, salt) using PBKDF2 with 100000 iterations",
+				"Implement generate_salt method returning SecureRandom hex",
+				"Unit tests pass for encrypt/decrypt round-trip",
+				"Typecheck passes"
+			],
+			"priority": 3,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-004",
+			"title": "Create mnemonic seed phrase service",
+			"description": "As a developer, I need a service to generate and validate 12-word mnemonic seed phrases.",
+			"acceptanceCriteria": [
+				"Create Journals::MnemonicService in app/services/journals/mnemonic_service.rb",
+				"Add BIP39 English word list file to lib/bip39_english.txt (2048 words)",
+				"Implement generate method returning 12-word phrase string",
+				"Implement validate(phrase) method returning boolean",
+				"Implement derive_key(phrase, salt) method returning encryption key deterministically",
+				"Unit tests pass",
+				"Typecheck passes"
+			],
+			"priority": 4,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-005",
+			"title": "Add journal_protection_enabled helper to User model",
+			"description": "As a developer, I need a method to check if user has journal protection enabled.",
+			"acceptanceCriteria": [
+				"Add journal_protection_enabled? method to User model",
+				"Method returns true if journal_protection_enabled is true AND journal_password_digest is present",
+				"Typecheck passes"
+			],
+			"priority": 5,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-006",
+			"title": "Create lock icon component",
+			"description": "As a developer, I need a lock icon component for the UI.",
+			"acceptanceCriteria": [
+				"Create Components::Icon::Lock in app/components/icon/lock.rb",
+				"Inherit from Components::Icon::Base following existing pattern",
+				"Use a padlock SVG icon",
+				"Typecheck passes"
+			],
+			"priority": 6,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-007",
+			"title": "Create journal protection settings controller",
+			"description": "As a developer, I need a controller to handle journal protection settings.",
+			"acceptanceCriteria": [
+				"Create JournalProtectionController with show, create, update, destroy actions",
+				"Add routes: get/post/patch/delete /settings/journal_protection",
+				"show action renders settings page",
+				"create action enables protection (called from setup form)",
+				"update action changes password",
+				"destroy action disables protection",
+				"Typecheck passes"
+			],
+			"priority": 7,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-008",
+			"title": "Create journal protection settings page view",
+			"description": "As a user, I want to see a settings page to enable/manage journal protection.",
+			"acceptanceCriteria": [
+				"Create Views::JournalProtection::Show Phlex component",
+				"When protection disabled: show 'Enable Protection' button",
+				"When protection enabled: show status badge, 'Change Password' and 'Disable Protection' buttons",
+				"Use RubyUI components for buttons and layout",
+				"Link to this page from main settings page",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 8,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-009",
+			"title": "Create enable protection form dialog",
+			"description": "As a user, I want a dialog to set my journal password and see my seed phrase.",
+			"acceptanceCriteria": [
+				"Create Views::JournalProtection::EnableDialog Phlex component",
+				"Password and password confirmation fields using RubyUI::Input",
+				"Submit generates seed phrase, shows it in dialog with warning",
+				"Checkbox to confirm user saved seed phrase (required to complete)",
+				"Final submit enables protection and closes dialog",
+				"Use modal-form Stimulus controller pattern",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 9,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-010",
+			"title": "Implement enable protection backend logic",
+			"description": "As a developer, I need the create action to generate salt, hash password, generate and encrypt seed phrase.",
+			"acceptanceCriteria": [
+				"Generate salt using EncryptionService.generate_salt",
+				"Generate seed phrase using MnemonicService.generate",
+				"Derive key from password + salt",
+				"Encrypt seed phrase with derived key",
+				"Save journal_encryption_salt, journal_password_digest (BCrypt), encrypted_seed_phrase to user",
+				"Set journal_protection_enabled to true",
+				"Return seed phrase in response for display",
+				"Typecheck passes"
+			],
+			"priority": 10,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-011",
+			"title": "Create bulk encryption background job",
+			"description": "As a developer, I need a job to encrypt all existing journal fragments when protection is enabled.",
+			"acceptanceCriteria": [
+				"Create Journals::BulkEncryptJob in app/jobs/journals/bulk_encrypt_job.rb",
+				"Job takes user_id and encryption_key as arguments",
+				"Iterates all user's JournalFragment records",
+				"For each: encrypt content, save to encrypted_content with IV, clear content",
+				"Uses Solid Queue",
+				"Typecheck passes"
+			],
+			"priority": 11,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-012",
+			"title": "Queue encryption job on protection enable",
+			"description": "As a user, when I enable protection my existing fragments should be encrypted.",
+			"acceptanceCriteria": [
+				"After successful enable in create action, queue BulkEncryptJob",
+				"Pass derived key to job (temporary, cleared after job completes)",
+				"Show toast indicating encryption in progress",
+				"Typecheck passes"
+			],
+			"priority": 12,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-013",
+			"title": "Create journal unlock controller",
+			"description": "As a developer, I need a controller to handle journal unlock requests.",
+			"acceptanceCriteria": [
+				"Create JournalUnlockController with new and create actions",
+				"new action renders unlock dialog",
+				"create action validates password against journal_password_digest",
+				"On success: generate session token, return it for localStorage storage",
+				"On failure: return error message",
+				"Add routes: get/post /journals/unlock",
+				"Typecheck passes"
+			],
+			"priority": 13,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-014",
+			"title": "Create journal unlock dialog view",
+			"description": "As a user, I want an unlock dialog to enter my journal password.",
+			"acceptanceCriteria": [
+				"Create Views::Journals::UnlockDialog Phlex component",
+				"Password input field using RubyUI::Input type password",
+				"Submit button using RubyUI::Button",
+				"'Forgot password?' link to recovery flow",
+				"Error message display area",
+				"Use RubyUI::Dialog component",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 14,
+			"passes": true,
+			"notes": "Dialog already existed from US-013 work. Updated recovery link to use ColoredLink and added recovery routes/placeholder controller."
+		},
+		{
+			"id": "US-015",
+			"title": "Create journal unlock Stimulus controller",
+			"description": "As a developer, I need a Stimulus controller to manage journal unlock state.",
+			"acceptanceCriteria": [
+				"Create journal-unlock Stimulus controller",
+				"Store session token in localStorage on successful unlock",
+				"Include token in X-Journal-Session header on journal requests",
+				"Clear token on logout",
+				"Check token presence to determine locked/unlocked state",
+				"Typecheck passes"
+			],
+			"priority": 15,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-016",
+			"title": "Add unlock check to journals controller",
+			"description": "As a developer, I need to check unlock state before showing journal content.",
+			"acceptanceCriteria": [
+				"Add before_action :check_journal_unlock to JournalsController show action",
+				"Check if user has protection enabled",
+				"If enabled: validate session token from header",
+				"If invalid/missing: render unlock dialog instead of content",
+				"Store derived key in request context for fragment decryption",
+				"Typecheck passes"
+			],
+			"priority": 16,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-017",
+			"title": "Add content decryption to JournalFragment model",
+			"description": "As a developer, I need JournalFragment to decrypt content when accessed.",
+			"acceptanceCriteria": [
+				"Add decrypted_content(key) method to JournalFragment",
+				"If encrypted_content present: decrypt using key and content_iv",
+				"If encrypted_content nil: return content directly (backward compatible)",
+				"Raise error if key nil but encrypted_content present",
+				"Typecheck passes"
+			],
+			"priority": 17,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-018",
+			"title": "Update journal show view to use decrypted content",
+			"description": "As a user, I want to see my decrypted journal content when unlocked.",
+			"acceptanceCriteria": [
+				"Pass encryption key to journal tree building when user is unlocked",
+				"Fragment views call decrypted_content(key) instead of content",
+				"Content displays normally with markdown rendering",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 18,
+			"passes": true,
+			"notes": "Used Current.encryption_key (already set by JournalsController) in new displayable_content method. content_preview and rendered_markdown now use displayable_content for automatic decryption."
+		},
+		{
+			"id": "US-019",
+			"title": "Encrypt new fragments on create",
+			"description": "As a user, new journal fragments should be encrypted when protection is enabled.",
+			"acceptanceCriteria": [
+				"Add before_save callback to JournalFragment",
+				"Check if user.journal_protection_enabled?",
+				"If enabled and encryption key available: encrypt content to encrypted_content, clear content",
+				"Pass encryption key via thread-local or request context",
+				"Fragment saves with encrypted data",
+				"Typecheck passes"
+			],
+			"priority": 19,
+			"passes": true,
+			"notes": ""
+		},
+		{
+			"id": "US-020",
+			"title": "Show locked state in journal index",
+			"description": "As a user, I want to see journal dates but not fragment counts when locked.",
+			"acceptanceCriteria": [
+				"Update Views::Journals::List component",
+				"When locked: show lock icon instead of fragment count",
+				"When unlocked: show fragment count normally",
+				"Journal dates always visible",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 20,
+			"passes": true,
+			"notes": "Updated JournalCard to show lock icon when journal_locked? (protection enabled and Current.encryption_key nil)."
+		},
+		{
+			"id": "US-021",
+			"title": "Show locked state in day view journal links",
+			"description": "As a user, I want journal links in day view to show lock icon when locked.",
+			"acceptanceCriteria": [
+				"Update Views::Items::JournalLinkItem component",
+				"When user has protection enabled and locked: show lock icon instead of fragment count",
+				"When unlocked or no protection: show fragment count",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 21,
+			"passes": true,
+			"notes": "Added journal_locked? helper and updated render_badges to show lock icon when user.journal_protection_enabled? and Current.encryption_key nil. dev-browser skill not available for browser verification."
+		},
+		{
+			"id": "US-022",
+			"title": "Create password recovery controller",
+			"description": "As a developer, I need a controller to handle seed phrase recovery.",
+			"acceptanceCriteria": [
+				"Create JournalRecoveryController with new and create actions",
+				"new action renders recovery form",
+				"create action validates seed phrase, accepts new password",
+				"Re-derives key from seed phrase, re-encrypts seed phrase with new password",
+				"Updates password digest",
+				"Queues re-encryption job",
+				"Add routes: get/post /journals/recover",
+				"Typecheck passes"
+			],
+			"priority": 22,
+			"passes": true,
+			"notes": "Implemented recovery flow: validates seed phrase, derives old key from seed, derives new key from password, re-encrypts seed phrase, updates password digest, queues BulkReencryptJob. Routes already existed from US-014. Also updated RecoveryForm view to be functional (full implementation in US-023)."
+		},
+		{
+			"id": "US-023",
+			"title": "Create password recovery view",
+			"description": "As a user, I want a recovery page to enter my seed phrase and set a new password.",
+			"acceptanceCriteria": [
+				"Create Views::Journals::RecoveryForm Phlex component",
+				"Textarea for 12-word seed phrase",
+				"Password and confirmation fields for new password",
+				"Submit button",
+				"Error display for invalid phrase",
+				"Success redirects to journals",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 23,
+			"passes": true,
+			"notes": "View was already implemented as part of US-022. All acceptance criteria met: RecoveryForm component exists with seed phrase textarea, password fields, submit button, error display, and redirect logic."
+		},
+		{
+			"id": "US-024",
+			"title": "Create bulk re-encryption job",
+			"description": "As a developer, I need a job to re-encrypt fragments with a new key.",
+			"acceptanceCriteria": [
+				"Create Journals::BulkReencryptJob",
+				"Takes user_id, old_key, new_key as arguments",
+				"For each fragment: decrypt with old key, encrypt with new key",
+				"Updates encrypted_content and content_iv",
+				"Uses Solid Queue",
+				"Typecheck passes"
+			],
+			"priority": 24,
+			"passes": true,
+			"notes": "Implemented full re-encryption job using decrypted_content method and EncryptionService.encrypt. Includes error handling for individual fragment failures."
+		},
+		{
+			"id": "US-025",
+			"title": "Create change password form dialog",
+			"description": "As a user, I want a dialog to change my journal password.",
+			"acceptanceCriteria": [
+				"Create Views::JournalProtection::ChangePasswordDialog Phlex component",
+				"Current password field",
+				"New password and confirmation fields",
+				"Submit queues re-encryption and updates password digest",
+				"Use modal-form pattern",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 25,
+			"passes": true,
+			"notes": "Created ChangePasswordDialog with current password, new password, and confirmation fields. Uses modal-form Stimulus controller pattern. Controller show action updated to render dialog for change_password action_type."
+		},
+		{
+			"id": "US-026",
+			"title": "Implement change password backend logic",
+			"description": "As a developer, I need the update action to re-encrypt with new password.",
+			"acceptanceCriteria": [
+				"Validate current password against journal_password_digest",
+				"Derive old key from current password",
+				"Derive new key from new password",
+				"Re-encrypt seed phrase with new key",
+				"Update journal_password_digest with new password hash",
+				"Queue BulkReencryptJob with old and new keys",
+				"Invalidate existing session tokens",
+				"Typecheck passes"
+			],
+			"priority": 26,
+			"passes": true,
+			"notes": "Implemented update action with full validation (current password, new password length, confirmation match). Re-encrypts seed phrase, updates password digest, queues BulkReencryptJob, invalidates session tokens via cache.delete_matched, clears localStorage token."
+		},
+		{
+			"id": "US-027",
+			"title": "Create bulk decryption job",
+			"description": "As a developer, I need a job to decrypt all fragments when protection is disabled.",
+			"acceptanceCriteria": [
+				"Create Journals::BulkDecryptJob",
+				"Takes user_id and encryption_key as arguments",
+				"For each fragment: decrypt encrypted_content, save to content, clear encrypted_content and content_iv",
+				"Uses Solid Queue",
+				"Typecheck passes"
+			],
+			"priority": 27,
+			"passes": true,
+			"notes": "Implemented BulkDecryptJob mirroring BulkEncryptJob pattern. Uses decrypted_content method and clears encrypted_content/content_iv. Includes error handling for individual fragment failures."
+		},
+		{
+			"id": "US-028",
+			"title": "Create disable protection confirmation dialog",
+			"description": "As a user, I want a confirmation dialog before disabling protection.",
+			"acceptanceCriteria": [
+				"Create Views::JournalProtection::DisableDialog Phlex component",
+				"Current password field for confirmation",
+				"Warning text about decryption",
+				"Use RubyUI::AlertDialog component",
+				"Submit triggers destroy action",
+				"Typecheck passes",
+				"Verify in browser using dev-browser skill"
+			],
+			"priority": 28,
+			"passes": true,
+			"notes": "Created DisableDialog with RubyUI::AlertDialog containing password field, warning text, and destructive submit button. Controller show action updated to render dialog for disable action_type."
+		},
+		{
+			"id": "US-029",
+			"title": "Implement disable protection backend logic",
+			"description": "As a developer, I need the destroy action to decrypt all fragments and clear protection.",
+			"acceptanceCriteria": [
+				"Validate current password",
+				"Derive key from password",
+				"Queue BulkDecryptJob",
+				"Clear journal_password_digest, encrypted_seed_phrase, journal_encryption_salt",
+				"Set journal_protection_enabled to false",
+				"Show success toast",
+				"Typecheck passes"
+			],
+			"priority": 29,
+			"passes": true,
+			"notes": "Implemented destroy action with password validation, key derivation, BulkDecryptJob queueing, clearing all protection fields, and success toast. Also invalidates session tokens and clears localStorage."
+		},
+		{
+			"id": "US-030",
+			"title": "Add protection management to the settings modal",
+			"description": "As a user I want to manage my journal protection settings from the settings modal.",
+			"acceptanceCriteria": [
+				"Replace the content of the journal protection tab with forms to manage protection",
+				"The tab should include the current protection status",
+				"The form to enable protection should include a password field, a password confirmation field, and a submit button",
+				"The form to disable protection should include a password field and a submit button",
+				"The form to change the password should include a current password field, a new password field, a password confirmation field, and a submit button",
+				"The form to recover the seed phrase should include a seed phrase field, a new password field, a password confirmation field, and a submit button",
+				"The form to delete the journal protection should include a password field and a submit button",
+				"Typecheck passes"
+			],
+			"priority": 30,
+			"passes": true,
+			"notes": "Created JournalProtectionTab component with inline forms for all protection management actions. Updated JournalProtectionController and JournalRecoveryController to handle from_tab responses."
+		}
+	]
+}

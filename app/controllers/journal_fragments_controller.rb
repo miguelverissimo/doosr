@@ -3,6 +3,7 @@
 class JournalFragmentsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_fragment, only: [ :edit, :update, :destroy, :move ]
+  before_action :set_encryption_key
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def new
@@ -186,5 +187,21 @@ class JournalFragmentsController < ApplicationController
 
   def fragment_params
     params.require(:journal_fragment).permit(:content)
+  end
+
+  def set_encryption_key
+    return unless current_user.journal_protection_enabled?
+
+    session_token = request.headers["X-Journal-Session"]
+    return if session_token.blank?
+
+    session_data = Rails.cache.read(journal_session_cache_key(session_token))
+    return unless session_data && session_data[:user_id] == current_user.id
+
+    Current.encryption_key = Base64.strict_decode64(session_data[:encryption_key])
+  end
+
+  def journal_session_cache_key(token)
+    "journal_session:#{current_user.id}:#{token}"
   end
 end

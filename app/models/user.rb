@@ -89,6 +89,11 @@ class User < ApplicationRecord
     end
   end
 
+  # Journal protection helper
+  def journal_protection_enabled?
+    journal_protection_enabled && journal_password_digest.present?
+  end
+
   # Role helper methods
   def has_role?(role)
     roles.include?(role.to_s)

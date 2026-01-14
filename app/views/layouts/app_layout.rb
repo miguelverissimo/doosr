@@ -104,6 +104,12 @@ class ::Views::Layouts::AppLayout < ::Views::Base
         title { yield(:title).presence || "Doosr" }
         meta(name: "viewport", content: "width=device-width,initial-scale=1")
         meta(name: "turbo-prefetch", content: "false")
+
+        # Disable Turbo cache when journal protection is enabled to prevent cached unlocked content
+        if view_context.user_signed_in? && view_context.current_user.journal_protection_enabled?
+          meta(name: "turbo-cache-control", content: "no-cache")
+        end
+
         meta(name: "apple-mobile-web-app-capable", content: "yes")
         meta(name: "apple-mobile-web-app-status-bar-style", content: "default")
         meta(name: "application-name", content: "Doosr")
