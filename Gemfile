@@ -45,7 +45,7 @@ gem "image_processing", "~> 1.2"
 gem "phlex-rails", "~> 2.3"
 gem "tailwind_merge", "~> 1.3"
 
-gem "openssl", "~> 3.3.2"
+gem "openssl", "~> 4.0.0"
 
 # PDF generation
 gem "grover"
