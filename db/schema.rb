@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_07_071804) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_13_150518) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -303,8 +303,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_071804) do
   end
 
   create_table "journal_fragments", force: :cascade do |t|
-    t.text "content", null: false
+    t.text "content"
+    t.string "content_iv"
     t.datetime "created_at", null: false
+    t.text "encrypted_content"
     t.bigint "journal_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -593,6 +595,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_071804) do
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
+    t.text "encrypted_seed_phrase"
+    t.string "journal_encryption_salt"
+    t.string "journal_password_digest"
+    t.boolean "journal_protection_enabled", default: false
+    t.integer "journal_session_timeout_minutes", default: 30, null: false
     t.string "name"
     t.string "provider"
     t.datetime "remember_created_at"

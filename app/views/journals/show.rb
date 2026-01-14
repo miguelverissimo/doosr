@@ -9,7 +9,7 @@ module Views
       end
 
       def view_template
-        div(class: "flex h-full flex-col p-4", data: { controller: "journal", journal_journal_id_value: @journal.id }) do
+        div(id: "journal_content", class: "flex h-full flex-col p-4", data: { controller: "journal", journal_journal_id_value: @journal.id }) do
           # Header
           div(class: "mb-6") do
             div(class: "flex items-center justify-between mb-2") do
@@ -22,6 +22,21 @@ module Views
               end
 
               div(class: "flex gap-2") do
+                # Lock Journal button (only show if protection is enabled)
+                if view_context.current_user.journal_protection_enabled?
+                  render RubyUI::Form.new(
+                    action: view_context.lock_journal_path(@journal),
+                    method: "post",
+                    data: { turbo: true }
+                  ) do
+                    render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+                    Button(variant: :outline, size: :sm, type: :submit) do
+                      render ::Components::Icon::Lock.new(size: "14", class: "mr-1")
+                      plain "Lock Journal"
+                    end
+                  end
+                end
+
                 render RubyUI::AlertDialog.new do
                   render RubyUI::AlertDialogTrigger.new do
                     Button(variant: :destructive, size: :sm) { "Delete Journal" }

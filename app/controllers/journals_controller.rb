@@ -3,6 +3,8 @@
 class JournalsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_journal, only: [ :show, :destroy ]
+  before_action :set_journal_if_present, only: [ :lock ]
+  before_action :check_journal_unlock, only: [ :show ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index
@@ -121,10 +123,108 @@ class JournalsController < ApplicationController
     end
   end
 
+  def lock
+    return unless current_user.journal_protection_enabled?
+
+    # Get session token and clear it
+    session_token = cookies.encrypted[:journal_session_token] || request.headers["X-Journal-Session"]
+    if session_token.present?
+      cache_key = journal_session_cache_key(session_token)
+      Rails.cache.delete(cache_key)
+    end
+
+    cookies.delete(:journal_session_token)
+
+    respond_to do |format|
+      format.turbo_stream do
+        if @journal.present?
+          # Locking from individual journal show page
+          render turbo_stream: [
+            turbo_stream.replace(
+              "journal_content",
+              render_to_string(::Views::Journals::Locked.new(journal: @journal), layout: false)
+            ),
+            turbo_stream.append("body", "<script>Turbo.cache.clear(); window.toast && window.toast('Journal locked', { type: 'success' });</script>")
+          ]
+        else
+          # Locking from journals index page - clear cache and reload
+          render turbo_stream: [
+            turbo_stream.append("body", "<script>Turbo.cache.clear(); window.toast && window.toast('Journals locked', { type: 'success' }); setTimeout(() => Turbo.visit(window.location.href, { action: 'replace' }), 100);</script>")
+          ]
+        end
+      end
+    end
+  end
+
   private
 
   def set_journal
     @journal = current_user.journals.find(params[:id])
+  end
+
+  def set_journal_if_present
+    @journal = current_user.journals.find(params[:id]) if params[:id].present?
+  end
+
+  def check_journal_unlock
+    return unless current_user.journal_protection_enabled?
+
+    # Check cookie first, fall back to header for backwards compatibility
+    session_token = cookies.encrypted[:journal_session_token] || request.headers["X-Journal-Session"]
+
+    if session_token.blank? || !valid_journal_session?(session_token)
+      respond_to do |format|
+        format.html do
+          render ::Views::Journals::Locked.new(journal: @journal)
+        end
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append(
+            "body",
+            render_to_string(::Views::Journals::UnlockDialog.new)
+          )
+        end
+      end
+      return
+    end
+
+    session_data = Rails.cache.read(journal_session_cache_key(session_token))
+    @encryption_key = Base64.strict_decode64(session_data[:encryption_key])
+    Current.encryption_key = @encryption_key
+  end
+
+  def valid_journal_session?(token)
+    cache_key = journal_session_cache_key(token)
+    session_data = Rails.cache.read(cache_key)
+    return false unless session_data
+    return false unless session_data[:user_id] == current_user.id
+
+    # Handle sessions created before timestamp tracking was added
+    if session_data[:last_activity_at].nil?
+      # Invalidate old sessions - require re-authentication
+      Rails.cache.delete(cache_key)
+      cookies.delete(:journal_session_token)
+      return false
+    end
+
+    # Check if session has timed out due to inactivity
+    timeout_minutes = current_user.journal_session_timeout_minutes
+    last_activity = Time.at(session_data[:last_activity_at])
+    if Time.current - last_activity > timeout_minutes.minutes
+      # Session timed out - clean up
+      Rails.cache.delete(cache_key)
+      cookies.delete(:journal_session_token)
+      return false
+    end
+
+    # Update last activity timestamp
+    session_data[:last_activity_at] = Time.current.to_i
+    Rails.cache.write(cache_key, session_data, expires_in: 24.hours)
+
+    true
+  end
+
+  def journal_session_cache_key(token)
+    "journal_session:#{current_user.id}:#{token}"
   end
 
   def journal_params
