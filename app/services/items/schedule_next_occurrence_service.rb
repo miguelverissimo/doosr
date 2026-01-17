@@ -65,11 +65,38 @@ module Items
     private
 
     def calculate_next_date
+      # Use the date of the day the item is on, not today's date
+      # This handles cases where user completes items past midnight
+      source_date = find_item_day_date || Date.today
+
       calculator = RecurrenceCalculator.new(
         recurrence_rule: completed_item.recurrence_rule,
-        from_date: Date.today
+        from_date: source_date
       )
       calculator.call
+    end
+
+    def find_item_day_date
+      containing_descendant = Descendant.containing_item(completed_item.id)
+      return nil unless containing_descendant
+
+      if containing_descendant.descendable.is_a?(Day)
+        containing_descendant.descendable.date
+      elsif containing_descendant.descendable.is_a?(Item)
+        # Item is nested - find the parent day
+        find_parent_day_date(containing_descendant.descendable)
+      end
+    end
+
+    def find_parent_day_date(item)
+      parent_descendant = Descendant.containing_item(item.id)
+      return nil unless parent_descendant
+
+      if parent_descendant.descendable.is_a?(Day)
+        parent_descendant.descendable.date
+      elsif parent_descendant.descendable.is_a?(Item)
+        find_parent_day_date(parent_descendant.descendable)
+      end
     end
 
     def no_recurrence_error

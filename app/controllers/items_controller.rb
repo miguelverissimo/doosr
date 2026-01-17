@@ -657,8 +657,22 @@ class ItemsController < ApplicationController
           total_items = active_item_ids.length
         end
 
+        streams = []
+
+        # Replace the item in the day/list tree to show updated recurrence badge
+        @item.reload
+        streams << turbo_stream.replace(
+          "item_#{@item.id}",
+          ::Views::Items::CompletableItem.new(
+            record: @item,
+            day: @day,
+            list: @list,
+            is_public_list: false
+          )
+        )
+
         # Replace just the content area, not the entire drawer
-        render turbo_stream: turbo_stream.replace(
+        streams << turbo_stream.replace(
           "sheet_content_area",
           ::Views::Items::ActionsSheetContent.new(
             item: @item,
@@ -668,6 +682,8 @@ class ItemsController < ApplicationController
             total_items: total_items
           )
         )
+
+        render turbo_stream: streams
       end
     end
   end
