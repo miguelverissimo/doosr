@@ -60,7 +60,7 @@ class DayListLinksController < ApplicationController
 
         render turbo_stream: [
           turbo_stream.update("items_list", rendered_items),
-          turbo_stream.remove("item_actions_sheet"),
+          turbo_stream.remove("actions_sheet"),
           turbo_stream.append("body", "<script>window.toast && window.toast('List link removed', { type: 'success' })</script>")
         ]
       end

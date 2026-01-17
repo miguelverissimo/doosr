@@ -55,6 +55,20 @@ module Views
             render ::Components::Icon::StickyNote.new(size: "14", class: "text-yellow-600 dark:text-yellow-400")
           end
         end
+
+        # Reminder indicator with tooltip
+        if @record.has_pending_reminders?
+          Tooltip do
+            TooltipTrigger do
+              span(class: "shrink-0 flex items-center justify-center h-5 w-5") do
+                render ::Components::Icon::Bell.new(size: "14", class: "text-blue-500 dark:text-blue-400")
+              end
+            end
+            TooltipContent do
+              span(class: "text-xs") { plain reminder_tooltip_text }
+            end
+          end
+        end
       end
 
       def stimulus_data
@@ -71,6 +85,20 @@ module Views
       end
 
       private
+
+      def reminder_tooltip_text
+        next_reminder = @record.next_reminder
+        return "" unless next_reminder
+
+        count = @record.pending_reminders_count
+        time_str = next_reminder.remind_at.strftime("%b %-d, %-I:%M %p")
+
+        if count == 1
+          "Reminder: #{time_str}"
+        else
+          "Next: #{time_str} (+#{count - 1} more)"
+        end
+      end
 
       def render_unfurled_item
         div(class: "flex gap-2 items-center min-w-0 w-full max-w-full", style: "max-width: 100%; overflow: hidden;") do

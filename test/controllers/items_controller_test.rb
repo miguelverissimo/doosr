@@ -210,7 +210,99 @@ class ItemsControllerTest < ActionDispatch::IntegrationTest
     assert_not item.preview_image.attached?
   end
 
+  # Reminders action tests
+
+  test "reminders action returns reminders section for item" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+    day.descendant.add_active_item(item.id)
+    day.descendant.save!
+
+    get reminders_item_path(item, day_id: day.id), as: :turbo_stream
+
+    assert_response :success
+    assert_match /turbo-stream.*action="replace".*target="sheet_content_area"/, response.body
+    assert_match /Reminders/, response.body
+    assert_match /No reminders set/, response.body
+  end
+
+  test "reminders action shows pending reminders" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+    day.descendant.add_active_item(item.id)
+    day.descendant.save!
+
+    # Create a pending reminder
+    notification = @user.notifications.create!(
+      item: item,
+      remind_at: 2.hours.from_now,
+      status: "pending",
+      channels: [ "in_app" ]
+    )
+
+    get reminders_item_path(item, day_id: day.id), as: :turbo_stream
+
+    assert_response :success
+    assert_match /turbo-stream.*action="replace".*target="sheet_content_area"/, response.body
+    assert_match notification.remind_at.strftime("%b %-d, %Y"), response.body
+  end
+
+  test "reminders action requires authentication" do
+    sign_out
+
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+
+    get reminders_item_path(item), as: :turbo_stream
+
+    assert_response :redirect
+  end
+
+  # Reminder form action tests
+
+  test "reminder_form action returns add reminder form" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+    day.descendant.add_active_item(item.id)
+    day.descendant.save!
+
+    get reminder_form_item_path(item, day_id: day.id), as: :turbo_stream
+
+    assert_response :success
+    assert_match /turbo-stream.*action="replace".*target="sheet_content_area"/, response.body
+    assert_match /Add Reminder/, response.body
+    assert_match /datetime-local/, response.body
+    assert_match /Save Reminder/, response.body
+  end
+
+  test "reminder_form action shows preset buttons" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+    day.descendant.add_active_item(item.id)
+    day.descendant.save!
+
+    get reminder_form_item_path(item, day_id: day.id), as: :turbo_stream
+
+    assert_response :success
+    assert_match /In 1 hour/, response.body
+    assert_match /Tomorrow 9am/, response.body
+    assert_match /In 3 days/, response.body
+  end
+
+  test "reminder_form action requires authentication" do
+    sign_out
+
+    item = @user.items.create!(title: "Test item", item_type: :completable, state: :todo)
+
+    get reminder_form_item_path(item), as: :turbo_stream
+
+    assert_response :redirect
+  end
+
   private
+
+  def sign_out
+    delete destroy_user_session_path
+  end
 
   def sign_in(user)
     post user_session_path, params: {

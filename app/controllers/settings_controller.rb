@@ -181,6 +181,35 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_notification_preferences
+    prefs = params[:notification_preferences] || {}
+
+    notification_preferences = {
+      "push_enabled" => prefs[:push_enabled] == "true",
+      "in_app_enabled" => prefs[:in_app_enabled] == "true",
+      "quiet_hours_start" => prefs[:quiet_hours_start].presence,
+      "quiet_hours_end" => prefs[:quiet_hours_end].presence
+    }
+
+    current_user.notification_preferences = notification_preferences
+
+    if current_user.save
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Notification preferences saved', { type: 'success' });</script>")
+        end
+        format.json { render json: { notification_preferences: current_user.notification_preferences } }
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Failed to save notification preferences', { type: 'error' });</script>")
+        end
+        format.json { render json: { errors: current_user.errors.full_messages }, status: :unprocessable_entity }
+      end
+    end
+  end
+
   def update_migration_settings
     Rails.logger.info "=== UPDATE MIGRATION SETTINGS CALLED ==="
     Rails.logger.info "Params: #{params.inspect}"

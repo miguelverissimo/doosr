@@ -11,7 +11,7 @@ module Views
       end
 
       def view_template
-        div(id: "item_actions_sheet", data: { controller: "ruby-ui--sheet-content" }) do
+        div(id: "actions_sheet", data: { controller: "ruby-ui--sheet-content" }) do
           # Backdrop
           div(
             data_state: "open",

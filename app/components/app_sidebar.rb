@@ -248,6 +248,7 @@ class ::Components::AppSidebar < ::Components::Base
           render RubyUI::TabsList.new do
             render RubyUI::TabsTrigger.new(value: "permanent_sections") { "Permanent Sections" }
             render RubyUI::TabsTrigger.new(value: "day_migration") { "Day Migration" }
+            render RubyUI::TabsTrigger.new(value: "notifications") { "Notifications" }
             render RubyUI::TabsTrigger.new(value: "journal_protection") { "Journal Protection" }
           end
 
@@ -292,6 +293,13 @@ class ::Components::AppSidebar < ::Components::Base
           render RubyUI::TabsContent.new(value: "day_migration") do
             div(class: "mt-4") do
               render ::Components::Settings::MigrationSettingsForm.new(settings: user.day_migration_settings)
+            end
+          end
+
+          # Notifications Tab
+          render RubyUI::TabsContent.new(value: "notifications") do
+            div(class: "mt-4") do
+              render ::Components::Settings::NotificationPreferencesTab.new(user: user)
             end
           end
 

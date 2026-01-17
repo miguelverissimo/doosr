@@ -1,0 +1,139 @@
+# Ralph Progress Log
+# Feature: Item Notifications Backend
+# Branch: ralph/item-notifications
+
+## Codebase Patterns
+- Use `t.references` for foreign keys - it automatically adds indexes, so don't add duplicate `add_index` calls
+- Use `bin/rails runner` for quick model verification during development
+- Trace item to Day: iterate `Descendant.containing_item(id)` → `descendable` until descendable.is_a?(Day)
+
+---
+
+## 2026-01-15 - US-001
+Thread: https://ampcode.com/threads/T-019bc033-be8a-746c-96b4-26a7fb7d8966
+- Created Notification model with all required fields
+- Created migration with proper indexes (user_id, item_id via references, status, remind_at, and compound [status, remind_at])
+- All defaults set correctly: status='pending', channels=['push','in_app'], metadata={}
+- Files changed:
+  - app/models/notification.rb (new)
+  - db/migrate/20260115055022_create_notifications.rb (new)
+  - db/schema.rb (updated)
+- **Learnings for future iterations:**
+  - `t.references` in Rails migrations automatically creates indexes, so don't add duplicate `add_index :table, :column_id` calls
+  - Use `bin/rails runner` with inline Ruby to quickly verify model behavior without running full test suite
+---
+
+## 2026-01-15 - US-002
+Thread: https://ampcode.com/threads/T-019bc03c-295a-730e-9999-38e2544bc369
+- Added validations to Notification model: presence of user_id, item_id, remind_at; status inclusion; remind_at future check (on create); channels validation
+- Added scopes: pending, due, unread, for_user
+- Added `has_many :notifications, dependent: :destroy` to User and Item models
+- Files changed:
+  - app/models/notification.rb (updated)
+  - app/models/user.rb (updated)
+  - app/models/item.rb (updated)
+- **Learnings for future iterations:**
+  - Use constants (VALID_STATUSES, VALID_CHANNELS) for validation inclusion lists
+  - Scopes can chain (e.g., `due` uses `pending.where(...)`)
+---
+
+## 2026-01-15 - US-003
+Thread: https://ampcode.com/threads/T-019bc03e-d7a7-755b-bda4-6be4a0ee21b8
+- Added status transition methods to Notification model: mark_sent!, mark_read!, mark_dismissed!, cancel!
+- All methods are idempotent (early return if already in target state)
+- cancel! only destroys if status is 'pending'
+- Files changed:
+  - app/models/notification.rb (updated)
+- **Learnings for future iterations:**
+  - Idempotent methods use early return pattern: `return if status == "target_state"`
+  - cancel! uses conditional destroy: `destroy if status == "pending"`
+---
+
+## 2026-01-15 - US-004
+Thread: https://ampcode.com/threads/T-019bc040-08ab-7528-abc5-22d689f7f813
+- Added notification_preferences jsonb column to users with default: {}, null: false
+- Added NOTIFICATION_PREFERENCE_DEFAULTS constant with sensible defaults (push_enabled: true, in_app_enabled: true, quiet_hours: nil)
+- Added User#notification_preference(key) helper that fetches from prefs or falls back to defaults
+- Files changed:
+  - db/migrate/20260115060331_add_notification_preferences_to_users.rb (new)
+  - app/models/user.rb (updated)
+  - db/schema.rb (updated)
+- **Learnings for future iterations:**
+  - Follow existing User model pattern: DEFAULTS constant + fetch method with fallback
+  - notification_preference(key) accepts both symbols and strings via key.to_s
+---
+
+## 2026-01-15 - US-005
+Thread: https://ampcode.com/threads/T-019bc043-4014-72df-a6b2-37a07b778fc3
+- Added User#unread_notifications returning unread notifications with item preloaded, ordered by sent_at desc
+- Added User#unread_notifications_count returning count of unread notifications
+- Uses existing Notification.unread scope, adds includes(:item) for navigation reference
+- Files changed:
+  - app/models/user.rb (updated)
+- **Learnings for future iterations:**
+  - Chain scopes from association: `notifications.unread.includes(:item)` 
+  - Use includes(:item) to preload related item for navigation without N+1 queries
+---
+
+## 2026-01-15 - US-006
+Thread: https://ampcode.com/threads/T-019bc044-be61-71ab-b2ff-5ff92bc7171a
+- Created Notifications::WebPushDeliveryService that delivers notifications via Web Push
+- Service builds payload with title, body, icon, badge, and click action URL
+- Click action URL traces item to root Day via Descendant chain
+- Handles expired/invalid subscriptions by removing them
+- Respects user push_enabled preference
+- Uses existing VAPID configuration
+- Files changed:
+  - app/services/notifications/web_push_delivery_service.rb (new)
+  - test/services/notifications/web_push_delivery_service_test.rb (new)
+- **Learnings for future iterations:**
+  - Trace item to Day by iterating: `Descendant.containing_item(id)` → `descendable` until descendable is a Day
+  - Existing PushNotifications::Sender handles notification_logs; WebPushDeliveryService is simpler for scheduled notifications
+  - Use `subscription.touch_last_used!` after successful send
+---
+
+## 2026-01-15 - US-007
+Thread: https://ampcode.com/threads/T-019bc048-7426-7120-9b56-3bb015e7848e
+- Created SendNotificationJob that finds and processes due pending notifications
+- Job sends to configured channels (uses WebPushDeliveryService for push, marks sent for in_app)
+- Job marks notification as sent after successful delivery
+- Job handles failures gracefully with logging, idempotent (due scope excludes already-sent)
+- Job respects quiet hours via in_quiet_hours? helper with wrap-around time handling
+- Added to Solid Queue recurring schedule in config/recurring.yml for every minute
+- Files changed:
+  - app/jobs/send_notification_job.rb (new)
+  - config/recurring.yml (updated)
+  - test/jobs/send_notification_job_test.rb (new)
+- **Learnings for future iterations:**
+  - Notification validation requires remind_at to be in future on create; in tests use update_column to bypass
+  - Quiet hours can wrap around midnight (e.g., 22:00-06:00); use dual condition: `current >= start || current < end`
+  - Rubocop requires spaces inside array brackets: `[ "value" ]` not `["value"]`
+---
+
+## 2026-01-15 - US-008
+Thread: https://ampcode.com/threads/T-019bc04d-c620-70aa-ba4d-c038390bf876
+- Created Notifications::MarkAllReadService that marks all user unread notifications as read
+- Service uses update_all for efficient bulk update (single query)
+- Returns { success: true, count: N } with count of notifications marked
+- Created comprehensive test suite covering: marking unread, empty case, pending not affected, already read not affected, other users not affected
+- Files changed:
+  - app/services/notifications/mark_all_read_service.rb (new)
+  - test/services/notifications/mark_all_read_service_test.rb (new)
+- **Learnings for future iterations:**
+  - Use update_all for bulk updates (bypasses validations, but efficient for simple state changes)
+  - Test pattern: use update_column to bypass validations when setting up test state (e.g., setting status to 'sent')
+---
+
+## 2026-01-15 - US-009
+Thread: https://ampcode.com/threads/T-019bc050-ced0-76fd-bcec-b51059f65ba9
+- Verified `dependent: :destroy` already exists on Item model (line 34: `has_many :notifications, dependent: :destroy`)
+- Added two tests to confirm cascade deletion works:
+  - Test that deleting an item destroys all associated notifications
+  - Test that pending notifications are not sent after item deletion
+- Files changed:
+  - test/models/item_test.rb (updated - added 2 tests)
+- **Learnings for future iterations:**
+  - The `dependent: :destroy` on `has_many :notifications` was already added in US-002, this story was about testing it
+  - Notification validations require remind_at in future; use `Notification.new(...).save!` to create test notifications
+---
+

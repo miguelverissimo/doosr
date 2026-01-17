@@ -138,7 +138,7 @@ module Views
           end
 
           # Item actions sheet container (rendered dynamically via Turbo Stream)
-          div(id: "item_actions_sheet")
+          div(id: "actions_sheet")
         end
       end
 

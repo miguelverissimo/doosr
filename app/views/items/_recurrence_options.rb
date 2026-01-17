@@ -19,7 +19,9 @@ module Views
           end
 
           SheetMiddle(class: "py-4") do
-            form(
+            # Main form without buttons
+            render RubyUI::Form.new(
+              id: "recurrence_form",
               action: update_recurrence_item_path(@item),
               method: "post",
               data: {
@@ -30,11 +32,12 @@ module Views
               },
               class: "flex flex-col gap-4"
             ) do
-              csrf_token_field
-              input(type: "hidden", name: "_method", value: "patch")
-              input(type: "hidden", name: "day_id", value: @day&.id)
-              input(
-                type: "hidden",
+              # Hidden fields - MUST use RubyUI::Input
+              render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+              render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch")
+              render RubyUI::Input.new(type: :hidden, name: "day_id", value: @day&.id)
+              render RubyUI::Input.new(
+                type: :hidden,
                 name: "recurrence_rule",
                 data: { recurrence_editor_target: "ruleInput" },
                 value: @item.recurrence_rule || "none"
@@ -64,20 +67,23 @@ module Views
                 class: "space-y-2 #{"hidden" unless @current_rule[:frequency] == "every_n_days"}",
                 data: { recurrence_editor_target: "intervalContainer" }
               ) do
-                label(class: "text-sm font-medium") { "Repeat every:" }
-                div(class: "flex items-center gap-2") do
-                  input(
-                    type: "number",
-                    min: "1",
-                    max: "365",
-                    value: @current_rule[:interval] || 3,
-                    data: {
-                      recurrence_editor_target: "intervalInput",
-                      action: "input->recurrence-editor#updateInterval"
-                    },
-                    class: "w-20 h-10 px-3 border rounded-md bg-background"
-                  )
-                  span(class: "text-sm text-muted-foreground") { "days" }
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Repeat every:" }
+                  div(class: "flex items-center gap-2") do
+                    render RubyUI::Input.new(
+                      type: :number,
+                      min: "1",
+                      max: "365",
+                      value: (@current_rule[:interval] || 3).to_s,
+                      data: {
+                        recurrence_editor_target: "intervalInput",
+                        action: "input->recurrence-editor#updateInterval"
+                      },
+                      class: "w-20"
+                    )
+                    span(class: "text-sm text-muted-foreground") { "days" }
+                  end
+                  render RubyUI::FormFieldError.new
                 end
               end
 
@@ -97,24 +103,22 @@ module Views
                   render_weekday_pill("Sat", 6)
                 end
               end
+            end
 
-              # Submit button
-              div(class: "flex gap-2 mt-4") do
-                button(
-                  type: "submit",
-                  class: "flex-1 h-12 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors"
-                ) do
-                  "Save"
-                end
+            # Action Buttons - outside main form
+            div(class: "flex justify-center items-center gap-3 mt-4") do
+              # Save button associated with main form via form attribute
+              Button(type: :submit, variant: :primary, form: "recurrence_form") { "Save" }
 
-                a(
-                  href: actions_sheet_item_path(@item, day_id: @day&.id, from_edit_form: true),
-                  data: { turbo_stream: true },
-                  class: "flex-1 h-12 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md font-medium transition-colors flex items-center justify-center"
-                ) do
-                  "Cancel"
-                end
-              end
+              Button(
+                type: :button,
+                variant: :outline,
+                data: {
+                  controller: "drawer-back",
+                  drawer_back_url_value: actions_sheet_item_path(@item, day_id: @day&.id, from_edit_form: true),
+                  action: "click->drawer-back#goBack"
+                }
+              ) { "Cancel" }
             end
           end
         end

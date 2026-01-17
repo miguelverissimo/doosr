@@ -31,6 +31,7 @@ class Item < ApplicationRecord
   has_many :items_imported_from_this, class_name: "Item", foreign_key: "source_item_id", dependent: :nullify
   has_many :recurring_previous_items, class_name: "Item", foreign_key: "recurring_next_item_id", dependent: :nullify
   has_many :notification_logs, dependent: :nullify
+  has_many :notifications, dependent: :destroy
 
   # ActiveStorage attachments
   has_one_attached :preview_image
@@ -311,6 +312,19 @@ class Item < ApplicationRecord
   # Returns the permanent section Item, or nil
   def find_permanent_section
     Items::FindPermanentSectionService.new(item: self).call
+  end
+
+  # Reminder support
+  def has_pending_reminders?
+    notifications.pending.exists?
+  end
+
+  def next_reminder
+    notifications.pending.order(:remind_at).first
+  end
+
+  def pending_reminders_count
+    notifications.pending.count
   end
 
   # Recurrence support

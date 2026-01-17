@@ -16,7 +16,7 @@ module Views
       def view_template
         # Render the sheet content structure directly (bypassing template wrapper)
         div(
-          id: "item_actions_sheet",
+          id: "actions_sheet",
           data: {
             controller: "ruby-ui--sheet-content item-move",
             item_move_item_id_value: @item.id,

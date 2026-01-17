@@ -481,7 +481,7 @@ class ItemsController < ApplicationController
         end
 
         # Close the drawer
-        streams << turbo_stream.remove("item_actions_sheet")
+        streams << turbo_stream.remove("actions_sheet")
 
         # Broadcast to list if this is a list item
         broadcast_list_update(@list, streams) if @list
@@ -599,9 +599,38 @@ class ItemsController < ApplicationController
     end
   end
 
+  def reminders
+    @item = @acting_user.items.find(params[:id])
+    @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "sheet_content_area",
+          ::Views::Items::RemindersSection.new(item: @item, day: @day)
+        )
+      end
+    end
+  end
+
+  def reminder_form
+    @item = @acting_user.items.find(params[:id])
+    @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "sheet_content_area",
+          ::Views::Items::ReminderForm.new(item: @item, day: @day)
+        )
+      end
+    end
+  end
+
   def update_recurrence
     @item = @acting_user.items.find(params[:id])
     @day = @acting_user.days.find(params[:day_id]) if params[:day_id].present? && user_signed_in?
+    @list = @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
     # Parse the recurrence rule from params
     recurrence_rule = params[:recurrence_rule]
@@ -617,9 +646,27 @@ class ItemsController < ApplicationController
 
     respond_to do |format|
       format.turbo_stream do
+        # Calculate position for move buttons
+        item_index = nil
+        total_items = nil
+        tuple = { "Item" => @item.id }
+        containing_descendant = Descendant.where("active_items @> ?", [ tuple ].to_json).first
+        if containing_descendant
+          active_item_ids = containing_descendant.extract_active_item_ids
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
+        end
+
+        # Replace just the content area, not the entire drawer
         render turbo_stream: turbo_stream.replace(
           "sheet_content_area",
-          ::Views::Items::ActionsSheet.new(item: @item, day: @day)
+          ::Views::Items::ActionsSheetContent.new(
+            item: @item,
+            day: @day,
+            list: @list,
+            item_index: item_index,
+            total_items: total_items
+          )
         )
       end
     end

@@ -16,7 +16,7 @@ export default class extends Controller {
 
 		// Find and click the close button to properly close the sheet
 		const closeButton = document.querySelector(
-			'#item_actions_sheet [data-action*="sheet-content#close"]',
+			'#actions_sheet [data-action*="sheet-content#close"]',
 		);
 		if (closeButton) {
 			closeButton.click();

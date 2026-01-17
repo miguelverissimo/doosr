@@ -337,3 +337,43 @@ input[type="checkbox"] {
 /* Safelist: Dynamically generated classes for invoice rows */
 /* These classes are generated dynamically in Ruby code and need to be included in the bundle */
 /* Format: class="!bg-muted hover:!bg-muted/50 !bg-secondary hover:!bg-secondary/50 !bg-accent hover:!bg-accent/50 !bg-destructive hover:!bg-destructive/50 text-green-500 text-blue-500 text-red-500" */
+
+/* Item highlight animation for notification navigation */
+@keyframes item-highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(0.6 0.22 279.81 / 0.7);
+    background-color: oklch(0.6 0.22 279.81 / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.6 0.22 279.81 / 0);
+    background-color: oklch(0.6 0.22 279.81 / 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.6 0.22 279.81 / 0);
+    background-color: transparent;
+  }
+}
+
+.item-highlight-flash {
+  animation: item-highlight-pulse 1.5s ease-out;
+}
+
+/* Notification badge pulse animation for real-time updates */
+@keyframes notification-badge-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.577 0.245 27.325 / 0.7);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 6px oklch(0.577 0.245 27.325 / 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.577 0.245 27.325 / 0);
+  }
+}
+
+.notification-badge-pulse {
+  animation: notification-badge-pulse 0.6s ease-out;
+}

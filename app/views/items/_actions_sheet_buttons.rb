@@ -36,7 +36,7 @@ module Views
       private
 
       def render_completable_primary_actions
-        # Complete/Uncomplete
+        # Complete/Uncomplete - PRIMARY button (filled)
         render_icon_button(
           icon: @item.done? ? :circle : :check_circle,
           action: toggle_state_item_path(@item),
@@ -61,7 +61,6 @@ module Views
               action: undefer_item_path(@item),
               method: "patch",
               params: { "day_id" => @day&.id },
-              variant: :default,
               loading_message: "Restoring item..."
             )
           end
@@ -73,13 +72,11 @@ module Views
               disabled: true
             )
           else
-            a(
+            render_icon_button(
+              icon: :clock,
               href: defer_options_item_path(@item, day_id: @day&.id),
-              data: { turbo_stream: true },
-              class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-            ) do
-              render ::Components::Icon::Clock.new(size: "20")
-            end
+              params: { data: { turbo_stream: true } }
+            )
           end
         end
 
@@ -95,68 +92,39 @@ module Views
         )
 
         # Edit
-        if @item.deferred? || @day_is_closed
-          button(
-            type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
-          ) do
-            render ::Components::Icon::Edit.new(size: "20")
-          end
-        else
-          a(
-            href: edit_form_item_path(@item, day_id: @day&.id),
-            data: { turbo_stream: true },
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-          ) do
-            render ::Components::Icon::Edit.new(size: "20")
-          end
-        end
+        render_icon_button(
+          icon: :edit,
+          href: edit_form_item_path(@item, day_id: @day&.id),
+          params: { data: { turbo_stream: true } },
+          disabled: @item.deferred? || @day_is_closed
+        )
 
         # Recurrence
-        if @item.deferred? || @day_is_closed
-          button(
-            type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
-          ) do
-            render ::Components::Icon::Recycle.new(size: "20")
-          end
-        else
-          a(
-            href: recurrence_options_item_path(@item, day_id: @day&.id),
-            data: { turbo_stream: true },
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-          ) do
-            render ::Components::Icon::Recycle.new(size: "20")
-          end
-        end
+        render_icon_button(
+          icon: :recycle,
+          href: recurrence_options_item_path(@item, day_id: @day&.id),
+          params: { data: { turbo_stream: true } },
+          disabled: @item.deferred? || @day_is_closed
+        )
+
+        # Reminders
+        render_icon_button(
+          icon: :bell,
+          href: reminders_item_path(@item, day_id: @day&.id),
+          params: { data: { turbo_stream: true } },
+          disabled: @item.deferred? || @day_is_closed
+        )
       end
 
       def render_completable_utility_actions
-        # Reparent/Move - disabled for deferred items or closed days
-        if @item.deferred? || @day_is_closed
-          button(
-            type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
-          ) do
-            render ::Components::Icon::Move.new(size: "20")
-          end
-        else
-          button(
-            type: "button",
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-            data: {
-              controller: "item-move",
-              item_move_item_id_value: @item.id,
-              item_move_day_id_value: @day&.id,
-              action: "click->item-move#startMoving"
-            }
-          ) do
-            render ::Components::Icon::Move.new(size: "20")
-          end
-        end
+        # Reparent/Move
+        render_stimulus_icon_button(
+          icon: :move,
+          controller: "item-move",
+          controller_values: { item_id: @item.id, day_id: @day&.id },
+          action: "click->item-move#startMoving",
+          disabled: @item.deferred? || @day_is_closed
+        )
 
         # Move Up - can move if: day is open AND not at index 0
         can_move_up = @item_index && @item_index > 0 && !@day_is_closed
@@ -180,39 +148,23 @@ module Views
           loading_message: "Moving item down..."
         )
 
-        # Debug - ALWAYS ACTIVE
-        button(
-          type: "button",
-          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-          data: {
-            controller: "item",
-            item_id_value: @item.id,
-            action: "click->item#openDebug"
-          }
-        ) do
-          render ::Components::Icon::Bug.new(size: "20")
-        end
+        # Debug
+        render_stimulus_icon_button(
+          icon: :bug,
+          controller: "item",
+          controller_values: { id: @item.id },
+          action: "click->item#openDebug"
+        )
       end
 
       def render_section_primary_actions
         # Edit
-        if @day_is_closed
-          button(
-            type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
-          ) do
-            render ::Components::Icon::Edit.new(size: "20")
-          end
-        else
-          a(
-            href: edit_form_item_path(@item, day_id: @day&.id),
-            data: { turbo_stream: true },
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-          ) do
-            render ::Components::Icon::Edit.new(size: "20")
-          end
-        end
+        render_icon_button(
+          icon: :edit,
+          href: edit_form_item_path(@item, day_id: @day&.id),
+          params: { data: { turbo_stream: true } },
+          disabled: @day_is_closed
+        )
 
         # Drop (placeholder)
         render_icon_button(
@@ -229,29 +181,14 @@ module Views
       end
 
       def render_section_utility_actions
-        # Reparent/Move - disabled for closed days
-        if @day_is_closed
-          button(
-            type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
-          ) do
-            render ::Components::Icon::Move.new(size: "20")
-          end
-        else
-          button(
-            type: "button",
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-            data: {
-              controller: "item-move",
-              item_move_item_id_value: @item.id,
-              item_move_day_id_value: @day&.id,
-              action: "click->item-move#startMoving"
-            }
-          ) do
-            render ::Components::Icon::Move.new(size: "20")
-          end
-        end
+        # Reparent/Move
+        render_stimulus_icon_button(
+          icon: :move,
+          controller: "item-move",
+          controller_values: { item_id: @item.id, day_id: @day&.id },
+          action: "click->item-move#startMoving",
+          disabled: @day_is_closed
+        )
 
         # Move Up - can move if: day is open AND not at index 0
         can_move_up = @item_index && @item_index > 0 && !@day_is_closed
@@ -275,41 +212,40 @@ module Views
           loading_message: "Moving item down..."
         )
 
-        # Debug - ALWAYS ACTIVE
-        button(
-          type: "button",
-          class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors",
-          data: {
-            controller: "item",
-            item_id_value: @item.id,
-            action: "click->item#openDebug"
-          }
-        ) do
-          render ::Components::Icon::Bug.new(size: "20")
-        end
+        # Debug
+        render_stimulus_icon_button(
+          icon: :bug,
+          controller: "item",
+          controller_values: { id: @item.id },
+          action: "click->item#openDebug"
+        )
       end
 
-      def render_icon_button(icon:, action: nil, method: "post", params: {}, disabled: false, variant: :default, loading_message: "Processing...")
-        button_classes = case variant
-        when :primary
-          "flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-        when :destructive
-          "flex h-10 w-10 items-center justify-center rounded-lg border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
-        else
-          "flex h-10 w-10 items-center justify-center rounded-lg border bg-background hover:bg-accent transition-colors"
-        end
-
+      def render_icon_button(icon:, action: nil, href: nil, method: "post", params: {}, disabled: false, variant: :outline, loading_message: "Processing...")
         if disabled
-          button(
+          render_disabled_icon_button do
+            icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
+          end
+        elsif href
+          # Use Stimulus controller to fetch turbo stream and render it
+          Button(
+            variant: :outline,
+            size: :lg,
+            icon: true,
             type: "button",
-            disabled: true,
-            class: "flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground opacity-50"
+            data: {
+              controller: "drawer-back",
+              drawer_back_url_value: href,
+              action: "click->drawer-back#goBack"
+            }
           ) do
             icon_class = ::Components::Icon::Base.for(icon)
             render icon_class.new(size: "20")
           end
         else
-          form(
+          # Render as form
+          render RubyUI::Form.new(
             action: action,
             method: "post",
             data: {
@@ -319,22 +255,43 @@ module Views
             },
             class: "inline-block"
           ) do
-            csrf_token_field
-            input(type: "hidden", name: "_method", value: method) if method != "post"
+            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: helpers.form_authenticity_token)
+            render RubyUI::Input.new(type: :hidden, name: "_method", value: method) if method != "post"
 
             params.each do |key, value|
-              input(type: "hidden", name: key, value: value)
+              render RubyUI::Input.new(type: :hidden, name: key, value: value) unless key == :data
             end
 
-            button(
-              type: "submit",
-              class: button_classes
-            ) do
+            # :primary = filled purple, :destructive = filled red, :outline = border only
+            Button(variant: variant, size: :lg, icon: true) do
               icon_class = ::Components::Icon::Base.for(icon)
-            render icon_class.new(size: "20")
+              render icon_class.new(size: "20")
             end
           end
         end
+      end
+
+      def render_stimulus_icon_button(icon:, controller:, controller_values:, action:, disabled: false)
+        if disabled
+          render_disabled_icon_button do
+            icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
+          end
+        else
+          data_attrs = { controller: controller, action: action }
+          controller_values.each do |key, value|
+            data_attrs[:"#{controller.tr('-', '_')}_#{key}_value"] = value
+          end
+
+          Button(variant: :outline, size: :lg, icon: true, data: data_attrs) do
+            icon_class = ::Components::Icon::Base.for(icon)
+            render icon_class.new(size: "20")
+          end
+        end
+      end
+
+      def render_disabled_icon_button(&block)
+        Button(variant: :outline, size: :lg, icon: true, disabled: true, &block)
       end
 
       def render_icon(name, size: "24")

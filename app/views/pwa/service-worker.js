@@ -100,19 +100,23 @@ self.addEventListener("push", async (event) => {
 
 self.addEventListener("notificationclick", function(event) {
   event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      for (let i = 0; i < clientList.length; i++) {
-        let client = clientList[i];
-        let clientPath = (new URL(client.url)).pathname;
+  const targetPath = event.notification.data?.path || '/';
 
-        if (clientPath == event.notification.data.path && "focus" in client) {
-          return client.focus();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Find any existing window/tab for this origin
+      for (const client of clientList) {
+        if ("focus" in client) {
+          // Focus the existing tab and navigate it to the target path
+          return client.focus().then(() => {
+            return client.navigate(targetPath);
+          });
         }
       }
 
+      // No existing window found, open a new one
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.path);
+        return clients.openWindow(targetPath);
       }
     })
   );

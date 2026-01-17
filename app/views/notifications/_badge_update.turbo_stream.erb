@@ -1,0 +1,5 @@
+<%= turbo_stream.replace "notification_badge" do %>
+  <%= turbo_frame_tag "notification_badge" do %>
+    <%= render ::Components::NotificationBadge.new(count: count) %>
+  <% end %>
+<% end %>

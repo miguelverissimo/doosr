@@ -224,6 +224,18 @@ class ::Views::Layouts::AppLayout < ::Views::Base
                 # Fixed Calendar page
                 render ::Views::FixedCalendar::Header.new
               end
+
+              # Notification bell - always visible when user is logged in
+              if view_context.current_user
+                div(
+                  data: {
+                    controller: "notification-subscription",
+                    notification_subscription_user_id_value: view_context.current_user.id
+                  }
+                ) do
+                  render ::Components::NotificationBell.new(user: view_context.current_user)
+                end
+              end
             end
 
             div(class: "vertical mx-auto mt-0 w-full max-w-[var(--container-max-width)] flex-1 px-4 py-4 overflow-x-hidden", style: "max-width: min(100%, var(--container-max-width, 1400px)); overflow-x: hidden;") do

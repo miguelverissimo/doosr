@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_13_150518) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -396,6 +396,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_13_150518) do
     t.index ["user_id"], name: "index_notification_logs_on_user_id"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.text "body"
+    t.string "channels", default: ["push", "in_app"], array: true
+    t.datetime "created_at", null: false
+    t.bigint "item_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "read_at"
+    t.datetime "remind_at", null: false
+    t.datetime "sent_at"
+    t.string "status", default: "pending", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["item_id"], name: "index_notifications_on_item_id"
+    t.index ["remind_at"], name: "index_notifications_on_remind_at"
+    t.index ["status", "remind_at"], name: "index_notifications_on_status_and_remind_at"
+    t.index ["status"], name: "index_notifications_on_status"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "push_subscriptions", force: :cascade do |t|
     t.text "auth_key", null: false
     t.datetime "created_at", null: false
@@ -601,6 +621,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_13_150518) do
     t.boolean "journal_protection_enabled", default: false
     t.integer "journal_session_timeout_minutes", default: 30, null: false
     t.string "name"
+    t.jsonb "notification_preferences", default: {}, null: false
     t.string "provider"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
@@ -664,6 +685,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_13_150518) do
   add_foreign_key "notification_logs", "items"
   add_foreign_key "notification_logs", "push_subscriptions"
   add_foreign_key "notification_logs", "users"
+  add_foreign_key "notifications", "items"
+  add_foreign_key "notifications", "users"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "receipt_items", "tax_brackets"
   add_foreign_key "receipt_items", "users"

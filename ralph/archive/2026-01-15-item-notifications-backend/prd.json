@@ -1,0 +1,154 @@
+{
+  "project": "Doosr",
+  "branchName": "ralph/item-notifications",
+  "description": "Item Notifications Backend - Time-based reminders with Web Push and in-app notification support",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Notification model and migration",
+      "description": "As a developer, I need a database model to store notification data so reminders can be scheduled and tracked.",
+      "acceptanceCriteria": [
+        "Create Notification model with fields: user_id (references users, not null), item_id (references items, not null), remind_at (datetime, not null), title (string), body (text), status (string, default: 'pending'), sent_at (datetime), read_at (datetime), channels (string array, default: ['push', 'in_app']), metadata (jsonb, default: {})",
+        "Add database indexes on user_id, item_id, status, and remind_at",
+        "Add compound index on (status, remind_at) for efficient job queries",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add model validations and associations",
+      "description": "As a developer, I need proper validations and associations so data integrity is maintained.",
+      "acceptanceCriteria": [
+        "Notification belongs to User and Item",
+        "User has many notifications",
+        "Item has many notifications (with dependent: :destroy)",
+        "Validate presence of user_id, item_id, remind_at",
+        "Validate status is one of: pending, sent, read, dismissed",
+        "Validate remind_at is in the future (on create only)",
+        "Validate channels contains only valid values: push, in_app",
+        "Scope 'pending' returns notifications where status is pending",
+        "Scope 'due' returns pending notifications where remind_at <= Time.current",
+        "Scope 'unread' returns sent notifications where read_at is nil",
+        "Scope 'for_user(user)' returns notifications for a specific user",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create notification status transition methods",
+      "description": "As a developer, I need clean methods to transition notification status so state changes are consistent.",
+      "acceptanceCriteria": [
+        "mark_sent! sets status to 'sent' and sent_at to current time",
+        "mark_read! sets status to 'read' and read_at to current time",
+        "mark_dismissed! sets status to 'dismissed'",
+        "cancel! destroys the notification if still pending",
+        "Status transitions are idempotent (calling twice doesn't error)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add notification preferences to User model",
+      "description": "As a developer, I need user preferences for notifications so users can control their experience.",
+      "acceptanceCriteria": [
+        "Add notification_preferences jsonb column to users (default: {})",
+        "Preferences structure supports: push_enabled (boolean), in_app_enabled (boolean), quiet_hours_start (time), quiet_hours_end (time)",
+        "Create User#notification_preference(key) helper method with sensible defaults",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create in-app notification query methods",
+      "description": "As a developer, I need in-app notifications stored and queryable so the UI can display them.",
+      "acceptanceCriteria": [
+        "User#unread_notifications_count returns count of unread notifications",
+        "User#unread_notifications returns unread notifications ordered by sent_at desc",
+        "Notifications include reference to source item for navigation",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create Web Push delivery service",
+      "description": "As a developer, I need notifications to be delivered via Web Push so users get browser notifications.",
+      "acceptanceCriteria": [
+        "Create Notifications::WebPushDeliveryService that takes a notification record",
+        "Service builds Web Push payload with title, body, icon, and click action",
+        "Service sends to all user's registered push subscriptions",
+        "Service returns success/failure status",
+        "Uses existing VAPID configuration",
+        "Click action URL points to the relevant day containing the item",
+        "Handles expired/invalid subscriptions by removing them",
+        "Respects user push_enabled preference",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create SendNotificationJob for processing due notifications",
+      "description": "As a developer, I need a background job that processes due notifications so reminders are sent on time.",
+      "acceptanceCriteria": [
+        "Create SendNotificationJob that finds all due pending notifications",
+        "Job sends each notification to configured channels (calls WebPushDeliveryService for push)",
+        "Job marks notification as sent after successful delivery",
+        "Job handles failures gracefully (logs error, doesn't mark as sent)",
+        "Job is idempotent (safe to run multiple times)",
+        "Job respects quiet hours (skips notifications during user's quiet hours)",
+        "Job scheduled to run every minute via Solid Queue recurring schedule in config/recurring.yml",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Create MarkAllReadService for bulk read operations",
+      "description": "As a developer, I need a service to mark all notifications as read for bulk operations.",
+      "acceptanceCriteria": [
+        "Create Notifications::MarkAllReadService that marks all user notifications as read",
+        "Service updates read_at timestamp on all unread notifications",
+        "Service returns count of notifications marked as read",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Handle item deletion cascade",
+      "description": "As a developer, I need notifications cleaned up when items are deleted so there are no orphaned records.",
+      "acceptanceCriteria": [
+        "Deleting an item destroys all associated notifications via dependent: :destroy",
+        "Pending notifications are not sent after item deletion",
+        "Write test confirming cascade works correctly",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

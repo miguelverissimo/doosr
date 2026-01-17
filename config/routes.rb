@@ -102,6 +102,8 @@ Rails.application.routes.draw do
       get "edit_form", to: "items#edit_form", as: "edit_form"
       get "defer_options", to: "items#defer_options", as: "defer_options"
       get "recurrence_options", to: "items#recurrence_options", as: "recurrence_options"
+      get "reminders", to: "items#reminders", as: "reminders"
+      get "reminder_form", to: "items#reminder_form", as: "reminder_form"
       patch "toggle_state", to: "items#toggle_state", as: "toggle_state"
       patch "move", to: "items#move", as: "move"
       patch "reparent", to: "items#reparent", as: "reparent"
@@ -113,6 +115,9 @@ Rails.application.routes.draw do
 
     # Item notes - notes attached to items
     resources :item_notes, only: [ :create ], path: "notes"
+
+    # Item notifications/reminders
+    resources :notifications, only: [ :create ], controller: "item_notifications"
   end
 
   # Notes - text notes attached to days/items
@@ -174,6 +179,7 @@ Rails.application.routes.draw do
     patch "sections/:section_name/move", to: "settings#move_section", as: "move_section"
     patch "migration_settings", to: "settings#update_migration_settings", as: "update_migration_settings"
     post "migration_settings", to: "settings#update_migration_settings" # Temporary fallback
+    patch "notification_preferences", to: "settings#update_notification_preferences", as: "update_notification_preferences"
 
     # Journal protection settings
     get "journal_protection", to: "journal_protection#show", as: "journal_protection"
@@ -181,6 +187,13 @@ Rails.application.routes.draw do
     patch "journal_protection", to: "journal_protection#update"
     patch "journal_protection/session_timeout", to: "journal_protection#update_session_timeout", as: "update_session_timeout_journal_protection"
     delete "journal_protection", to: "journal_protection#destroy"
+  end
+
+  # In-app Notifications
+  resources :notifications, only: [ :index, :show, :destroy ] do
+    collection do
+      post :mark_all_read
+    end
   end
 
   # Push Notifications

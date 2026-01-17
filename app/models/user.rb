@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :checklists, dependent: :destroy
   has_many :push_subscriptions, dependent: :destroy
   has_many :notification_logs, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_many :notes, dependent: :destroy
   has_many :journals, dependent: :destroy
   has_many :journal_fragments, dependent: :destroy
@@ -49,6 +50,14 @@ class User < ApplicationRecord
     "day_migration_settings" => MigrationOptions.defaults
   }.freeze
 
+  # Notification preferences defaults
+  NOTIFICATION_PREFERENCE_DEFAULTS = {
+    "push_enabled" => true,
+    "in_app_enabled" => true,
+    "quiet_hours_start" => nil,
+    "quiet_hours_end" => nil
+  }.freeze
+
   # Settings accessors
   def theme
     settings.fetch("theme", SETTINGS_DEFAULTS["theme"])
@@ -75,6 +84,18 @@ class User < ApplicationRecord
   def day_migration_settings=(value)
     settings["day_migration_settings"] = value
     settings_will_change!
+  end
+
+  def notification_preference(key)
+    notification_preferences.fetch(key.to_s, NOTIFICATION_PREFERENCE_DEFAULTS[key.to_s])
+  end
+
+  def unread_notifications
+    notifications.unread.includes(:item).order(sent_at: :desc)
+  end
+
+  def unread_notifications_count
+    notifications.unread.count
   end
 
   # Ensure settings has default values

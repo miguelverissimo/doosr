@@ -17,7 +17,8 @@ module Views
           end
 
           # Edit Form
-          form(
+          render RubyUI::Form.new(
+            id: "edit_item_form",
             action: item_path(@item),
             method: "post",
             data: {
@@ -26,18 +27,19 @@ module Views
               turbo: "true"
             }
           ) do
-            csrf_token_field
-            input(type: "hidden", name: "_method", value: "patch")
-            input(type: "hidden", name: "from_edit_form", value: "true")
-            input(type: "hidden", name: "list_id", value: @list.id) if @list
-            input(type: "hidden", name: "day_id", value: @day.id) if @day
-            input(type: "hidden", name: "is_public_list", value: "true") if @list && !@day
+            # Hidden fields - MUST use RubyUI::Input
+            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+            render RubyUI::Input.new(type: :hidden, name: "_method", value: "patch")
+            render RubyUI::Input.new(type: :hidden, name: "from_edit_form", value: "true")
+            render RubyUI::Input.new(type: :hidden, name: "list_id", value: @list.id) if @list
+            render RubyUI::Input.new(type: :hidden, name: "day_id", value: @day.id) if @day
+            render RubyUI::Input.new(type: :hidden, name: "is_public_list", value: "true") if @list && !@day
 
             # Title Input
-            div(class: "space-y-2") do
-              label(for: "item_title", class: "text-sm font-medium") { "Title" }
-              Input(
-                type: "text",
+            render RubyUI::FormField.new do
+              render RubyUI::FormFieldLabel.new(for: "item_title") { "Title" }
+              render RubyUI::Input.new(
+                type: :text,
                 id: "item_title",
                 name: "item[title]",
                 value: @item.title,
@@ -45,35 +47,39 @@ module Views
                 required: true,
                 autofocus: true
               )
+              render RubyUI::FormFieldError.new
             end
 
             # Unfurled URL fields (only show if item has been unfurled)
             if @item.has_unfurled_url?
-              div(class: "space-y-2") do
-                label(for: "item_unfurled_url", class: "text-sm font-medium") { "Link URL" }
-                Input(
-                  type: "url",
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new(for: "item_unfurled_url") { "Link URL" }
+                render RubyUI::Input.new(
+                  type: :url,
                   id: "item_unfurled_url",
                   name: "item[extra_data][unfurled_url]",
                   value: @item.unfurled_url,
                   placeholder: "https://..."
                 )
+                render RubyUI::FormFieldError.new
               end
 
-              div(class: "space-y-2") do
-                label(for: "item_unfurled_description", class: "text-sm font-medium") { "Description" }
-                textarea(
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new(for: "item_unfurled_description") { "Description" }
+                render RubyUI::Textarea.new(
                   id: "item_unfurled_description",
                   name: "item[extra_data][unfurled_description]",
-                  rows: "3",
-                  class: "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                ) { @item.unfurled_description }
+                  rows: 3
+                ) do
+                  @item.unfurled_description
+                end
+                render RubyUI::FormFieldError.new
               end
 
               # Preview image info and remove option
               if @item.preview_image.attached?
-                div(class: "space-y-2") do
-                  label(class: "text-sm font-medium") { "Preview Image" }
+                render RubyUI::FormField.new do
+                  render RubyUI::FormFieldLabel.new { "Preview Image" }
                   div(class: "flex items-center gap-3") do
                     img(
                       src: view_context.url_for(@item.preview_image),
@@ -86,11 +92,10 @@ module Views
                       end
                     end
                     label(class: "flex items-center gap-2 text-sm") do
-                      input(
-                        type: "checkbox",
+                      render RubyUI::Input.new(
+                        type: :checkbox,
                         name: "item[remove_preview_image]",
-                        value: "1",
-                        class: "rounded border-input"
+                        value: "1"
                       )
                       plain "Remove image"
                     end
@@ -100,42 +105,40 @@ module Views
             end
 
             # Notification Time Input
-            div(class: "space-y-2") do
-              label(for: "item_notification_time", class: "text-sm font-medium") { "Notification" }
-              input(
+            render RubyUI::FormField.new do
+              render RubyUI::FormFieldLabel.new(for: "item_notification_time") { "Notification" }
+              render RubyUI::Input.new(
                 type: "datetime-local",
                 id: "item_notification_time",
                 name: "item[notification_time]",
                 value: @item.notification_time&.strftime("%Y-%m-%dT%H:%M"),
-                class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                class: "date-input-icon-light-dark"
               )
               p(class: "text-xs text-muted-foreground") { "Optional: Set a time to be notified about this item" }
+              render RubyUI::FormFieldError.new
             end
 
-            # Action Buttons
-            div(class: "flex items-center gap-2 mt-6") do
-              Button(type: :submit, variant: :primary) do
-                "Save"
-              end
+          end
 
-              # Build cancel URL to go back to action sheet
-              cancel_params = {}
-              cancel_params[:day_id] = @day.id if @day
-              cancel_params[:list_id] = @list.id if @list
-              cancel_params[:is_public_list] = "true" if @list && !@day
-              cancel_params[:from_edit_form] = "true"
-              cancel_url = actions_sheet_item_path(@item, cancel_params)
+          # Action Buttons - outside main form
+          div(class: "flex justify-center items-center gap-3 mt-6") do
+            # Save button associated with main form via form attribute
+            Button(type: :submit, variant: :primary, form: "edit_item_form") { "Save" }
 
-              button(
-                type: "submit",
-                formaction: cancel_url,
-                formmethod: "get",
-                data: { turbo_stream: true },
-                class: "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-              ) do
-                plain "Cancel"
-              end
-            end
+            cancel_params = { from_edit_form: "true" }
+            cancel_params[:day_id] = @day.id if @day
+            cancel_params[:list_id] = @list.id if @list
+            cancel_params[:is_public_list] = "true" if @list && !@day
+
+            Button(
+              type: :button,
+              variant: :outline,
+              data: {
+                controller: "drawer-back",
+                drawer_back_url_value: actions_sheet_item_path(@item, cancel_params),
+                action: "click->drawer-back#goBack"
+              }
+            ) { "Cancel" }
           end
         end
       end

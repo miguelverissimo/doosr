@@ -66,7 +66,7 @@ module Views
           end
 
           # Items list
-          div(id: "items_list", class: "space-y-2 mt-3 w-full min-w-0 max-w-full overflow-x-hidden", style: "max-width: 100%; overflow-x: hidden;") do
+          div(id: "items_list", class: "space-y-2 mt-3 w-full min-w-0 max-w-full overflow-x-hidden", style: "max-width: 100%; overflow-x: hidden;", data: { controller: "item-highlight" }) do
             # Render existing items and lists if any
             if @day
               # Build tree to get items and lists in proper order
@@ -85,7 +85,7 @@ module Views
           end
 
           # Item actions sheet container (rendered dynamically via Turbo Stream)
-          div(id: "item_actions_sheet")
+          div(id: "actions_sheet")
         end
       end
     end
