@@ -11,7 +11,7 @@ module Views
         end
 
         def view_template
-          div(id: "category_patterns_list", class: "space-y-4") do
+          div(id: "category_patterns_content", class: "space-y-4") do
             render_add_button
             render_patterns_list
           end
@@ -21,19 +21,17 @@ module Views
 
         def render_add_button
           div(class: "flex justify-end mb-4") do
-            form(
-              action: view_context.new_banking_category_pattern_path(from_list: true),
-              method: "get",
-              data: { turbo_stream: true },
-              class: "inline"
+            button(
+              type: "button",
+              class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2",
+              data: {
+                controller: "turbo-fetch",
+                turbo_fetch_url_value: view_context.new_banking_category_pattern_path(from_list: true),
+                action: "click->turbo-fetch#load"
+              }
             ) do
-              button(
-                type: "submit",
-                class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-              ) do
-                render ::Components::Icon::Add.new(size: "16", class: "mr-2")
-                plain "Add Pattern"
-              end
+              render ::Components::Icon::Add.new(size: "16", class: "mr-2")
+              plain "Add Pattern"
             end
           end
         end
@@ -65,7 +63,6 @@ module Views
               render_match_count(pattern)
             end
             div(class: "flex items-center gap-1 ml-2 shrink-0") do
-              render_test_match_info(pattern)
               render_edit_button(pattern)
               render_delete_button(pattern)
             end
@@ -89,44 +86,21 @@ module Views
           end
         end
 
-        def render_test_match_info(pattern)
-          potential_count = potential_match_count(pattern)
-          return unless potential_count > 0
-
-          span(
-            class: "text-xs text-amber-600 dark:text-amber-400 mr-2",
-            title: "Number of uncategorized transactions that would match this pattern"
-          ) do
-            plain "#{potential_count} potential match#{'es' if potential_count != 1}"
-          end
-        end
-
         def pattern_match_count(pattern)
-          pattern.category.bank_transactions
-            .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-            .count
-        end
-
-        def potential_match_count(pattern)
-          view_context.current_user.bank_transactions
-            .where(category_id: nil)
-            .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-            .count
+          pattern.matched_transactions_count
         end
 
         def render_edit_button(pattern)
-          form(
-            action: view_context.edit_banking_category_pattern_path(pattern),
-            method: "get",
-            data: { turbo_stream: true },
-            class: "inline"
+          button(
+            type: "button",
+            class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-8 w-8",
+            data: {
+              controller: "turbo-fetch",
+              turbo_fetch_url_value: view_context.edit_banking_category_pattern_path(pattern),
+              action: "click->turbo-fetch#load"
+            }
           ) do
-            button(
-              type: "submit",
-              class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-8 w-8"
-            ) do
-              render ::Components::Icon::Edit.new(size: "16")
-            end
+            render ::Components::Icon::Edit.new(size: "16")
           end
         end
 

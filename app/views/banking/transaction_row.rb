@@ -74,7 +74,7 @@ module Views
 
       def format_currency(amount)
         sign = amount.negative? ? "-" : "+"
-        "#{sign}€#{helpers.number_with_delimiter(sprintf('%.2f', amount.abs))}"
+        "#{sign}€#{number_with_delimiter(sprintf('%.2f', amount.abs))}"
       end
     end
   end

@@ -255,7 +255,7 @@ module Views
             },
             class: "inline-block"
           ) do
-            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: helpers.form_authenticity_token)
+            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: form_authenticity_token)
             render RubyUI::Input.new(type: :hidden, name: "_method", value: method) if method != "post"
 
             params.each do |key, value|

@@ -10,7 +10,7 @@ module Views
         end
 
         def view_template
-          div(id: "category_pattern_form_container", class: "space-y-4") do
+          div(id: "category_patterns_content", class: "space-y-4") do
             render_back_button
             render_form_header
             render_form
@@ -24,19 +24,17 @@ module Views
         end
 
         def render_back_button
-          form(
-            action: view_context.banking_category_patterns_path,
-            method: "get",
-            data: { turbo_stream: true },
-            class: "inline mb-4"
+          button(
+            type: "button",
+            class: "inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4",
+            data: {
+              controller: "turbo-fetch",
+              turbo_fetch_url_value: view_context.banking_category_patterns_path(content_only: true),
+              action: "click->turbo-fetch#load"
+            }
           ) do
-            button(
-              type: "submit",
-              class: "inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-            ) do
-              render ::Components::Icon::ArrowLeft.new(size: "16", class: "mr-1")
-              plain "Back to patterns"
-            end
+            render ::Components::Icon::ArrowLeft.new(size: "16", class: "mr-1")
+            plain "Back to patterns"
           end
         end
 
@@ -138,18 +136,16 @@ module Views
 
         def render_actions
           div(class: "flex gap-2 justify-end mt-6") do
-            form(
-              action: view_context.banking_category_patterns_path,
-              method: "get",
-              data: { turbo_stream: true },
-              class: "inline"
+            button(
+              type: "button",
+              class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+              data: {
+                controller: "turbo-fetch",
+                turbo_fetch_url_value: view_context.banking_category_patterns_path(content_only: true),
+                action: "click->turbo-fetch#load"
+              }
             ) do
-              button(
-                type: "submit",
-                class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-              ) do
-                plain "Cancel"
-              end
+              plain "Cancel"
             end
             Button(variant: :primary, type: "submit") do
               plain editing? ? "Update Pattern" : "Create Pattern"

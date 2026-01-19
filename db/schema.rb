@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_17_104705) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_19_150024) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -94,6 +94,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_17_104705) do
 
   create_table "bank_transactions", force: :cascade do |t|
     t.bigint "category_id"
+    t.bigint "category_pattern_id"
     t.datetime "created_at", null: false
     t.date "date", null: false
     t.string "description", null: false
@@ -103,6 +104,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_17_104705) do
     t.bigint "user_id", null: false
     t.decimal "value", precision: 12, scale: 2, null: false
     t.index ["category_id"], name: "index_bank_transactions_on_category_id"
+    t.index ["category_pattern_id"], name: "index_bank_transactions_on_category_pattern_id"
     t.index ["date"], name: "index_bank_transactions_on_date"
     t.index ["recurring_group_id"], name: "index_bank_transactions_on_recurring_group_id"
     t.index ["user_id", "row_hash"], name: "index_bank_transactions_on_user_id_and_row_hash", unique: true
@@ -695,6 +697,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_17_104705) do
   add_foreign_key "addresses", "users"
   add_foreign_key "bank_infos", "users"
   add_foreign_key "bank_transactions", "categories"
+  add_foreign_key "bank_transactions", "category_patterns"
   add_foreign_key "bank_transactions", "recurring_groups"
   add_foreign_key "bank_transactions", "users"
   add_foreign_key "categories", "users"

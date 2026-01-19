@@ -23,7 +23,7 @@ module Views
 
         def render_back_button
           form(
-            action: helpers.banking_recurring_groups_path(back_to_list: true),
+            action: banking_recurring_groups_path(back_to_list: true),
             method: "get",
             data: { turbo_stream: true },
             class: "inline mb-4"
@@ -111,7 +111,7 @@ module Views
         end
 
         def format_currency(amount)
-          "€#{helpers.number_with_delimiter(sprintf('%.2f', amount))}"
+          "€#{number_with_delimiter(sprintf('%.2f', amount))}"
         end
       end
     end

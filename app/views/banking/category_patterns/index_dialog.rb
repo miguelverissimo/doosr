@@ -20,9 +20,7 @@ module Views
                 end
 
                 render RubyUI::DialogMiddle.new do
-                  div(id: "category_patterns_content") do
-                    render List.new(category_patterns: @category_patterns)
-                  end
+                  render List.new(category_patterns: @category_patterns)
                 end
               end
             end

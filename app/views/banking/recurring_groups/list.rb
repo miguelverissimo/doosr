@@ -30,12 +30,12 @@ module Views
 
         def render_detect_button
           render RubyUI::Form.new(
-            action: helpers.detect_banking_recurring_groups_path,
+            action: detect_banking_recurring_groups_path,
             method: "post",
             data: { turbo_stream: true },
             class: "inline"
           ) do
-            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: helpers.form_authenticity_token)
+            render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: form_authenticity_token)
             button(
               type: "submit",
               class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
@@ -90,7 +90,7 @@ module Views
             class: "p-4 hover:bg-muted/50 cursor-pointer",
             data: {
               controller: "recurring-group",
-              recurring_group_url_value: helpers.banking_recurring_group_path(group),
+              recurring_group_url_value: banking_recurring_group_path(group),
               action: "click->recurring-group#showTransactions"
             }
           ) do
@@ -154,7 +154,7 @@ module Views
         end
 
         def format_currency(amount)
-          "€#{helpers.number_with_delimiter(sprintf('%.2f', amount))}"
+          "€#{number_with_delimiter(sprintf('%.2f', amount))}"
         end
       end
     end

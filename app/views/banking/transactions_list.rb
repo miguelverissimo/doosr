@@ -156,7 +156,6 @@ module Views
             href: sort_path(column, new_direction),
             class: "flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors #{is_active ? 'text-foreground font-medium' : 'text-muted-foreground'}",
             data: {
-              turbo_stream: true,
               action: "click->transactions-pagination#showSpinner"
             }
           ) do
@@ -209,7 +208,6 @@ module Views
         PaginationItem(
           href: pagination_path(1),
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) do
@@ -224,7 +222,6 @@ module Views
         PaginationItem(
           href: pagination_path(@transactions.prev_page),
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) do
@@ -239,7 +236,6 @@ module Views
         PaginationItem(
           href: pagination_path(@transactions.next_page),
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) do
@@ -254,7 +250,6 @@ module Views
         PaginationItem(
           href: pagination_path(@transactions.total_pages),
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) do
@@ -295,7 +290,6 @@ module Views
           href: pagination_path(page_num),
           active: page_num == current_page,
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) { page_num.to_s }

@@ -187,7 +187,7 @@ module Views
       end
 
       def format_currency(amount)
-        "€#{helpers.number_with_delimiter(sprintf('%.2f', amount))}"
+        "€#{number_with_delimiter(sprintf('%.2f', amount))}"
       end
 
       def date_range_text
@@ -208,7 +208,7 @@ module Views
           class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
           data: {
             controller: "enable-dialog",
-            enable_dialog_url_value: helpers.banking_recurring_groups_path,
+            enable_dialog_url_value: banking_recurring_groups_path,
             action: "click->enable-dialog#openDialog"
           }
         ) do
@@ -223,7 +223,7 @@ module Views
           class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
           data: {
             controller: "enable-dialog",
-            enable_dialog_url_value: helpers.banking_category_patterns_path,
+            enable_dialog_url_value: banking_category_patterns_path,
             action: "click->enable-dialog#openDialog"
           }
         ) do
@@ -238,7 +238,7 @@ module Views
           class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
           data: {
             controller: "enable-dialog",
-            enable_dialog_url_value: helpers.banking_categories_path,
+            enable_dialog_url_value: banking_categories_path,
             action: "click->enable-dialog#openDialog"
           }
         ) do
@@ -253,7 +253,7 @@ module Views
           class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
           data: {
             controller: "enable-dialog",
-            enable_dialog_url_value: helpers.new_csv_import_banking_index_path,
+            enable_dialog_url_value: new_csv_import_banking_index_path,
             action: "click->enable-dialog#openDialog"
           }
         ) do
@@ -268,7 +268,7 @@ module Views
           class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2",
           data: {
             controller: "enable-dialog",
-            enable_dialog_url_value: helpers.new_transaction_banking_index_path,
+            enable_dialog_url_value: new_transaction_banking_index_path,
             action: "click->enable-dialog#openDialog"
           }
         ) do

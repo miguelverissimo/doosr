@@ -38,7 +38,6 @@ module Views
             action: view_context.banking_index_path,
             method: "get",
             data: {
-              turbo_stream: true,
               action: "submit->transactions-pagination#showSpinner",
               search_transactions_target: "form"
             },
@@ -174,7 +173,6 @@ module Views
             direction: @sort_direction
           ),
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           },
           class: "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
@@ -271,7 +269,6 @@ module Views
           href: view_context.banking_index_path(url_params),
           class: button_class,
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) { option[:label] }
@@ -315,7 +312,6 @@ module Views
           href: view_context.banking_index_path(url_params),
           class: button_class,
           data: {
-            turbo_stream: true,
             action: "click->transactions-pagination#showSpinner"
           }
         ) { "Uncategorized" }

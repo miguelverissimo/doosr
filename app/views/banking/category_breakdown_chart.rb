@@ -16,7 +16,7 @@ module Views
           data: {
             controller: "category-chart",
             category_chart_data_value: chart_data.to_json,
-            category_chart_filter_url_value: helpers.banking_index_path(start_date: @start_date, end_date: @end_date)
+            category_chart_filter_url_value: banking_index_path(start_date: @start_date, end_date: @end_date)
           }
         ) do
           render_header
@@ -105,7 +105,7 @@ module Views
         elsif category_id
           params[:category_id] = category_id
         end
-        helpers.banking_index_path(params)
+        banking_index_path(params)
       end
 
       def chart_data
@@ -124,7 +124,7 @@ module Views
       end
 
       def format_currency(amount)
-        "€#{helpers.number_with_delimiter(sprintf('%.2f', amount))}"
+        "€#{number_with_delimiter(sprintf('%.2f', amount))}"
       end
     end
   end

@@ -74,14 +74,15 @@ module Banking
       end
 
       @seen_hashes.add(row_hash)
-      category = find_matching_category(description)
+      matching_pattern = find_matching_pattern(description)
 
       @user.bank_transactions.create!(
         date: date,
         description: description,
         value: value,
         row_hash: row_hash,
-        category: category
+        category: matching_pattern&.category,
+        category_pattern: matching_pattern
       )
       @imported += 1
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
@@ -144,10 +145,9 @@ module Banking
       Digest::SHA256.hexdigest(data)
     end
 
-    def find_matching_category(description)
+    def find_matching_pattern(description)
       # Patterns are pre-ordered by length descending, so first match wins
-      matching_pattern = @patterns.find { |pattern| pattern.matches?(description) }
-      matching_pattern&.category
+      @patterns.find { |pattern| pattern.matches?(description) }
     end
   end
 end

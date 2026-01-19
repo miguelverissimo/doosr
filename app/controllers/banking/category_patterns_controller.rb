@@ -7,14 +7,21 @@ module Banking
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index
-      @category_patterns = current_user.category_patterns.includes(:category).order(:pattern)
+      @category_patterns = load_category_patterns_with_counts
 
       respond_to do |format|
         format.turbo_stream do
-          render turbo_stream: turbo_stream.append(
-            "body",
-            render_to_string(::Views::Banking::CategoryPatterns::IndexDialog.new(category_patterns: @category_patterns), layout: false)
-          )
+          if params[:content_only]
+            render turbo_stream: turbo_stream.replace(
+              "category_patterns_content",
+              render_to_string(::Views::Banking::CategoryPatterns::List.new(category_patterns: @category_patterns), layout: false)
+            )
+          else
+            render turbo_stream: turbo_stream.append(
+              "body",
+              render_to_string(::Views::Banking::CategoryPatterns::IndexDialog.new(category_patterns: @category_patterns), layout: false)
+            )
+          end
         end
       end
     end
@@ -61,7 +68,7 @@ module Banking
         respond_to do |format|
           format.turbo_stream do
             if params[:from_list]
-              @category_patterns = current_user.category_patterns.includes(:category).order(:pattern)
+              @category_patterns = load_category_patterns_with_counts
               render turbo_stream: turbo_stream.replace(
                 "category_patterns_content",
                 render_to_string(::Views::Banking::CategoryPatterns::List.new(category_patterns: @category_patterns), layout: false)
@@ -113,7 +120,7 @@ module Banking
 
     def update
       if @category_pattern.update(category_pattern_params)
-        @category_patterns = current_user.category_patterns.includes(:category).order(:pattern)
+        @category_patterns = load_category_patterns_with_counts
         respond_to do |format|
           format.turbo_stream do
             render turbo_stream: turbo_stream.replace(
@@ -136,7 +143,7 @@ module Banking
 
     def destroy
       @category_pattern.destroy!
-      @category_patterns = current_user.category_patterns.includes(:category).order(:pattern)
+      @category_patterns = load_category_patterns_with_counts
 
       respond_to do |format|
         format.turbo_stream do
@@ -152,6 +159,15 @@ module Banking
 
     def set_category_pattern
       @category_pattern = current_user.category_patterns.find(params[:id])
+    end
+
+    def load_category_patterns_with_counts
+      current_user.category_patterns
+        .includes(:category)
+        .left_joins(:bank_transactions)
+        .select("category_patterns.*, COUNT(bank_transactions.id) AS matched_transactions_count")
+        .group("category_patterns.id")
+        .order(:pattern)
     end
 
     def find_transaction_if_provided
@@ -172,7 +188,10 @@ module Banking
         .where("LOWER(description) LIKE ?", "%#{@category_pattern.pattern.downcase}%")
 
       count = matching_transactions.count
-      matching_transactions.update_all(category_id: @category_pattern.category_id)
+      matching_transactions.update_all(
+        category_id: @category_pattern.category_id,
+        category_pattern_id: @category_pattern.id
+      )
       count
     end
 

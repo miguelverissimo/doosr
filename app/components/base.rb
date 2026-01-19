@@ -6,6 +6,10 @@ class ::Components::Base < Phlex::HTML
   include Phlex::Rails::Helpers::Routes
   include Phlex::Rails::Helpers::TurboFrameTag
 
+  # Register value helpers to avoid using deprecated `helpers` method
+  register_value_helper :number_with_delimiter
+  register_value_helper :form_authenticity_token
+
   attr_reader :attrs
 
   def initialize(**user_attrs)

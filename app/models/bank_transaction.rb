@@ -3,6 +3,7 @@
 class BankTransaction < ApplicationRecord
   belongs_to :user
   belongs_to :category, optional: true
+  belongs_to :category_pattern, optional: true
   belongs_to :recurring_group, optional: true
 
   validates :date, presence: true

@@ -3,6 +3,7 @@
 class CategoryPattern < ApplicationRecord
   belongs_to :user
   belongs_to :category
+  has_many :bank_transactions, dependent: :nullify
 
   validates :pattern, presence: true, uniqueness: { scope: :user_id }
 
