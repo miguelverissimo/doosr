@@ -120,6 +120,7 @@ module Banking
 
     def update
       if @category_pattern.update(category_pattern_params)
+        rematch_transactions_for_pattern(@category_pattern)
         @category_patterns = load_category_patterns_with_counts
         respond_to do |format|
           format.turbo_stream do
@@ -193,6 +194,26 @@ module Banking
         category_pattern_id: @category_pattern.id
       )
       count
+    end
+
+    def rematch_transactions_for_pattern(pattern)
+      # 1. Clear pattern from transactions that had it but no longer match
+      # 2. Update category for transactions that still match
+      pattern.bank_transactions.find_each do |transaction|
+        if pattern.matches?(transaction.description)
+          # Still matches - update category in case it changed
+          transaction.update_columns(category_id: pattern.category_id)
+        else
+          # No longer matches - clear the association
+          transaction.update_columns(category_id: nil, category_pattern_id: nil)
+        end
+      end
+
+      # 3. Apply to uncategorized transactions that now match
+      current_user.bank_transactions
+        .where(category_id: nil)
+        .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
+        .update_all(category_id: pattern.category_id, category_pattern_id: pattern.id)
     end
 
     def filter_params
