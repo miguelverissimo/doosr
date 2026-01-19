@@ -31,15 +31,11 @@ module Views
       def view_template
         div(
           id: "transactions_list",
-          data: {
-            transactions_pagination_target: "content",
-            controller: "bulk-select-transactions"
-          }
+          data: { transactions_pagination_target: "content" }
         ) do
           if @transactions.empty?
             render_empty_state
           else
-            render_bulk_action_bar
             render_table
             render_pagination if @transactions.total_pages > 1
           end
@@ -47,70 +43,6 @@ module Views
       end
 
       private
-
-      def render_bulk_action_bar
-        div(
-          id: "bulk_actions",
-          class: "hidden mb-4 p-3 bg-muted rounded-lg flex items-center justify-between",
-          data: { bulk_select_transactions_target: "bulkActions" }
-        ) do
-          div(class: "flex items-center gap-2") do
-            span(class: "text-sm font-medium") do
-              span(data: { bulk_select_transactions_target: "selectedCount" }) { "0" }
-              plain " selected"
-            end
-            Button(
-              variant: :ghost,
-              size: :sm,
-              data: { action: "click->bulk-select-transactions#clearSelection" }
-            ) { "Clear selection" }
-          end
-          render_bulk_delete_dialog
-        end
-      end
-
-      def render_bulk_delete_dialog
-        render AlertDialog.new do
-          render AlertDialogTrigger.new do
-            Button(variant: :destructive, size: :sm) do
-              render ::Components::Icon::Trash.new(size: "16", class: "mr-2")
-              plain "Delete Selected"
-            end
-          end
-
-          render AlertDialogContent.new do
-            render AlertDialogHeader.new do
-              render AlertDialogTitle.new { "Delete selected transactions?" }
-              render AlertDialogDescription.new do
-                plain "You are about to delete "
-                span(class: "font-medium", data: { bulk_select_transactions_target: "selectedCount" }) { "0" }
-                plain " transactions. This action cannot be undone."
-              end
-            end
-
-            render AlertDialogFooter.new(class: "mt-6 flex flex-row justify-end gap-3") do
-              render AlertDialogCancel.new { "Cancel" }
-
-              render RubyUI::Form.new(
-                action: view_context.bulk_destroy_banking_index_path,
-                method: "post",
-                data: { turbo_stream: true, action: "submit@document->ruby-ui--alert-dialog#dismiss" },
-                class: "inline"
-              ) do
-                render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
-                render RubyUI::Input.new(type: :hidden, name: "_method", value: "delete")
-                render RubyUI::Input.new(
-                  type: :hidden,
-                  name: "ids",
-                  value: "",
-                  data: { bulk_select_transactions_target: "selectedIds" }
-                )
-                render AlertDialogAction.new(type: "submit", variant: :destructive) { "Delete" }
-              end
-            end
-          end
-        end
-      end
 
       def render_empty_state
         div(class: "flex h-32 flex-col items-center justify-center") do
@@ -122,16 +54,6 @@ module Views
         Table do
           TableHeader do
             TableRow do
-              TableHead(class: "w-10") do
-                input(
-                  type: "checkbox",
-                  class: "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background accent-primary",
-                  data: {
-                    bulk_select_transactions_target: "selectAll",
-                    action: "change->bulk-select-transactions#toggleAll"
-                  }
-                )
-              end
               render_sortable_header("date", class: "w-32")
               render_sortable_header("description")
               render_sortable_header("category", class: "w-40")
@@ -141,7 +63,7 @@ module Views
           end
           TableBody(id: "transactions_table_body") do
             @transactions.each do |transaction|
-              render ::Views::Banking::TransactionRow.new(transaction: transaction, show_checkbox: true, categories: @categories)
+              render ::Views::Banking::TransactionRow.new(transaction: transaction, categories: @categories)
             end
           end
         end

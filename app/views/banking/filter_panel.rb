@@ -227,9 +227,19 @@ module Views
             end_date: today.end_of_month
           },
           {
+            label: "Last 12 Months",
+            start_date: (today - 11.months).beginning_of_month,
+            end_date: today
+          },
+          {
             label: "This Year",
             start_date: today.beginning_of_year,
             end_date: today.end_of_year
+          },
+          {
+            label: "Last Year",
+            start_date: today.last_year.beginning_of_year,
+            end_date: today.last_year.end_of_year
           },
           {
             label: "All Time",

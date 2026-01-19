@@ -5,15 +5,13 @@ module Views
     class TransactionRow < ::Views::Base
       include RubyUI
 
-      def initialize(transaction:, show_checkbox: false, categories: [])
+      def initialize(transaction:, categories: [])
         @transaction = transaction
-        @show_checkbox = show_checkbox
         @categories = categories
       end
 
       def view_template
         TableRow(id: "transaction_#{@transaction.id}") do
-          render_checkbox if @show_checkbox
           TableCell { @transaction.date.strftime("%b %d, %Y") }
           TableCell(class: "max-w-xs truncate") { @transaction.description }
           TableCell { render_category_selector }
@@ -27,20 +25,6 @@ module Views
       end
 
       private
-
-      def render_checkbox
-        TableCell(class: "w-10") do
-          input(
-            type: "checkbox",
-            value: @transaction.id.to_s,
-            class: "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background accent-primary",
-            data: {
-              bulk_select_transactions_target: "checkbox",
-              action: "change->bulk-select-transactions#toggleOne"
-            }
-          )
-        end
-      end
 
       def render_create_pattern_button
         Button(
