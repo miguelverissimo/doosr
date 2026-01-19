@@ -65,10 +65,21 @@ export default class extends Controller {
 
   cancelDialog(event) {
     event.preventDefault()
-    // Find the dialog element and remove it from DOM
+    // If a dialogId param is provided, remove that element
+    const dialogId = event.params?.dialogId
+    if (dialogId) {
+      const targetElement = document.getElementById(dialogId)
+      if (targetElement) {
+        targetElement.remove()
+        document.body.classList.remove('overflow-hidden')
+        return
+      }
+    }
+    // Otherwise find the dialog element and remove it from DOM
     const dialog = this.element.closest('[data-controller*="ruby-ui--dialog"]')
     if (dialog) {
       dialog.remove()
+      document.body.classList.remove('overflow-hidden')
     }
   }
 

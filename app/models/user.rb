@@ -23,6 +23,12 @@ class User < ApplicationRecord
   has_many :journal_prompts, dependent: :destroy
   has_many :journal_prompt_templates, dependent: :destroy
 
+  # Banking
+  has_many :bank_transactions, dependent: :destroy
+  has_many :categories, dependent: :destroy
+  has_many :category_patterns, dependent: :destroy
+  has_many :recurring_groups, dependent: :destroy
+
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy
   has_many :accounting_items, class_name: "Accounting::AccountingItem", dependent: :destroy

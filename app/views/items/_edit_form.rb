@@ -117,7 +117,6 @@ module Views
               p(class: "text-xs text-muted-foreground") { "Optional: Set a time to be notified about this item" }
               render RubyUI::FormFieldError.new
             end
-
           end
 
           # Action Buttons - outside main form

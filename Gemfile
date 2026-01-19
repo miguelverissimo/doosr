@@ -53,6 +53,9 @@ gem "grover"
 # Pagination
 gem "kaminari"
 
+# CSV parsing (removed from stdlib in Ruby 3.4)
+gem "csv"
+
 # Authentication
 gem "devise", "~> 4.9.4"
 gem "omniauth"

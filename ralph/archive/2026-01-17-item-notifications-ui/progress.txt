@@ -1,0 +1,290 @@
+# Ralph Progress Log
+# Feature: Item Notifications UI
+# Branch: ralph/item-notifications-ui
+
+## Codebase Patterns
+- Use `t.references` for foreign keys - it automatically adds indexes
+- Trace item to Day: iterate `Descendant.containing_item(id)` → `descendable` until descendable.is_a?(Day)
+- Icons must be classes in `app/components/icon/` inheriting from `Icon::Base`
+- Never use `on*` event attributes in Phlex - use Stimulus controllers
+- Drawer navigation: use `turbo_stream.replace("sheet_content_area")` within drawer, never create new backdrop
+- Delete confirmations must use `RubyUI::AlertDialog`, never `turbo_confirm`
+- All forms must use RubyUI form components (Form, FormField, Input, etc.)
+- Use `view_context` instead of `helpers` in Phlex components (helpers is deprecated)
+- Hover tooltips: use `Tooltip { TooltipTrigger { element } TooltipContent { text } }`
+- ActionCable channels: subscribe in Stimulus controller using `consumer.subscriptions.create()`
+- User identification for ActionCable: set `identified_by :current_user` in Connection, use Warden lookup
+
+---
+
+## 2026-01-15 - US-001
+Thread: https://ampcode.com/threads/T-019bc06a-42a5-7249-a5f0-521cfeb5b2ff
+- Created Icon::BellRing component for notification alert variant
+- Icon::Bell already existed in codebase
+- Files changed: app/components/icon/bell_ring.rb
+- **Learnings for future iterations:**
+  - Icon::Bell was already implemented in the codebase
+  - BellRing follows same pattern as Bell but with additional paths for ringing animation lines
+  - Icons render at sizes 16, 20, 24 by setting the size param in constructor
+---
+
+## 2026-01-15 - US-002
+Thread: https://ampcode.com/threads/T-019bc06d-0d93-714c-9394-0e2e8b3bd92a
+- Created Components::NotificationBell Phlex component
+- Created notification_bell_controller.js Stimulus controller for click handling
+- Added notification bell to app_layout.rb header (after content-specific headers)
+- Files changed: app/components/notification_bell.rb, app/javascript/controllers/notification_bell_controller.js, app/views/layouts/app_layout.rb
+- **Learnings for future iterations:**
+  - Notification bell is rendered at the end of the header element, after all content-specific headers
+  - Bell is wrapped in a div with Stimulus controller, uses Button variant :ghost with icon: true
+  - The button inherits hover state from RubyUI Button component (no custom styling needed)
+  - dev-browser skill was not available; system tests used instead for verification
+---
+
+## 2026-01-15 - US-003
+Thread: https://ampcode.com/threads/T-019bc072-c662-70a9-988c-a2f642bbe60f
+- Created Components::NotificationBadge Phlex component
+- Updated NotificationBell to include badge with turbo_frame_tag for live updates
+- Badge displays count 1-99, shows "99+" for counts over 99, hidden when 0
+- Files changed: app/components/notification_badge.rb, app/components/notification_bell.rb
+- **Learnings for future iterations:**
+  - Use `turbo_frame_tag("notification_badge")` to wrap badge for live updates
+  - Badge uses absolute positioning (-top-1 -right-1) to overlay on parent element
+  - Use `bg-destructive` for red accent color (from Tailwind theme)
+  - Phlex::Rails::Helpers::TurboFrameTag is included in Components::Base
+  - Badge component returns early (empty) when count is zero for clean conditional rendering
+---
+
+## 2026-01-15 - US-004
+Thread: https://ampcode.com/threads/T-019bc079-0568-776e-867b-1b1928f37b81
+- NotificationsController#index already existed from prior work
+- Route GET /notifications already configured for turbo_stream format
+- Fetches current_user.unread_notifications (limit 10), scoped to current_user
+- Files changed: None (already complete)
+- **Learnings for future iterations:**
+  - US-004 was pre-completed as part of US-003's dropdown implementation
+  - Controller returns turbo_stream.append to notification_bell container
+---
+
+## 2026-01-15 - US-005
+Thread: https://ampcode.com/threads/T-019bc079-0568-776e-867b-1b1928f37b81
+- Updated notification_bell_controller.js with full open/close/fetch behavior
+- Clicking bell fetches /notifications and appends dropdown via Turbo Stream
+- Click outside detection closes dropdown by removing it from DOM
+- Updated NotificationsController to use turbo_stream.append instead of replace
+- Files changed: app/javascript/controllers/notification_bell_controller.js, app/controllers/notifications_controller.rb
+- **Learnings for future iterations:**
+  - Use turbo_stream.append for dynamically created dropdowns, not replace
+  - Turbo.renderStreamMessage(html) processes turbo stream responses from fetch
+  - Click outside handler must check if click is inside both bell and dropdown
+  - Store openValue in Stimulus to track dropdown state
+---
+
+## 2026-01-15 - US-006
+Thread: https://ampcode.com/threads/T-019bc07b-a834-72eb-af17-167e36ccf85c
+- Created Components::NotificationItem Phlex component
+- Shows item title, reminder time (formatted), and relative time (e.g., "30 minutes ago")
+- Unread notifications have bg-muted/30 background and font-semibold title
+- Read notifications have opacity-60 and font-normal title
+- Updated NotificationsDropdown to use NotificationItem component
+- Files changed: app/components/notification_item.rb, app/components/notifications_dropdown.rb
+- **Learnings for future iterations:**
+  - NotificationItem shows visual distinction based on read state (check read_at.nil?)
+  - Use `transition-colors` class for smooth hover state transitions
+  - Format reminder time with strftime("%b %-d, %-I:%M %p") for user-friendly display
+---
+
+## 2026-01-15 - US-007
+Thread: https://ampcode.com/threads/T-019bc07f-1b88-7108-8444-3faae7581cfb
+- Added mark_all_read action to NotificationsController
+- Added route POST /notifications/mark_all_read
+- Updated NotificationsDropdown "Mark all read" from link to RubyUI form with button
+- Returns turbo_stream that updates badge to 0 and replaces dropdown with empty state
+- Created controller test file with 4 test cases
+- Files changed: app/controllers/notifications_controller.rb, app/components/notifications_dropdown.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
+- **Learnings for future iterations:**
+  - Use `view_context` instead of `helpers` in Phlex components (helpers is deprecated)
+  - For testing notifications, create with future remind_at then call mark_sent! (remind_at validation is on :create only)
+  - Form buttons for actions: use RubyUI::Form with method: :post, data: { turbo_stream: true }
+---
+
+## 2026-01-15 - US-008
+Thread: https://ampcode.com/threads/T-019bc084-6450-742a-8441-012283f8eebc
+- Added show action to NotificationsController that marks notification as read and redirects
+- Updated NotificationItem component to be a clickable link with href to notification show path
+- Uses data-turbo-frame="_top" to trigger full page navigation (closes dropdown)
+- Redirect URL includes highlight param (e.g., ?highlight=123) for item highlighting
+- Added route GET /notifications/:id
+- Created 4 new test cases for show action
+- Files changed: app/controllers/notifications_controller.rb, app/components/notification_item.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
+- **Learnings for future iterations:**
+  - Use `find_root_day(item)` pattern to trace item to its containing Day through Descendant chain
+  - For full page navigation from within Turbo context, use `data: { turbo_frame: "_top" }` on links
+  - Scoped find via `current_user.notifications.find(id)` returns 404 for other users' records
+  - `Descendant.add_active_item(id)` expects integer ID, not Item object
+---
+
+
+## 2026-01-15 - US-009
+Thread: https://ampcode.com/threads/T-019bc089-a55e-7307-bd72-3705c5d58db6
+- Created item-highlight Stimulus controller that activates on connect
+- Controller reads `highlight` param from URL, finds matching item element
+- Scrolls item into view with smooth behavior and centers it
+- Applies CSS pulse animation (item-highlight-flash class) for visual highlight
+- Removes highlight param from URL using history.replaceState
+- Added CSS animation in application.css using oklch colors from theme
+- Connected controller to items_list div in days/show.rb
+- Files changed: app/javascript/controllers/item_highlight_controller.js, app/assets/tailwind/application.css, app/views/days/show.rb
+- **Learnings for future iterations:**
+  - Use `scrollIntoView({ behavior: "smooth", block: "center" })` for smooth scroll centering
+  - Use `history.replaceState({}, "", url.toString())` to update URL without navigation
+  - CSS animations with oklch colors work well for themed highlight effects
+  - Stimulus controller connects automatically via data-controller on items_list
+---
+
+## 2026-01-15 - US-010
+Thread: https://ampcode.com/threads/T-019bc08e-5279-758d-89d8-e313d8c742a4
+- Added `has_pending_reminders?` method to Item model that checks for pending notifications
+- Added bell icon to `render_badges` in CompletableItem component for items with pending reminders
+- Icon uses blue color (text-blue-500) consistent with other reminder/notification UI
+- Added 3 test cases for `has_pending_reminders?` method
+- Files changed: app/models/item.rb, app/views/items/_completable_item.rb, test/models/item_test.rb
+- **Learnings for future iterations:**
+  - Use `notifications.pending.exists?` for efficient existence check (doesn't load records)
+  - Badge icons in render_badges follow same structure: span wrapper with h-5 w-5 and centered content
+  - Icon sizes in badges typically use size: "14" for visual consistency
+---
+
+## 2026-01-15 - US-011
+Thread: https://ampcode.com/threads/T-019bc16f-c78b-748b-8bdb-d1553f05cd9b
+- Added `next_reminder` method to Item model (returns earliest pending notification)
+- Added `pending_reminders_count` method to Item model
+- Updated bell icon in CompletableItem to show RubyUI Tooltip on hover
+- Tooltip shows "Reminder: [time]" for single, "Next: [time] (+N more)" for multiple
+- Added 4 test cases for the new methods
+- Files changed: app/models/item.rb, app/views/items/_completable_item.rb, test/models/item_test.rb
+- **Learnings for future iterations:**
+  - Use RubyUI Tooltip with TooltipTrigger and TooltipContent for hover information
+  - Format reminder times with strftime("%b %-d, %-I:%M %p") for user-friendly display
+  - Tooltip pattern: wrap the element in Tooltip > TooltipTrigger, then add TooltipContent sibling
+---
+
+## 2026-01-15 - US-012
+Thread: https://ampcode.com/threads/T-019bc174-336f-7248-b648-6d5692653d7c
+- Created Views::Items::RemindersSection Phlex component for managing reminders
+- Added bell icon button to ActionsSheetButtons (next to recurrence icon)
+- Created Views::Items::ReminderForm placeholder component (fully implemented in US-013)
+- Added routes: GET /items/:id/reminders and GET /items/:id/reminder_form
+- Added controller actions: items#reminders and items#reminder_form
+- Component shows list of pending reminders with date/time and delete (X) button
+- Empty state shows "No reminders set"
+- Back button returns to actions sheet, Add button navigates to reminder form
+- Added 3 test cases for reminders action
+- Files changed: app/views/items/_reminders_section.rb, app/views/items/_reminder_form.rb, app/views/items/_actions_sheet_buttons.rb, app/controllers/items_controller.rb, config/routes.rb, test/controllers/items_controller_test.rb
+- **Learnings for future iterations:**
+  - Follow same pattern as recurrence_options/defer_options for new sheet views
+  - Bell icon button added after recurrence button in render_completable_primary_actions
+  - Reminder delete uses reminder-delete Stimulus controller (to be implemented in US-015)
+  - dev-browser skill not available; use system tests instead
+---
+
+## 2026-01-15 - US-013
+Thread: https://ampcode.com/threads/T-019bc179-5ece-7268-993e-20a2a0fb8f27
+- Updated Views::Items::ReminderForm Phlex component with full implementation
+- Created reminder_form_controller.js Stimulus controller for preset button handling
+- Preset buttons: "In 1 hour", "Tomorrow 9am", "In 3 days" set datetime-local input value
+- Form uses RubyUI components (Form, FormField, FormFieldLabel, Input, Button)
+- Cancel button returns to reminders list via turbo_stream link
+- Form posts to /items/:id/notifications (route to be added in US-014)
+- Added 3 test cases for reminder_form action
+- Files changed: app/views/items/_reminder_form.rb, app/javascript/controllers/reminder_form_controller.js, test/controllers/items_controller_test.rb
+- **Learnings for future iterations:**
+  - Use datetime-local input type with data-reminder-form-target="datetimeInput" for Stimulus targeting
+  - Preset buttons use data-preset attribute and data-action="click->reminder-form#setPreset"
+  - Format date as YYYY-MM-DDTHH:MM for datetime-local input value
+---
+
+## 2026-01-15 - US-014
+Thread: https://ampcode.com/threads/T-019bc17e-6652-750d-bc9a-2a60e65a002b
+- Created ItemNotificationsController with create action for adding reminders
+- Added nested route POST /items/:item_id/notifications under items resources
+- Controller validates remind_at is in future (via Notification model validation)
+- Returns turbo_stream replacing sheet_content_area with updated reminders list
+- Updates item's reminder indicator in day view via turbo_stream.replace
+- Shows success/error toast messages
+- Added 6 test cases covering create, validation, auth, and authorization
+- Files changed: app/controllers/item_notifications_controller.rb, config/routes.rb, test/controllers/item_notifications_controller_test.rb
+- **Learnings for future iterations:**
+  - Use nested resources under items for item-specific notification actions
+  - Use separate ItemNotificationsController instead of adding to NotificationsController (cleaner routing)
+  - Parse datetime-local values with Time.zone.parse for proper timezone handling
+  - Use turbo_stream.replace to update both sheet content and item in day view
+---
+
+## 2026-01-15 - US-015
+Thread: https://ampcode.com/threads/T-019bc183-628f-7013-8e79-805a9cce0cb1
+- Added destroy action to NotificationsController for deleting reminders
+- Added DELETE route /notifications/:id to routes.rb
+- Updated RemindersSection component to use RubyUI::AlertDialog for delete confirmation
+- Replaced Stimulus controller approach (reminder-delete) with inline AlertDialog pattern
+- Returns turbo_stream that updates sheet_content_area with refreshed reminders list
+- Updates item's reminder indicator if day is provided
+- Added 5 test cases for destroy action (delete, turbo_stream, item update, auth, authorization)
+- Files changed: app/controllers/notifications_controller.rb, app/views/items/_reminders_section.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
+- **Learnings for future iterations:**
+  - Use RubyUI::AlertDialog with form inside AlertDialogFooter for delete confirmations
+  - Form needs `data: { action: "submit@document->ruby-ui--alert-dialog#dismiss" }` to close dialog after submit
+  - Include `method: "post"` on form with hidden `_method: delete` input for DELETE requests
+  - Notification destroy routes go through NotificationsController (top-level), not ItemNotificationsController
+---
+
+## 2026-01-15 - US-016
+Thread: https://ampcode.com/threads/T-019bc187-ffc0-7160-ba60-a0b4ff20b13c
+- Created Components::Settings::NotificationPreferencesTab Phlex component
+- Added 'Notifications' tab to settings dialog in app_sidebar.rb
+- Toggle fields for push_enabled and in_app_enabled using same pattern as MigrationSettingsForm
+- Quiet hours section with start/end time inputs using RubyUI::FormField components
+- Reads preferences from @user.notification_preference(key) which uses NOTIFICATION_PREFERENCE_DEFAULTS
+- Files changed: app/components/settings/notification_preferences_tab.rb (new), app/components/app_sidebar.rb
+- **Learnings for future iterations:**
+  - Settings tabs follow pattern in app_sidebar.rb render_settings_dialog method
+  - Use existing toggle pattern from MigrationSettingsForm for consistent styling
+  - Time inputs use type: :time, date inputs use type: :date with class: "date-input-icon-light-dark"
+  - NOTIFICATION_PREFERENCE_DEFAULTS defined in User model with push_enabled, in_app_enabled, quiet_hours_start/end
+---
+
+## 2026-01-15 - US-017
+Thread: https://ampcode.com/threads/T-019bc18a-d3c5-721d-aee6-f4cdc9bcac52
+- Added update_notification_preferences action to SettingsController
+- Added route PATCH /settings/notification_preferences
+- Updated NotificationPreferencesTab to wrap content in form with turbo_stream submit
+- Form includes Save Settings button, hidden CSRF token and method fields
+- Action saves push_enabled, in_app_enabled, quiet_hours_start, quiet_hours_end to user.notification_preferences jsonb
+- Returns turbo_stream with success toast, or json response
+- Created 5 test cases covering save, toast, empty quiet hours, auth, and json format
+- Files changed: app/components/settings/notification_preferences_tab.rb, app/controllers/settings_controller.rb, config/routes.rb, test/controllers/settings_controller_test.rb (new)
+- **Learnings for future iterations:**
+  - Follow same pattern as update_migration_settings for new settings actions
+  - Use `data: { turbo_stream: true }` on form to submit via Turbo without page reload
+  - Use `.presence` to convert empty strings to nil for optional time fields
+  - Settings routes are nested under `resource :settings, only: [:show, :update]`
+---
+
+## 2026-01-15 - US-018
+Thread: https://ampcode.com/threads/T-019bc18f-0eb7-71ea-aa5e-72bd1def68bd
+- Created NotificationChannel for user-specific ActionCable subscriptions
+- Updated ApplicationCable::Connection to identify users via Warden (Devise)
+- Created notification_subscription_controller.js Stimulus controller to subscribe on page load
+- Updated SendNotificationJob to broadcast turbo_stream badge updates after sending notifications
+- Created _badge_update.turbo_stream.erb partial for badge updates
+- Added CSS pulse animation for badge when count increases
+- Updated app_layout.rb to wrap notification bell with subscription controller
+- Added tests for NotificationChannel (subscribe/reject) and broadcast functionality
+- Files changed: app/channels/notification_channel.rb (new), app/channels/application_cable/connection.rb, app/javascript/controllers/notification_subscription_controller.js (new), app/jobs/send_notification_job.rb, app/views/notifications/_badge_update.turbo_stream.erb (new), app/assets/tailwind/application.css, app/views/layouts/app_layout.rb, test/channels/notification_channel_test.rb (new), test/jobs/send_notification_job_test.rb
+- **Learnings for future iterations:**
+  - ActionCable user identification requires updating ApplicationCable::Connection with `identified_by :current_user` and Warden lookup
+  - Use `consumer.subscriptions.create({ channel: "ChannelName" }, callbacks)` pattern in Stimulus for channel subscriptions
+  - Broadcast turbo_stream updates using `ActionCable.server.broadcast(channel, { html: rendered_html })`
+  - turbo_frame_tag must be included in broadcast replacement HTML to preserve the frame for future updates
+  - CSS animations use oklch colors from theme (e.g., destructive: oklch(0.577 0.245 27.325))
+---

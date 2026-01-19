@@ -1,0 +1,321 @@
+{
+  "project": "Doosr",
+  "branchName": "ralph/item-notifications-ui",
+  "description": "Item Notifications UI - Bell icon, dropdown, reminders management, and preferences",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Bell icon component",
+      "description": "As a developer, I need a Bell icon component to use in the notification header.",
+      "acceptanceCriteria": [
+        "Create Icon::Bell class in app/components/icon/ inheriting from Icon::Base",
+        "Create Icon::BellRing class for notification alerts (optional variant)",
+        "Icons render correctly at different sizes (16, 20, 24)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add notification bell to header",
+      "description": "As a user, I want to see a notification bell in the header so I know where to find my notifications.",
+      "acceptanceCriteria": [
+        "Create Components::NotificationBell Phlex component",
+        "Bell icon added to application header layout",
+        "Bell positioned appropriately (near user menu or similar)",
+        "Bell is clickable with hover state",
+        "Uses Stimulus controller for click handling",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Display unread notification count badge",
+      "description": "As a user, I want to see how many unread notifications I have so I know if something needs my attention.",
+      "acceptanceCriteria": [
+        "Unread count badge displayed on bell icon when count > 0",
+        "Badge hidden when count is 0",
+        "Badge shows number for counts 1-99",
+        "Badge shows '99+' for counts over 99",
+        "Badge styled as small red/accent circle",
+        "Count fetched from current_user.unread_notifications_count",
+        "Badge has turbo frame ID for live updates",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create NotificationsController with index action",
+      "description": "As a developer, I need a controller to serve the notifications dropdown content.",
+      "acceptanceCriteria": [
+        "Create NotificationsController in app/controllers/",
+        "Add index action that returns notifications dropdown partial",
+        "Index fetches current_user.unread_notifications (limit 10)",
+        "Add route: GET /notifications (turbo_stream format)",
+        "Scoped to current_user only",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Implemented as part of earlier iteration - controller and dropdown exist"
+    },
+    {
+      "id": "US-005",
+      "title": "Create notifications dropdown panel",
+      "description": "As a user, I want to click the bell to see my notifications in a dropdown.",
+      "acceptanceCriteria": [
+        "Create Components::NotificationsDropdown Phlex component",
+        "Clicking bell fetches and opens dropdown below the icon",
+        "Dropdown has header 'Notifications' with 'Mark all read' link",
+        "Dropdown shows list of notifications (max 10, most recent first)",
+        "Empty state shows 'No notifications' message",
+        "Clicking outside dropdown closes it",
+        "Stimulus controller handles open/close/fetch behavior",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create notification item component",
+      "description": "As a user, I want each notification in the dropdown to show relevant information.",
+      "acceptanceCriteria": [
+        "Create Components::NotificationItem Phlex component",
+        "Shows item title, reminder time, and relative time (e.g., '2 hours ago')",
+        "Unread notifications have visual distinction (bolder or background)",
+        "Read notifications appear muted/lighter",
+        "Hover state indicates clickability",
+        "Component receives notification record as parameter",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement mark all read functionality",
+      "description": "As a user, I want to mark all notifications as read to clear my notification count.",
+      "acceptanceCriteria": [
+        "Add mark_all_read action to NotificationsController",
+        "Action calls Notifications::MarkAllReadService",
+        "Add route: POST /notifications/mark_all_read",
+        "Returns turbo_stream that updates badge count to 0",
+        "Returns turbo_stream that updates notification items to read state",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Implemented with form button, turbo_stream updates badge and replaces dropdown with empty state"
+    },
+    {
+      "id": "US-008",
+      "title": "Implement click-to-navigate for notifications",
+      "description": "As a user, I want to click a notification to go to that item.",
+      "acceptanceCriteria": [
+        "Add show action to NotificationsController that marks read and redirects",
+        "Clicking notification navigates to the day containing the item",
+        "URL includes anchor or param for item highlighting (e.g., ?highlight=item_123)",
+        "Notification marked as read when clicked",
+        "Dropdown closes after click",
+        "Uses Turbo for navigation",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Implemented show action with mark_read and redirect to day with highlight param. Uses data-turbo-frame=_top for full page navigation."
+    },
+    {
+      "id": "US-009",
+      "title": "Implement item highlight on navigation",
+      "description": "As a user, I want the item to be highlighted after I click a notification.",
+      "acceptanceCriteria": [
+        "Create item-highlight Stimulus controller",
+        "Controller checks URL for highlight param on connect",
+        "If param matches an item, scroll that item into view",
+        "Apply brief highlight animation (flash background color)",
+        "Remove highlight param from URL after highlighting (history.replaceState)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Created item-highlight Stimulus controller that reads highlight param, scrolls to item, applies pulse animation, and removes param from URL."
+    },
+    {
+      "id": "US-010",
+      "title": "Add reminder indicator icon to items",
+      "description": "As a user, I want to see which items have reminders set.",
+      "acceptanceCriteria": [
+        "Small bell icon displayed on items that have pending reminders",
+        "Icon positioned near item actions or status area",
+        "Icon only shows for items with at least one pending notification",
+        "Uses Icon::Bell component",
+        "Add Item#has_pending_reminders? helper method",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Added has_pending_reminders? method to Item model, added bell icon to CompletableItem render_badges method"
+    },
+    {
+      "id": "US-011",
+      "title": "Show reminder time on item hover/expand",
+      "description": "As a user, I want to see when my reminder is set when I hover over an item.",
+      "acceptanceCriteria": [
+        "On hover/expand, show next reminder time (e.g., 'Reminder: Jan 16, 9:00 AM')",
+        "If multiple reminders, show 'Next: [time]' with count (e.g., '+2 more')",
+        "Time displayed in user-friendly format",
+        "Add Item#next_reminder and Item#pending_reminders_count methods",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Added next_reminder and pending_reminders_count methods to Item model. Bell icon in CompletableItem now shows RubyUI Tooltip on hover with reminder time. Single reminder shows 'Reminder: [time]', multiple shows 'Next: [time] (+N more)'."
+    },
+    {
+      "id": "US-012",
+      "title": "Add Reminders section to actions sheet",
+      "description": "As a user, I want to see and manage reminders in the item's actions sheet.",
+      "acceptanceCriteria": [
+        "Create Components::RemindersSection Phlex component",
+        "New 'Reminders' section in actions sheet (uses turbo_stream.replace for sheet_content_area)",
+        "Section header 'Reminders' with 'Add' button",
+        "Lists existing pending reminders for this item (date/time for each)",
+        "Each reminder row has delete button (X icon)",
+        "Empty state shows 'No reminders set'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Created RemindersSection component, added bell icon button to actions sheet, routes and controller action. Placeholder ReminderForm for next story."
+    },
+    {
+      "id": "US-013",
+      "title": "Create add reminder form",
+      "description": "As a user, I want to add a new reminder by selecting a date and time.",
+      "acceptanceCriteria": [
+        "Create Components::ReminderForm Phlex component",
+        "Clicking 'Add' replaces sheet content with form (turbo_stream.replace sheet_content_area)",
+        "Form has datetime-local input for reminder time",
+        "Quick preset buttons: 'In 1 hour', 'Tomorrow 9am', 'In 3 days'",
+        "Stimulus controller handles preset button clicks to set datetime value",
+        "Cancel button returns to reminders list",
+        "Uses RubyUI form components (Form, FormField, Input, Button)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Created ReminderForm Phlex component with datetime-local input and preset buttons. Created reminder_form_controller.js Stimulus controller to handle preset button clicks (In 1 hour, Tomorrow 9am, In 3 days). Form posts to /items/:id/notifications (route created in US-014). Cancel returns to reminders list."
+    },
+    {
+      "id": "US-014",
+      "title": "Implement create reminder backend",
+      "description": "As a developer, I need a controller action to create reminders.",
+      "acceptanceCriteria": [
+        "Add create action to NotificationsController",
+        "Action creates Notification for item with remind_at from params",
+        "Validates remind_at is in the future",
+        "Returns turbo_stream replacing reminders section with updated list",
+        "Updates item's reminder indicator via turbo_stream",
+        "Add route: POST /items/:item_id/notifications",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Created ItemNotificationsController with create action. Route POST /items/:item_id/notifications creates reminder. Validates remind_at in future. Returns turbo_stream to replace sheet_content_area with updated reminders list and updates item's reminder indicator."
+    },
+    {
+      "id": "US-015",
+      "title": "Implement delete reminder functionality",
+      "description": "As a user, I want to delete a reminder I no longer need.",
+      "acceptanceCriteria": [
+        "Delete button (X icon) on each reminder row",
+        "Clicking delete shows RubyUI::AlertDialog confirmation (never turbo_confirm)",
+        "Add destroy action to NotificationsController",
+        "Confirming deletes the notification",
+        "Returns turbo_stream updating reminders list",
+        "Updates item's reminder indicator if no reminders remain",
+        "Add route: DELETE /notifications/:id",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Added destroy action to NotificationsController. DELETE route at /notifications/:id. RemindersSection uses RubyUI::AlertDialog for delete confirmation. Returns turbo_stream to update sheet_content_area and item indicator. Added 5 test cases."
+    },
+    {
+      "id": "US-016",
+      "title": "Add Notifications tab to settings modal",
+      "description": "As a user, I want to configure my notification preferences in settings.",
+      "acceptanceCriteria": [
+        "Create Components::NotificationPreferencesTab Phlex component",
+        "New 'Notifications' tab added to settings modal",
+        "Toggle for 'Push notifications' (on/off)",
+        "Toggle for 'In-app notifications' (on/off)",
+        "Quiet hours section with start time and end time inputs (type: time)",
+        "Helper text: 'During quiet hours, notifications will be held'",
+        "Uses RubyUI form components",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Created NotificationPreferencesTab Phlex component with toggles for push and in-app notifications, plus quiet hours section with start/end time inputs. Added as 'Notifications' tab to settings dialog in app_sidebar.rb."
+    },
+    {
+      "id": "US-017",
+      "title": "Implement save notification preferences",
+      "description": "As a user, I want my notification preferences to save without page reload.",
+      "acceptanceCriteria": [
+        "Add update_notification_preferences action to appropriate controller (UsersController or SettingsController)",
+        "Action updates user.notification_preferences jsonb field",
+        "Returns turbo_stream with success feedback",
+        "Add route for the action",
+        "Form submits via Turbo (no page reload)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Added update_notification_preferences action to SettingsController. Route PATCH /settings/notification_preferences. Form uses data-turbo-stream for AJAX submit. Shows success toast on save. Created 5 test cases."
+    },
+    {
+      "id": "US-018",
+      "title": "Add real-time badge updates via Turbo broadcast",
+      "description": "As a user, I want my notification badge to update when new notifications arrive.",
+      "acceptanceCriteria": [
+        "SendNotificationJob broadcasts turbo_stream to user's channel after sending",
+        "Broadcast updates the notification badge count",
+        "Badge animates briefly when count increases (CSS pulse animation)",
+        "User subscribes to their notification channel on page load",
+        "Works without page refresh",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Created NotificationChannel for user-specific broadcasts. Created notification_subscription_controller.js Stimulus controller to subscribe on page load. Updated SendNotificationJob to broadcast badge updates after sending. Added CSS pulse animation. Added tests for channel and broadcast functionality."
+    }
+  ]
+}

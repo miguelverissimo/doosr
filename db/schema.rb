@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_17_104705) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,6 +90,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_bank_infos_on_user_id"
+  end
+
+  create_table "bank_transactions", force: :cascade do |t|
+    t.bigint "category_id"
+    t.datetime "created_at", null: false
+    t.date "date", null: false
+    t.string "description", null: false
+    t.bigint "recurring_group_id"
+    t.string "row_hash", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.decimal "value", precision: 12, scale: 2, null: false
+    t.index ["category_id"], name: "index_bank_transactions_on_category_id"
+    t.index ["date"], name: "index_bank_transactions_on_date"
+    t.index ["recurring_group_id"], name: "index_bank_transactions_on_recurring_group_id"
+    t.index ["user_id", "row_hash"], name: "index_bank_transactions_on_user_id_and_row_hash", unique: true
+    t.index ["user_id"], name: "index_bank_transactions_on_user_id"
+  end
+
+  create_table "categories", force: :cascade do |t|
+    t.string "color", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_categories_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_categories_on_user_id"
+  end
+
+  create_table "category_patterns", force: :cascade do |t|
+    t.bigint "category_id", null: false
+    t.datetime "created_at", null: false
+    t.string "pattern", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["category_id"], name: "index_category_patterns_on_category_id"
+    t.index ["user_id", "pattern"], name: "index_category_patterns_on_user_id_and_pattern", unique: true
+    t.index ["user_id"], name: "index_category_patterns_on_user_id"
   end
 
   create_table "checklists", force: :cascade do |t|
@@ -478,6 +516,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
     t.index ["user_id"], name: "index_receipts_on_user_id"
   end
 
+  create_table "recurring_groups", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.decimal "average_amount", precision: 15, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.string "description_pattern", null: false
+    t.date "expected_next"
+    t.string "frequency", null: false
+    t.date "last_occurrence"
+    t.string "name", null: false
+    t.integer "occurrence_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "description_pattern"], name: "index_recurring_groups_on_user_id_and_description_pattern", unique: true
+    t.index ["user_id"], name: "index_recurring_groups_on_user_id"
+  end
+
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
     t.string "concurrency_key", null: false
     t.datetime "created_at", null: false
@@ -640,6 +694,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addresses", "users"
   add_foreign_key "bank_infos", "users"
+  add_foreign_key "bank_transactions", "categories"
+  add_foreign_key "bank_transactions", "recurring_groups"
+  add_foreign_key "bank_transactions", "users"
+  add_foreign_key "categories", "users"
+  add_foreign_key "category_patterns", "categories"
+  add_foreign_key "category_patterns", "users"
   add_foreign_key "checklists", "checklists", column: "template_id", on_delete: :nullify
   add_foreign_key "checklists", "users"
   add_foreign_key "customers", "addresses"
@@ -695,6 +755,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_15_060331) do
   add_foreign_key "receipt_receipt_items", "users"
   add_foreign_key "receipts", "invoices"
   add_foreign_key "receipts", "users"
+  add_foreign_key "recurring_groups", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

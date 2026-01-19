@@ -1,290 +1,584 @@
-# Ralph Progress Log
-# Feature: Item Notifications UI
-# Branch: ralph/item-notifications-ui
+# Ralph Progress Log - Banking Expense Tracking
+
+Branch: ralph/banking-expense-tracking
+Started: 2026-01-17
 
 ## Codebase Patterns
-- Use `t.references` for foreign keys - it automatically adds indexes
-- Trace item to Day: iterate `Descendant.containing_item(id)` → `descendable` until descendable.is_a?(Day)
-- Icons must be classes in `app/components/icon/` inheriting from `Icon::Base`
-- Never use `on*` event attributes in Phlex - use Stimulus controllers
-- Drawer navigation: use `turbo_stream.replace("sheet_content_area")` within drawer, never create new backdrop
-- Delete confirmations must use `RubyUI::AlertDialog`, never `turbo_confirm`
-- All forms must use RubyUI form components (Form, FormField, Input, etc.)
-- Use `view_context` instead of `helpers` in Phlex components (helpers is deprecated)
-- Hover tooltips: use `Tooltip { TooltipTrigger { element } TooltipContent { text } }`
-- ActionCable channels: subscribe in Stimulus controller using `consumer.subscriptions.create()`
-- User identification for ActionCable: set `identified_by :current_user` in Connection, use Warden lookup
+- Use `t.references :user, null: false, foreign_key: true` for standard user FK
+- Use `t.bigint :column_id, null: true` when referencing a table that doesn't exist yet
+- Models follow pattern: belongs_to associations, validations, scopes
+- Array indexes use spaces inside brackets per rubocop: `[ :user_id, :row_hash ]`
+- Ruby 3.4 removed `csv` from stdlib - must add gem explicitly
+- Services use Result struct pattern for returning structured results
+- Pagination: Use Kaminari `.page(n).per(x)`, turbo_stream.replace for list component, Stimulus controller with spinner/content targets
+- Filtering: Use plain HTML select() for dropdowns, form with turbo_stream data attribute, preserve filter params in ALL URL builders
+- Debounce search: Create Stimulus controller with `search()` method that clears/sets timeout before calling `formTarget.requestSubmit()`
+- ActionCable: Create channel in `app/channels/`, subscribe via Stimulus controller using `createConsumer()`, broadcast from jobs with `ActionCable.server.broadcast(channel_name, data)`
+- FormDialog create/edit: Use `persisted?` to detect mode, dynamically set action/method/messages, add `_method: patch` hidden field for edits
+- AlertDialog delete: AlertDialogTrigger wraps button, form with `data: { action: "submit@document->ruby-ui--alert-dialog#dismiss" }` inside AlertDialogFooter, use turbo_stream.remove for row deletion
+- Bulk selection: Stimulus controller with selectAll/checkbox/bulkActions targets, hidden input with comma-separated IDs, controller returns array of turbo_stream.remove
+- Nested feature controllers: Use `namespace :banking do resources :categories` for /banking/categories routes, controller in `app/controllers/banking/`
+- Dialog internal navigation: Use turbo_stream.replace("content_area_id", NewComponent) to swap content without creating new dialogs
+- Fuzzy string matching: Levenshtein distance algorithm in pure Ruby (no gems needed), similarity = (max_len - distance) / max_len
+- Chart.js: `bin/importmap pin chart.js`, register only needed components (ArcElement, DoughnutController, etc.), pass data via Stimulus values
+- Chart.js bar chart: Use BarElement, BarController, CategoryScale, LinearScale, datasets array with separate colors for multiple series
+- PostgreSQL time grouping: Use DATE_TRUNC('week', column) or DATE_TRUNC('month', column) for aggregation
 
 ---
 
-## 2026-01-15 - US-001
-Thread: https://ampcode.com/threads/T-019bc06a-42a5-7249-a5f0-521cfeb5b2ff
-- Created Icon::BellRing component for notification alert variant
-- Icon::Bell already existed in codebase
-- Files changed: app/components/icon/bell_ring.rb
+## 2026-01-17 07:24 - US-001
+Thread: https://ampcode.com/threads/T-019bcad6-d70f-7149-9c19-336dca7bc49a
+- Created BankTransaction model with all required fields
+- Created migration with indexes on date, category_id, and composite unique index on [user_id, row_hash]
+- Added bank_transactions association to User model
+- Files changed:
+  - app/models/bank_transaction.rb (new)
+  - app/models/user.rb (added association)
+  - db/migrate/20260117072434_create_bank_transactions.rb (new)
+  - db/schema.rb (updated)
 - **Learnings for future iterations:**
-  - Icon::Bell was already implemented in the codebase
-  - BellRing follows same pattern as Bell but with additional paths for ringing animation lines
-  - Icons render at sizes 16, 20, 24 by setting the size param in constructor
+  - Pre-existing test failures in Notifications::WebPushDeliveryServiceTest (URL format mismatch) are unrelated to banking feature
+  - Category model doesn't exist yet, so category_id FK is just a bigint without foreign_key constraint (will be added in US-002)
+
 ---
 
-## 2026-01-15 - US-002
-Thread: https://ampcode.com/threads/T-019bc06d-0d93-714c-9394-0e2e8b3bd92a
-- Created Components::NotificationBell Phlex component
-- Created notification_bell_controller.js Stimulus controller for click handling
-- Added notification bell to app_layout.rb header (after content-specific headers)
-- Files changed: app/components/notification_bell.rb, app/javascript/controllers/notification_bell_controller.js, app/views/layouts/app_layout.rb
+## 2026-01-17 07:32 - US-002
+Thread: https://ampcode.com/threads/T-019bcade-575a-73cc-b560-e14034ec73eb
+- Created Category model with name, color, user_id fields
+- Added unique composite index on [user_id, name]
+- Added foreign key from bank_transactions.category_id to categories
+- Created Banking::SeedCategoriesService for seeding default categories per user
+- Default categories: Groceries, Fuel, Subscriptions, Dining, Transport, Shopping, Bills, Entertainment, Health, Other
+- Files changed:
+  - app/models/category.rb (new)
+  - app/models/user.rb (added categories association)
+  - app/services/banking/seed_categories_service.rb (new)
+  - db/migrate/20260117073221_create_categories.rb (new)
+  - db/schema.rb (updated)
 - **Learnings for future iterations:**
-  - Notification bell is rendered at the end of the header element, after all content-specific headers
-  - Bell is wrapped in a div with Stimulus controller, uses Button variant :ghost with icon: true
-  - The button inherits hover state from RubyUI Button component (no custom styling needed)
-  - dev-browser skill was not available; system tests used instead for verification
+  - Categories are user-scoped, so seeding via SeedCategoriesService should be called when needed (not in global seeds.rb)
+  - The migration now adds the foreign key constraint for category_id on bank_transactions that was missing in US-001
+
 ---
 
-## 2026-01-15 - US-003
-Thread: https://ampcode.com/threads/T-019bc072-c662-70a9-988c-a2f642bbe60f
-- Created Components::NotificationBadge Phlex component
-- Updated NotificationBell to include badge with turbo_frame_tag for live updates
-- Badge displays count 1-99, shows "99+" for counts over 99, hidden when 0
-- Files changed: app/components/notification_badge.rb, app/components/notification_bell.rb
+## 2026-01-17 07:36 - US-003
+Thread: https://ampcode.com/threads/T-019bcae1-38de-7065-a95c-a8836ddf9e1a
+- Created CategoryPattern model for auto-categorization of transactions
+- Model includes pattern (string), category_id (FK), user_id (FK)
+- Added unique composite index on [user_id, pattern] to prevent duplicate patterns
+- Added `matches?(description)` method for case-insensitive substring matching
+- Added `by_length_desc` scope for ordering patterns by length (longest first for matching priority)
+- Files changed:
+  - app/models/category_pattern.rb (new)
+  - app/models/category.rb (added category_patterns association)
+  - app/models/user.rb (added category_patterns association)
+  - db/migrate/20260117073537_create_category_patterns.rb (new)
+  - db/schema.rb (updated)
 - **Learnings for future iterations:**
-  - Use `turbo_frame_tag("notification_badge")` to wrap badge for live updates
-  - Badge uses absolute positioning (-top-1 -right-1) to overlay on parent element
-  - Use `bg-destructive` for red accent color (from Tailwind theme)
-  - Phlex::Rails::Helpers::TurboFrameTag is included in Components::Base
-  - Badge component returns early (empty) when count is zero for clean conditional rendering
+  - CategoryPattern.matches? does case-insensitive substring match on description
+  - Use `by_length_desc` scope to match longest patterns first
+
 ---
 
-## 2026-01-15 - US-004
-Thread: https://ampcode.com/threads/T-019bc079-0568-776e-867b-1b1928f37b81
-- NotificationsController#index already existed from prior work
-- Route GET /notifications already configured for turbo_stream format
-- Fetches current_user.unread_notifications (limit 10), scoped to current_user
-- Files changed: None (already complete)
+## 2026-01-17 07:41 - US-004
+Thread: https://ampcode.com/threads/T-019bcae4-ba10-7703-9da1-4b9b09d4c105
+- Created Banking::ImportService for CSV parsing with deduplication
+- Created Banking::ImportJob for background processing via Solid Queue
+- Added `csv` gem to Gemfile (required since Ruby 3.4 removed it from stdlib)
+- Service handles DD-MM-YYYY date format and comma/period decimal separators
+- Returns Result struct with success, total, imported, skipped, errors counts
+- Tested duplicate detection (row_hash-based) works correctly
+- Files changed:
+  - app/services/banking/import_service.rb (new)
+  - app/jobs/banking/import_job.rb (new)
+  - Gemfile (added csv gem)
+  - Gemfile.lock (updated)
 - **Learnings for future iterations:**
-  - US-004 was pre-completed as part of US-003's dropdown implementation
-  - Controller returns turbo_stream.append to notification_bell container
+  - Ruby 3.4 removed csv from stdlib - must add gem explicitly
+  - Value parsing handles both European (1.234,56) and US (1,234.56) formats
+  - row_hash uses SHA256 of normalized date|description|value for deduplication
+
 ---
 
-## 2026-01-15 - US-005
-Thread: https://ampcode.com/threads/T-019bc079-0568-776e-867b-1b1928f37b81
-- Updated notification_bell_controller.js with full open/close/fetch behavior
-- Clicking bell fetches /notifications and appends dropdown via Turbo Stream
-- Click outside detection closes dropdown by removing it from DOM
-- Updated NotificationsController to use turbo_stream.append instead of replace
-- Files changed: app/javascript/controllers/notification_bell_controller.js, app/controllers/notifications_controller.rb
+## 2026-01-17 08:15 - US-005
+Thread: https://ampcode.com/threads/T-019bcb31-c978-760e-9df2-cd61869a2ea0
+- Added automatic categorization during CSV import
+- ImportService now loads user's CategoryPatterns (ordered by length desc) on initialization
+- During row processing, calls `find_matching_category(description)` to match against patterns
+- First matching pattern (longest first) assigns its category; otherwise null
+- Files changed:
+  - app/services/banking/import_service.rb (modified)
 - **Learnings for future iterations:**
-  - Use turbo_stream.append for dynamically created dropdowns, not replace
-  - Turbo.renderStreamMessage(html) processes turbo stream responses from fetch
-  - Click outside handler must check if click is inside both bell and dropdown
-  - Store openValue in Stimulus to track dropdown state
----
+  - CategoryPatterns are loaded once at init with `.includes(:category)` for efficiency
+  - Use the `by_length_desc` scope so longest pattern matches first
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
 
-## 2026-01-15 - US-006
-Thread: https://ampcode.com/threads/T-019bc07b-a834-72eb-af17-167e36ccf85c
-- Created Components::NotificationItem Phlex component
-- Shows item title, reminder time (formatted), and relative time (e.g., "30 minutes ago")
-- Unread notifications have bg-muted/30 background and font-semibold title
-- Read notifications have opacity-60 and font-normal title
-- Updated NotificationsDropdown to use NotificationItem component
-- Files changed: app/components/notification_item.rb, app/components/notifications_dropdown.rb
-- **Learnings for future iterations:**
-  - NotificationItem shows visual distinction based on read state (check read_at.nil?)
-  - Use `transition-colors` class for smooth hover state transitions
-  - Format reminder time with strftime("%b %-d, %-I:%M %p") for user-friendly display
----
-
-## 2026-01-15 - US-007
-Thread: https://ampcode.com/threads/T-019bc07f-1b88-7108-8444-3faae7581cfb
-- Added mark_all_read action to NotificationsController
-- Added route POST /notifications/mark_all_read
-- Updated NotificationsDropdown "Mark all read" from link to RubyUI form with button
-- Returns turbo_stream that updates badge to 0 and replaces dropdown with empty state
-- Created controller test file with 4 test cases
-- Files changed: app/controllers/notifications_controller.rb, app/components/notifications_dropdown.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
-- **Learnings for future iterations:**
-  - Use `view_context` instead of `helpers` in Phlex components (helpers is deprecated)
-  - For testing notifications, create with future remind_at then call mark_sent! (remind_at validation is on :create only)
-  - Form buttons for actions: use RubyUI::Form with method: :post, data: { turbo_stream: true }
----
-
-## 2026-01-15 - US-008
-Thread: https://ampcode.com/threads/T-019bc084-6450-742a-8441-012283f8eebc
-- Added show action to NotificationsController that marks notification as read and redirects
-- Updated NotificationItem component to be a clickable link with href to notification show path
-- Uses data-turbo-frame="_top" to trigger full page navigation (closes dropdown)
-- Redirect URL includes highlight param (e.g., ?highlight=123) for item highlighting
-- Added route GET /notifications/:id
-- Created 4 new test cases for show action
-- Files changed: app/controllers/notifications_controller.rb, app/components/notification_item.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
-- **Learnings for future iterations:**
-  - Use `find_root_day(item)` pattern to trace item to its containing Day through Descendant chain
-  - For full page navigation from within Turbo context, use `data: { turbo_frame: "_top" }` on links
-  - Scoped find via `current_user.notifications.find(id)` returns 404 for other users' records
-  - `Descendant.add_active_item(id)` expects integer ID, not Item object
 ---
 
 
-## 2026-01-15 - US-009
-Thread: https://ampcode.com/threads/T-019bc089-a55e-7307-bd72-3705c5d58db6
-- Created item-highlight Stimulus controller that activates on connect
-- Controller reads `highlight` param from URL, finds matching item element
-- Scrolls item into view with smooth behavior and centers it
-- Applies CSS pulse animation (item-highlight-flash class) for visual highlight
-- Removes highlight param from URL using history.replaceState
-- Added CSS animation in application.css using oklch colors from theme
-- Connected controller to items_list div in days/show.rb
-- Files changed: app/javascript/controllers/item_highlight_controller.js, app/assets/tailwind/application.css, app/views/days/show.rb
+## 2026-01-17 09:30 - US-006
+Thread: https://ampcode.com/threads/T-019bcb35-f3d3-740a-ad24-09961ffccce4
+- Created BankingController with index action for dashboard page
+- Created banking icon (bank/columns style) at app/components/icon/banking.rb
+- Created banking index view with summary cards (Total Income, Total Expenses, Net Balance)
+- Created banking header component
+- Added /banking route (resources :banking, only: [:index])
+- Added Banking to sidebar navigation
+- Added banking header support to app_layout
+- Files changed:
+  - app/controllers/banking_controller.rb (new)
+  - app/components/icon/banking.rb (new)
+  - app/views/banking/index.rb (new)
+  - app/views/banking/header.rb (new)
+  - app/components/app_sidebar.rb (modified - added banking navigation)
+  - app/views/layouts/app_layout.rb (modified - added banking header support)
+  - config/routes.rb (modified - added banking route)
 - **Learnings for future iterations:**
-  - Use `scrollIntoView({ behavior: "smooth", block: "center" })` for smooth scroll centering
-  - Use `history.replaceState({}, "", url.toString())` to update URL without navigation
-  - CSS animations with oklch colors work well for themed highlight effects
-  - Stimulus controller connects automatically via data-controller on items_list
+  - Default period is current month (Date.current.beginning_of_month to end_of_month)
+  - Summary cards use grid layout with md:grid-cols-3
+  - Use helpers.number_with_delimiter for currency formatting
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
 ---
 
-## 2026-01-15 - US-010
-Thread: https://ampcode.com/threads/T-019bc08e-5279-758d-89d8-e313d8c742a4
-- Added `has_pending_reminders?` method to Item model that checks for pending notifications
-- Added bell icon to `render_badges` in CompletableItem component for items with pending reminders
-- Icon uses blue color (text-blue-500) consistent with other reminder/notification UI
-- Added 3 test cases for `has_pending_reminders?` method
-- Files changed: app/models/item.rb, app/views/items/_completable_item.rb, test/models/item_test.rb
+## 2026-01-17 10:15 - US-007
+Thread: https://ampcode.com/threads/T-019bcb3b-b2b3-7348-91e5-6cde8d2f47e3
+- Added transactions table with pagination to banking dashboard
+- Created TransactionsList component with RubyUI Table components
+- Implemented Turbo Stream-based pagination (no full page reload)
+- Created transactions_pagination Stimulus controller for loading spinner
+- Table shows Date, Description, Category (with colored badge), Value (green/red)
+- 50 items per page, sorted by date descending
+- Files changed:
+  - app/controllers/banking_controller.rb (modified - added pagination, turbo_stream response)
+  - app/views/banking/index.rb (modified - added transactions section)
+  - app/views/banking/transactions_list.rb (new)
+  - app/javascript/controllers/transactions_pagination_controller.js (new)
 - **Learnings for future iterations:**
-  - Use `notifications.pending.exists?` for efficient existence check (doesn't load records)
-  - Badge icons in render_badges follow same structure: span wrapper with h-5 w-5 and centered content
-  - Icon sizes in badges typically use size: "14" for visual consistency
+  - Use `turbo_stream.replace("element_id", ViewComponent)` for pagination updates
+  - RubyUI Table components: Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+  - Pagination pattern: PaginationItem with `data: { turbo_stream: true, action: "click->controller#showSpinner" }`
+  - Secondary sort on `id: :desc` ensures stable ordering when dates are the same
+
 ---
 
-## 2026-01-15 - US-011
-Thread: https://ampcode.com/threads/T-019bc16f-c78b-748b-8bdb-d1553f05cd9b
-- Added `next_reminder` method to Item model (returns earliest pending notification)
-- Added `pending_reminders_count` method to Item model
-- Updated bell icon in CompletableItem to show RubyUI Tooltip on hover
-- Tooltip shows "Reminder: [time]" for single, "Next: [time] (+N more)" for multiple
-- Added 4 test cases for the new methods
-- Files changed: app/models/item.rb, app/views/items/_completable_item.rb, test/models/item_test.rb
+## 2026-01-17 11:45 - US-008
+Thread: https://ampcode.com/threads/T-019bcb45-4a15-72f6-b29c-021d5d643fc6
+- Added clickable sortable column headers to transactions table
+- Created ArrowUpDown icon for unsorted columns, reused ArrowUp/ArrowDown for active sort indicators
+- Controller handles sort/direction params with validation against allowed columns
+- Sorting by category uses left_joins(:category) and orders by categories.name
+- Sort state persists in URL params and is preserved during pagination
+- Files changed:
+  - app/components/icon/arrow_up_down.rb (new)
+  - app/components/icon/arrow_down.rb (modified - path order fix)
+  - app/controllers/banking_controller.rb (modified - added sorting logic)
+  - app/views/banking/index.rb (modified - pass sort params)
+  - app/views/banking/transactions_list.rb (modified - sortable headers)
 - **Learnings for future iterations:**
-  - Use RubyUI Tooltip with TooltipTrigger and TooltipContent for hover information
-  - Format reminder times with strftime("%b %-d, %-I:%M %p") for user-friendly display
-  - Tooltip pattern: wrap the element in Tooltip > TooltipTrigger, then add TooltipContent sibling
+  - SORTABLE_COLUMNS constant for whitelisting allowed sort columns
+  - Category sorting requires left_joins to include null categories with NULLS LAST
+  - Use Arel.sql() for raw SQL order clauses (needed for category sorting)
+  - Toggle sort direction: if same column clicked and asc -> desc, else -> asc
+
 ---
 
-## 2026-01-15 - US-012
-Thread: https://ampcode.com/threads/T-019bc174-336f-7248-b648-6d5692653d7c
-- Created Views::Items::RemindersSection Phlex component for managing reminders
-- Added bell icon button to ActionsSheetButtons (next to recurrence icon)
-- Created Views::Items::ReminderForm placeholder component (fully implemented in US-013)
-- Added routes: GET /items/:id/reminders and GET /items/:id/reminder_form
-- Added controller actions: items#reminders and items#reminder_form
-- Component shows list of pending reminders with date/time and delete (X) button
-- Empty state shows "No reminders set"
-- Back button returns to actions sheet, Add button navigates to reminder form
-- Added 3 test cases for reminders action
-- Files changed: app/views/items/_reminders_section.rb, app/views/items/_reminder_form.rb, app/views/items/_actions_sheet_buttons.rb, app/controllers/items_controller.rb, config/routes.rb, test/controllers/items_controller_test.rb
+## 2026-01-17 12:30 - US-009
+Thread: https://ampcode.com/threads/T-019bcb4b-3a1f-7176-93cb-5332b15d7d3a
+- Added filter panel above transactions table with date range, category, and amount filters
+- Created FilterPanel component with form that uses turbo_stream for AJAX updates
+- Controller now handles category_id, min_amount, max_amount params
+- Category filter includes "Uncategorized" option for filtering null category transactions
+- Amount filters use ABS(value) to filter by absolute amount (works for both income/expense)
+- Filter state persists in URL params across pagination and sorting
+- Active filter count badge shown when filters are applied
+- Clear Filters button resets to defaults while preserving sort
+- Files changed:
+  - app/views/banking/filter_panel.rb (new)
+  - app/controllers/banking_controller.rb (modified - added filter params and apply_filters method)
+  - app/views/banking/index.rb (modified - added filter panel rendering and filter params)
+  - app/views/banking/transactions_list.rb (modified - preserve filter params in pagination/sort URLs)
 - **Learnings for future iterations:**
-  - Follow same pattern as recurrence_options/defer_options for new sheet views
-  - Bell icon button added after recurrence button in render_completable_primary_actions
-  - Reminder delete uses reminder-delete Stimulus controller (to be implemented in US-015)
-  - dev-browser skill not available; use system tests instead
+  - Use ABS(value) for amount filtering when you want to filter by absolute amount regardless of sign
+  - Filter params need to be preserved in ALL URL builders: sort_path, pagination_path
+  - Use select() with plain HTML for dropdowns (no RubyUI::Select component in this codebase)
+  - Pattern for filter forms: hidden fields for sort params, turbo_stream on form submit
+
 ---
 
-## 2026-01-15 - US-013
-Thread: https://ampcode.com/threads/T-019bc179-5ece-7268-993e-20a2a0fb8f27
-- Updated Views::Items::ReminderForm Phlex component with full implementation
-- Created reminder_form_controller.js Stimulus controller for preset button handling
-- Preset buttons: "In 1 hour", "Tomorrow 9am", "In 3 days" set datetime-local input value
-- Form uses RubyUI components (Form, FormField, FormFieldLabel, Input, Button)
-- Cancel button returns to reminders list via turbo_stream link
-- Form posts to /items/:id/notifications (route to be added in US-014)
-- Added 3 test cases for reminder_form action
-- Files changed: app/views/items/_reminder_form.rb, app/javascript/controllers/reminder_form_controller.js, test/controllers/items_controller_test.rb
+## 2026-01-17 13:15 - US-010
+Thread: https://ampcode.com/threads/T-019bcb55-414b-72ad-b815-da056a643908
+- Added search input field to filter panel with 300ms debounce
+- Created search_transactions_controller.js Stimulus controller for debounced form submission
+- Controller handles search param with case-insensitive LIKE query on description
+- Search term persists in URL params across pagination and sorting
+- Active filter count badge includes search filter
+- Files changed:
+  - app/javascript/controllers/search_transactions_controller.js (new)
+  - app/controllers/banking_controller.rb (modified - added search param and apply_search_filter)
+  - app/views/banking/filter_panel.rb (modified - added search input with debounce)
+  - app/views/banking/index.rb (modified - pass search param)
+  - app/views/banking/transactions_list.rb (modified - preserve search param in URLs)
 - **Learnings for future iterations:**
-  - Use datetime-local input type with data-reminder-form-target="datetimeInput" for Stimulus targeting
-  - Preset buttons use data-preset attribute and data-action="click->reminder-form#setPreset"
-  - Format date as YYYY-MM-DDTHH:MM for datetime-local input value
+  - Debounce pattern: Stimulus controller with timeout, input event triggers search(), clearTimeout + setTimeout + formTarget.requestSubmit()
+  - Use LOWER(column) LIKE for case-insensitive partial match in PostgreSQL
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
 ---
 
-## 2026-01-15 - US-014
-Thread: https://ampcode.com/threads/T-019bc17e-6652-750d-bc9a-2a60e65a002b
-- Created ItemNotificationsController with create action for adding reminders
-- Added nested route POST /items/:item_id/notifications under items resources
-- Controller validates remind_at is in future (via Notification model validation)
-- Returns turbo_stream replacing sheet_content_area with updated reminders list
-- Updates item's reminder indicator in day view via turbo_stream.replace
-- Shows success/error toast messages
-- Added 6 test cases covering create, validation, auth, and authorization
-- Files changed: app/controllers/item_notifications_controller.rb, config/routes.rb, test/controllers/item_notifications_controller_test.rb
+## 2026-01-17 14:15 - US-011
+Thread: https://ampcode.com/threads/T-019bcb5b-7f23-722a-84ab-8aa5c220c7e1
+- Created manual transaction entry form with RubyUI::Dialog
+- Added new_transaction and create_transaction actions to BankingController
+- Created TransactionFormDialog component with form fields (Date, Description, Value, Category)
+- Created TransactionRow component for rendering individual transaction rows
+- Added ID to transactions_table_body for Turbo Stream prepending
+- Added "Add Transaction" button to banking dashboard
+- row_hash generation matches ImportService pattern (SHA256 of normalized date|description|value)
+- Files changed:
+  - app/controllers/banking_controller.rb (modified - added new_transaction/create_transaction actions)
+  - app/views/banking/transaction_form_dialog.rb (new)
+  - app/views/banking/transaction_row.rb (new)
+  - app/views/banking/index.rb (modified - added Add Transaction button)
+  - app/views/banking/transactions_list.rb (modified - added id to TableBody)
+  - config/routes.rb (modified - added new_transaction/create_transaction routes)
 - **Learnings for future iterations:**
-  - Use nested resources under items for item-specific notification actions
-  - Use separate ItemNotificationsController instead of adding to NotificationsController (cleaner routing)
-  - Parse datetime-local values with Time.zone.parse for proper timezone handling
-  - Use turbo_stream.replace to update both sheet content and item in day view
+  - Dialog form pattern: RubyUI::Dialog.new(open: true) with modal-form controller for loading/success toasts
+  - Form submission via turbo_stream.append("body") for dialog, turbo_stream.prepend for adding rows
+  - Use Add icon (::Components::Icon::Add) for add buttons
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
 ---
 
-## 2026-01-15 - US-015
-Thread: https://ampcode.com/threads/T-019bc183-628f-7013-8e79-805a9cce0cb1
-- Added destroy action to NotificationsController for deleting reminders
-- Added DELETE route /notifications/:id to routes.rb
-- Updated RemindersSection component to use RubyUI::AlertDialog for delete confirmation
-- Replaced Stimulus controller approach (reminder-delete) with inline AlertDialog pattern
-- Returns turbo_stream that updates sheet_content_area with refreshed reminders list
-- Updates item's reminder indicator if day is provided
-- Added 5 test cases for destroy action (delete, turbo_stream, item update, auth, authorization)
-- Files changed: app/controllers/notifications_controller.rb, app/views/items/_reminders_section.rb, config/routes.rb, test/controllers/notifications_controller_test.rb
+## 2026-01-17 15:30 - US-012
+Thread: https://ampcode.com/threads/T-019bcb62-80a9-777a-ae13-a204d7074ed1
+- Created CSV upload interface with dialog for file upload
+- Created BankingImportChannel for ActionCable broadcasts from background job
+- Created banking_import_controller.js Stimulus controller for real-time notifications
+- Updated Banking::ImportJob to broadcast results after import completion
+- Added Import CSV button (outline variant) next to Add Transaction button
+- Created Upload icon component (app/components/icon/upload.rb)
+- Files changed:
+  - app/views/banking/csv_import_dialog.rb (new)
+  - app/channels/banking_import_channel.rb (new)
+  - app/javascript/controllers/banking_import_controller.js (new)
+  - app/components/icon/upload.rb (new)
+  - app/controllers/banking_controller.rb (modified - added new_csv_import/import_csv actions)
+  - app/jobs/banking/import_job.rb (modified - added broadcast_result)
+  - app/views/banking/index.rb (modified - added Import CSV button, ActionCable subscription)
+  - config/routes.rb (modified - added new_csv_import/import_csv routes)
 - **Learnings for future iterations:**
-  - Use RubyUI::AlertDialog with form inside AlertDialogFooter for delete confirmations
-  - Form needs `data: { action: "submit@document->ruby-ui--alert-dialog#dismiss" }` to close dialog after submit
-  - Include `method: "post"` on form with hidden `_method: delete` input for DELETE requests
-  - Notification destroy routes go through NotificationsController (top-level), not ItemNotificationsController
+  - ActionCable pattern: Create channel, subscribe in Stimulus controller with createConsumer(), broadcast from job
+  - File upload forms need `enctype: "multipart/form-data"`
+  - Use turbo_stream.remove("dialog_id") to close dialog after successful background job enqueue
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
 ---
 
-## 2026-01-15 - US-016
-Thread: https://ampcode.com/threads/T-019bc187-ffc0-7160-ba60-a0b4ff20b13c
-- Created Components::Settings::NotificationPreferencesTab Phlex component
-- Added 'Notifications' tab to settings dialog in app_sidebar.rb
-- Toggle fields for push_enabled and in_app_enabled using same pattern as MigrationSettingsForm
-- Quiet hours section with start/end time inputs using RubyUI::FormField components
-- Reads preferences from @user.notification_preference(key) which uses NOTIFICATION_PREFERENCE_DEFAULTS
-- Files changed: app/components/settings/notification_preferences_tab.rb (new), app/components/app_sidebar.rb
+## 2026-01-17 10:08 - US-013
+Thread: https://ampcode.com/threads/T-019bcb69-7257-74ac-affc-4278100683a8
+- Added edit functionality to transactions via dialog
+- Modified TransactionFormDialog to handle both create and edit (using persisted? check)
+- Added edit icon button to TransactionRow component
+- Created edit_transaction_controller.js Stimulus controller for opening edit dialog
+- Added edit_transaction and update_transaction controller actions
+- Added member routes for edit_transaction and update_transaction
+- Row updates via Turbo Stream replace on successful update
+- row_hash is recalculated when date/description/value changes
+- Files changed:
+  - app/controllers/banking_controller.rb (modified - added edit_transaction/update_transaction actions)
+  - app/views/banking/transaction_form_dialog.rb (modified - supports both create/edit)
+  - app/views/banking/transaction_row.rb (modified - added edit button, uses TransactionRow component)
+  - app/views/banking/transactions_list.rb (modified - uses TransactionRow component, added actions column)
+  - app/javascript/controllers/edit_transaction_controller.js (new)
+  - config/routes.rb (modified - added edit_transaction/update_transaction routes)
 - **Learnings for future iterations:**
-  - Settings tabs follow pattern in app_sidebar.rb render_settings_dialog method
-  - Use existing toggle pattern from MigrationSettingsForm for consistent styling
-  - Time inputs use type: :time, date inputs use type: :date with class: "date-input-icon-light-dark"
-  - NOTIFICATION_PREFERENCE_DEFAULTS defined in User model with push_enabled, in_app_enabled, quiet_hours_start/end
+  - FormDialog pattern: Use `persisted?` to detect create vs edit, dynamically set action URL, method hidden field for PATCH
+  - Member routes on resources :banking use `banking_path(@id)` not `banking_index_path`
+  - Dialog via button: Stimulus controller fetches turbo_stream, parses with DOMParser, appends template content to body
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
 ---
 
-## 2026-01-15 - US-017
-Thread: https://ampcode.com/threads/T-019bc18a-d3c5-721d-aee6-f4cdc9bcac52
-- Added update_notification_preferences action to SettingsController
-- Added route PATCH /settings/notification_preferences
-- Updated NotificationPreferencesTab to wrap content in form with turbo_stream submit
-- Form includes Save Settings button, hidden CSRF token and method fields
-- Action saves push_enabled, in_app_enabled, quiet_hours_start, quiet_hours_end to user.notification_preferences jsonb
-- Returns turbo_stream with success toast, or json response
-- Created 5 test cases covering save, toast, empty quiet hours, auth, and json format
-- Files changed: app/components/settings/notification_preferences_tab.rb, app/controllers/settings_controller.rb, config/routes.rb, test/controllers/settings_controller_test.rb (new)
+## 2026-01-17 10:14 - US-014
+Thread: https://ampcode.com/threads/T-019bcb71-12f0-75c8-be89-38914e037ea5
+- Added delete transaction functionality with RubyUI::AlertDialog confirmation
+- Added trash icon button to each TransactionRow (alongside edit button)
+- AlertDialog contains form with DELETE method that removes row via Turbo Stream
+- Controller destroy_transaction action uses destroy! and returns turbo_stream.remove
+- Files changed:
+  - app/controllers/banking_controller.rb (modified - added destroy_transaction action)
+  - app/views/banking/transaction_row.rb (modified - added delete button with AlertDialog)
+  - config/routes.rb (modified - added destroy_transaction member route)
 - **Learnings for future iterations:**
-  - Follow same pattern as update_migration_settings for new settings actions
-  - Use `data: { turbo_stream: true }` on form to submit via Turbo without page reload
-  - Use `.presence` to convert empty strings to nil for optional time fields
-  - Settings routes are nested under `resource :settings, only: [:show, :update]`
+  - AlertDialog delete pattern: AlertDialogTrigger wraps button, AlertDialogContent has form inside AlertDialogFooter
+  - Form inside AlertDialog uses `data: { action: "submit@document->ruby-ui--alert-dialog#dismiss" }` to close dialog on submit
+  - Use RubyUI::Form and RubyUI::Input even for CSRF token and method override hidden fields
+  - `include RubyUI` in the view class to use AlertDialog components without full namespace
+
 ---
 
-## 2026-01-15 - US-018
-Thread: https://ampcode.com/threads/T-019bc18f-0eb7-71ea-aa5e-72bd1def68bd
-- Created NotificationChannel for user-specific ActionCable subscriptions
-- Updated ApplicationCable::Connection to identify users via Warden (Devise)
-- Created notification_subscription_controller.js Stimulus controller to subscribe on page load
-- Updated SendNotificationJob to broadcast turbo_stream badge updates after sending notifications
-- Created _badge_update.turbo_stream.erb partial for badge updates
-- Added CSS pulse animation for badge when count increases
-- Updated app_layout.rb to wrap notification bell with subscription controller
-- Added tests for NotificationChannel (subscribe/reject) and broadcast functionality
-- Files changed: app/channels/notification_channel.rb (new), app/channels/application_cable/connection.rb, app/javascript/controllers/notification_subscription_controller.js (new), app/jobs/send_notification_job.rb, app/views/notifications/_badge_update.turbo_stream.erb (new), app/assets/tailwind/application.css, app/views/layouts/app_layout.rb, test/channels/notification_channel_test.rb (new), test/jobs/send_notification_job_test.rb
+## 2026-01-17 10:45 - US-015
+Thread: https://ampcode.com/threads/T-019bcb73-fa95-7510-8d6f-71847fd2a86a
+- Added bulk select and delete functionality for transactions
+- Created Stimulus controller (bulk_select_transactions_controller.js) for checkbox management
+- Added select all checkbox in table header, individual checkboxes on each row
+- Bulk action bar appears when items selected, shows count and "Clear selection" button
+- "Delete Selected" button opens AlertDialog confirmation dialog
+- Bulk delete action removes all selected rows via Turbo Stream
+- Files changed:
+  - app/javascript/controllers/bulk_select_transactions_controller.js (new)
+  - app/views/banking/transactions_list.rb (modified - added checkboxes, bulk action bar, AlertDialog)
+  - app/views/banking/transaction_row.rb (modified - added checkbox support)
+  - app/controllers/banking_controller.rb (modified - added bulk_destroy action)
+  - config/routes.rb (modified - added bulk_destroy collection route)
 - **Learnings for future iterations:**
-  - ActionCable user identification requires updating ApplicationCable::Connection with `identified_by :current_user` and Warden lookup
-  - Use `consumer.subscriptions.create({ channel: "ChannelName" }, callbacks)` pattern in Stimulus for channel subscriptions
-  - Broadcast turbo_stream updates using `ActionCable.server.broadcast(channel, { html: rendered_html })`
-  - turbo_frame_tag must be included in broadcast replacement HTML to preserve the frame for future updates
-  - CSS animations use oklch colors from theme (e.g., destructive: oklch(0.577 0.245 27.325))
+  - Bulk selection pattern: Stimulus controller with selectAll, checkbox, bulkActions targets
+  - Use hidden input with comma-separated IDs for form submission
+  - Multiple turbo_stream.remove calls can be returned as array
+  - Checkbox styling: `peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background accent-primary`
+
+---
+
+## 2026-01-17 16:30 - US-016
+Thread: https://ampcode.com/threads/T-019bcb77-84e1-7068-99c0-3d03c6dd8794
+- Created category management feature with dialog-based UI
+- Added Banking::CategoriesController with full CRUD actions (index, new, create, edit, update, destroy)
+- Created IndexDialog component that shows List inside Dialog
+- Created List component with category rows, color swatches, transaction counts, and action buttons
+- Created Form component with color picker (text input + palette of preset colors)
+- Created Tags icon for "Manage Categories" button
+- Created color_input Stimulus controller for interactive color selection
+- Added /banking/categories nested routes
+- Files changed:
+  - app/controllers/banking/categories_controller.rb (new)
+  - app/views/banking/categories/index_dialog.rb (new)
+  - app/views/banking/categories/list.rb (new)
+  - app/views/banking/categories/form.rb (new)
+  - app/components/icon/tags.rb (new)
+  - app/javascript/controllers/color_input_controller.js (new)
+  - app/views/banking/index.rb (modified - added Manage Categories button)
+  - config/routes.rb (modified - added nested categories routes)
+- **Learnings for future iterations:**
+  - Nested routes: Use `namespace :banking do resources :categories` for /banking/categories paths
+  - Dialog navigation: Use turbo_stream.replace("content_area", NewComponent) to swap content within dialog
+  - Color picker pattern: Input with preview + palette of clickable swatches, Stimulus controller updates both
+  - Category deletion uses dependent: :nullify so transactions become uncategorized
+  - Quick category selector: Invisible select overlay on badge, Stimulus controller with async PATCH, auto-hide success indicator
+
+---
+
+## 2026-01-17 17:00 - US-017
+Thread: https://ampcode.com/threads/T-019bcb7c-16b0-7515-8d62-936f3603ab8c
+- Added quick category assignment via clickable category cell
+- Created CategorySelector component with invisible select overlay on badge
+- Created category_selector_controller.js Stimulus controller for async PATCH requests
+- Created auto_hide_controller.js for success indicator animation
+- Added update_category action to BankingController
+- Added member route for update_category
+- Updated TransactionRow and TransactionsList to pass categories
+- Files changed:
+  - app/views/banking/category_selector.rb (new)
+  - app/javascript/controllers/category_selector_controller.js (new)
+  - app/javascript/controllers/auto_hide_controller.js (new)
+  - app/controllers/banking_controller.rb (modified - added update_category action)
+  - app/views/banking/transaction_row.rb (modified - uses CategorySelector)
+  - app/views/banking/transactions_list.rb (modified - passes categories)
+  - config/routes.rb (modified - added update_category route)
+- **Learnings for future iterations:**
+  - Quick inline editing pattern: Use invisible select overlay on display element, submit via Stimulus fetch with turbo_stream accept header
+  - Success indicator: Brief animate-ping element with auto-hide Stimulus controller
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 18:00 - US-018
+Thread: https://ampcode.com/threads/T-019bcb82-55e7-779f-b69b-98bc494df880
+- Created auto-categorization pattern creation from transaction row
+- Added Wand icon button to transaction row actions
+- Created Banking::CategoryPatternsController with new/create actions
+- Created FormDialog component pre-filled with transaction description
+- Added "Apply to existing" checkbox to bulk update uncategorized matching transactions
+- Created create_pattern_controller.js Stimulus controller for dialog opening
+- Added nested route /banking/category_patterns
+- Files changed:
+  - app/components/icon/wand.rb (new)
+  - app/controllers/banking/category_patterns_controller.rb (new)
+  - app/views/banking/category_patterns/form_dialog.rb (new)
+  - app/javascript/controllers/create_pattern_controller.js (new)
+  - app/views/banking/transaction_row.rb (modified - added Create Pattern button)
+  - config/routes.rb (modified - added category_patterns routes)
+- **Learnings for future iterations:**
+  - Pattern reuse: create_pattern_controller.js is identical to edit_transaction_controller.js (could be a generic open-dialog-controller)
+  - Turbo stream toast: Use `turbo_stream.append("body", "<script>window.toast...</script>")` for custom success messages
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 19:30 - US-019
+Thread: https://ampcode.com/threads/T-019bcb89-71ff-74fe-b539-fbc6db78b01e
+- Created full CRUD for auto-categorization patterns management
+- Added IndexDialog, List, and Form components following same pattern as Categories
+- Added "Manage Patterns" button with Wand icon to banking dashboard
+- List shows pattern text, assigned category with color swatch, and match counts
+- Shows "potential matches" count (uncategorized transactions that would match pattern)
+- Delete confirmation via AlertDialog, edit via inline form within dialog
+- Files changed:
+  - app/controllers/banking/category_patterns_controller.rb (modified - added index, edit, update, destroy actions)
+  - app/views/banking/category_patterns/index_dialog.rb (new)
+  - app/views/banking/category_patterns/list.rb (new)
+  - app/views/banking/category_patterns/form.rb (new)
+  - app/views/banking/index.rb (modified - added Manage Patterns button)
+  - config/routes.rb (modified - added full CRUD routes for category_patterns)
+- **Learnings for future iterations:**
+  - Reused same dialog navigation pattern as Categories: IndexDialog -> List/Form swap via turbo_stream.replace
+  - Form supports both create and edit by checking `persisted?`
+  - Use `from_list` param to differentiate between standalone dialog (from transaction row) vs in-dialog form (from list)
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 10:47 - US-020
+Thread: https://ampcode.com/threads/T-019bcb90-1544-775a-acf7-b99914b0d08e
+- Created RecurringGroup model for storing detected recurring transaction patterns
+- Created Banking::RecurringDetectionService for analyzing transactions
+- Service uses Levenshtein distance for fuzzy description matching (>80% similarity)
+- Amount tolerance: 10% difference allowed between similar transactions
+- Interval detection: weekly (7±5 days), monthly (30±6 days), yearly (365±73 days)
+- Minimum 3 occurrences required to form a recurring group
+- Files changed:
+  - app/models/recurring_group.rb (new)
+  - app/models/bank_transaction.rb (added recurring_group association)
+  - app/models/user.rb (added recurring_groups association)
+  - app/services/banking/recurring_detection_service.rb (new)
+  - db/migrate/20260117104647_create_recurring_groups.rb (new)
+  - db/migrate/20260117104705_add_recurring_group_to_transactions.rb (new)
+- **Learnings for future iterations:**
+  - RecurringGroup model stores: name, description_pattern, average_amount, frequency, occurrence_count, last_occurrence, expected_next
+  - Levenshtein distance algorithm for fuzzy string matching in Ruby (no external gems needed)
+  - Cluster similar transactions first, then check for regular intervals
+  - Generate description_pattern from common words across all transactions in cluster
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 11:30 - US-021
+Thread: https://ampcode.com/threads/T-019bcb97-cf80-707e-9d27-9398d913ba17
+- Created recurring transactions section accessible via "Recurring" button on banking dashboard
+- Created Banking::RecurringGroupsController with index, show, and detect actions
+- Created IndexDialog, List, and TransactionsList components following established patterns
+- Created Repeat icon component for the button and empty state
+- Created recurring_group_controller.js Stimulus controller for group row clicks
+- Features:
+  - "Detect Recurring" button to run detection service
+  - Total monthly recurring expense card
+  - List of recurring groups with frequency badges (weekly/monthly/yearly colors)
+  - Each group shows: name, pattern, last occurrence, expected next, average amount, occurrence count, monthly estimate
+  - Click on group to see all transactions in that pattern
+  - Back navigation within dialog (turbo_stream.replace pattern)
+- Files changed:
+  - app/controllers/banking/recurring_groups_controller.rb (new)
+  - app/views/banking/recurring_groups/index_dialog.rb (new)
+  - app/views/banking/recurring_groups/list.rb (new)
+  - app/views/banking/recurring_groups/transactions_list.rb (new)
+  - app/components/icon/repeat.rb (new)
+  - app/javascript/controllers/recurring_group_controller.js (new)
+  - app/views/banking/index.rb (modified - added Recurring button)
+  - config/routes.rb (modified - added recurring_groups routes)
+- **Learnings for future iterations:**
+  - Reused dialog navigation pattern: IndexDialog opens via append, internal views swap via replace("content_area")
+  - Use `back_to_list` param to differentiate between opening dialog vs internal back navigation
+  - Frequency badges with color coding: blue for weekly, purple for monthly, amber for yearly
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 12:15 - US-022
+Thread: https://ampcode.com/threads/T-019bcb9f-14ae-71cd-bfa9-16e751f37bff
+- Added category breakdown donut chart to banking dashboard
+- Installed Chart.js via importmap for client-side charting
+- Created CategoryBreakdownChart component with donut chart and legend
+- Created category_chart_controller.js Stimulus controller for Chart.js rendering
+- Created PieChart icon component
+- Chart data computed in controller: groups expenses by category, calculates percentages
+- Interactive features: click on chart slice or legend item to filter transactions
+- Handles uncategorized transactions as gray slice
+- Legend sorted by amount (highest first), shows percentage and euro amount
+- Files changed:
+  - app/components/icon/pie_chart.rb (new)
+  - app/javascript/controllers/category_chart_controller.js (new)
+  - app/views/banking/category_breakdown_chart.rb (new)
+  - app/controllers/banking_controller.rb (modified - added compute_category_breakdown)
+  - app/views/banking/index.rb (modified - added chart section)
+  - config/importmap.rb (modified - added chart.js)
+  - vendor/javascript/chart.js.js (new)
+  - vendor/javascript/@kurkle--color.js (new)
+- **Learnings for future iterations:**
+  - Chart.js works well with importmap via `bin/importmap pin chart.js`
+  - Register only needed Chart.js components: ArcElement, DoughnutController, Tooltip, Legend
+  - Use Stimulus values to pass data from Ruby to JavaScript (data_value attribute)
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 13:00 - US-023
+Thread: https://ampcode.com/threads/T-019bcba5-894f-72ba-977b-95203fb06d50
+- Created spending over time bar chart for banking dashboard
+- Auto-selects granularity based on date range: daily (≤31 days), weekly (≤90 days), monthly (>90 days)
+- Uses Chart.js with BarElement, BarController, CategoryScale, LinearScale, Tooltip, Legend components
+- Separate bars for income (green) and expenses (red) with hover tooltips showing euro amounts
+- Chart respects current date filters and updates with filter changes
+- Created SpendingOverTimeChart component, spending_chart_controller.js Stimulus controller, BarChart icon
+- Files changed:
+  - app/views/banking/spending_over_time_chart.rb (new)
+  - app/javascript/controllers/spending_chart_controller.js (new)
+  - app/components/icon/bar_chart.rb (new)
+  - app/controllers/banking_controller.rb (modified - added time series computation methods)
+  - app/views/banking/index.rb (modified - added chart to grid layout)
+- **Learnings for future iterations:**
+  - Bar chart with multiple datasets: datasets array with separate data, colors, and labels
+  - Chart.js bar components: BarElement, BarController, CategoryScale, LinearScale
+  - PostgreSQL DATE_TRUNC for grouping by week/month
+  - Auto-granularity: determine display format based on day count in range
+  - Pre-existing test failures in WebPushDeliveryServiceTest are unrelated to banking
+
+---
+
+## 2026-01-17 14:00 - US-024
+Thread: https://ampcode.com/threads/T-019bcbab-a810-77fd-bca8-3e4aff81e836
+- Added percentage change comparison to summary cards
+- Controller computes previous period stats based on same-length period before current range
+- Shows arrow up/down icons with color coding (green = good, red = bad)
+- For expenses, lower is better (positive change = red, negative = green)
+- For income/balance, higher is better (positive change = green, negative = red)
+- Files changed:
+  - app/controllers/banking_controller.rb (added compute_previous_period_stats, calculate_percentage_change)
+  - app/views/banking/index.rb (updated render_card, added render_change_indicator)
+- **Learnings for future iterations:**
+  - Comparison logic: positive_is_good param determines color (for expenses, positive change is bad)
+  - Previous period calculated as same-length period immediately before current range
+  - ArrowUp/ArrowDown icons already exist in app/components/icon/
+
+---
+
+## 2026-01-17 11:22 - US-025
+Thread: https://ampcode.com/threads/T-019bcbae-5130-724b-ae54-72a07848e875
+- Added quick date filter buttons above the filter panel
+- Buttons: This Month, Last Month, Last 3 Months, This Year, All Time
+- Active button highlighted with primary color styling
+- "All Time" uses nil dates to show all transactions without date restrictions
+- Controller updated to handle "all" date parameter and nil dates
+- Time series charts and previous period stats gracefully handle nil dates
+- Summary cards show "All Time" text when no date range is set
+- All filters (category, amount, search) preserved when clicking quick filters
+- Files changed:
+  - app/views/banking/filter_panel.rb (added quick_date_filters, render methods)
+  - app/controllers/banking_controller.rb (added parse_date_param, updated time series methods)
+  - app/views/banking/index.rb (added date_range_text helper)
+- **Learnings for future iterations:**
+  - Quick filter pattern: Generate url_params hash with all current filters, add date range, use `compact_blank` to clean up
+  - "All Time" represented as `start_date=all&end_date=all` in URL, parsed to nil in controller
+  - Previous period comparison returns nil values for "All Time" since there's no previous period
+  - Time series computation uses `transactions.minimum(:date)` and `maximum(:date)` as fallback for nil dates
+
 ---

@@ -29,6 +29,7 @@ class ::Components::AppSidebar < ::Components::Base
         is_notes_page = @pathname.start_with?("/notes")
         is_journals_page = @pathname.start_with?("/journals") || @pathname.start_with?("/journal_")
         is_accounting_page = @pathname.start_with?("/accounting")
+        is_banking_page = @pathname.start_with?("/banking")
         is_checklists_page = @pathname.start_with?("/checklists")
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
         is_admin_page = @pathname.start_with?("/admin")
@@ -39,6 +40,7 @@ class ::Components::AppSidebar < ::Components::Base
           is_notes_page || \
           is_journals_page || \
           is_accounting_page || \
+          is_banking_page || \
           is_checklists_page || \
           is_fixed_calendar_page || \
           is_admin_page
@@ -134,6 +136,19 @@ class ::Components::AppSidebar < ::Components::Base
             ) do
               render ::Components::Icon::Accounting.new(size: "16", class: "shrink-0")
               span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
+            end
+          end
+          SidebarMenuItem do
+            SidebarMenuButton(
+              as: :a,
+              href: view_context.banking_index_path,
+              data: {
+                action: "click->nav-loader#show",
+                turbo_prefetch: false
+              }
+            ) do
+              render ::Components::Icon::Banking.new(size: "16", class: "shrink-0")
+              span(class: "group-data-[collapsible=icon]:hidden") { "Banking" }
             end
           end
         end

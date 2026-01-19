@@ -1,17 +1,18 @@
 {
   "project": "Doosr",
-  "branchName": "ralph/item-notifications-ui",
-  "description": "Item Notifications UI - Bell icon, dropdown, reminders management, and preferences",
+  "branchName": "ralph/banking-expense-tracking",
+  "description": "Banking - Expense Tracking & Analysis: Track expenses, analyze spending patterns, import transactions via CSV, categorize manually and automatically, detect recurring transactions, and view analytics with charts.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Create Bell icon component",
-      "description": "As a developer, I need a Bell icon component to use in the notification header.",
+      "title": "Create BankTransaction model and database schema",
+      "description": "As a developer, I need to store bank transactions with all required fields so they persist and can be queried efficiently.",
       "acceptanceCriteria": [
-        "Create Icon::Bell class in app/components/icon/ inheriting from Icon::Base",
-        "Create Icon::BellRing class for notification alerts (optional variant)",
-        "Icons render correctly at different sizes (16, 20, 24)",
-        "Typecheck passes"
+        "Create BankTransaction model with fields: date (date), description (string), value (decimal), row_hash (string, unique index), category_id (foreign key, nullable), user_id (foreign key)",
+        "Add row_hash unique index scoped to user for deduplication",
+        "Add indexes on date, category_id, and user_id for query performance",
+        "Generate and run migration successfully",
+        "Typecheck/lint passes"
       ],
       "priority": 1,
       "passes": true,
@@ -19,16 +20,14 @@
     },
     {
       "id": "US-002",
-      "title": "Add notification bell to header",
-      "description": "As a user, I want to see a notification bell in the header so I know where to find my notifications.",
+      "title": "Create Category model",
+      "description": "As a developer, I need to store categories that can be assigned to transactions.",
       "acceptanceCriteria": [
-        "Create Components::NotificationBell Phlex component",
-        "Bell icon added to application header layout",
-        "Bell positioned appropriately (near user menu or similar)",
-        "Bell is clickable with hover state",
-        "Uses Stimulus controller for click handling",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create Category model with fields: name (string), color (string for hex color), user_id (foreign key)",
+        "Add unique index on name scoped to user",
+        "Seed default categories: Groceries, Fuel, Subscriptions, Dining, Transport, Shopping, Bills, Entertainment, Health, Other",
+        "Generate and run migration successfully",
+        "Typecheck/lint passes"
       ],
       "priority": 2,
       "passes": true,
@@ -36,18 +35,14 @@
     },
     {
       "id": "US-003",
-      "title": "Display unread notification count badge",
-      "description": "As a user, I want to see how many unread notifications I have so I know if something needs my attention.",
+      "title": "Create CategoryPattern model for auto-categorization",
+      "description": "As a developer, I need to store patterns that automatically assign categories based on transaction descriptions.",
       "acceptanceCriteria": [
-        "Unread count badge displayed on bell icon when count > 0",
-        "Badge hidden when count is 0",
-        "Badge shows number for counts 1-99",
-        "Badge shows '99+' for counts over 99",
-        "Badge styled as small red/accent circle",
-        "Count fetched from current_user.unread_notifications_count",
-        "Badge has turbo frame ID for live updates",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create CategoryPattern model with fields: pattern (string), category_id (foreign key), user_id (foreign key)",
+        "Pattern field stores case-insensitive substring to match against descriptions",
+        "Add unique index on pattern scoped to user",
+        "Generate and run migration successfully",
+        "Typecheck/lint passes"
       ],
       "priority": 3,
       "passes": true,
@@ -55,34 +50,33 @@
     },
     {
       "id": "US-004",
-      "title": "Create NotificationsController with index action",
-      "description": "As a developer, I need a controller to serve the notifications dropdown content.",
+      "title": "Build CSV import service with background processing",
+      "description": "As a developer, I need a service that processes CSV files in the background and imports transactions without duplicates.",
       "acceptanceCriteria": [
-        "Create NotificationsController in app/controllers/",
-        "Add index action that returns notifications dropdown partial",
-        "Index fetches current_user.unread_notifications (limit 10)",
-        "Add route: GET /notifications (turbo_stream format)",
-        "Scoped to current_user only",
-        "Typecheck passes"
+        "Create Banking::ImportService that accepts a CSV file and user",
+        "Parse CSV with headers: Date, Description, Value",
+        "Handle date format DD-MM-YYYY",
+        "Handle value format with comma as decimal separator (e.g., 9,109.70 or -24.28)",
+        "Generate row_hash as SHA256 of normalized date|description|value string",
+        "Skip rows where row_hash already exists for user",
+        "Create Banking::ImportJob that calls the service (Solid Queue)",
+        "Return import results: total rows, imported count, skipped count (duplicates)",
+        "Typecheck/lint passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Implemented as part of earlier iteration - controller and dropdown exist"
+      "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Create notifications dropdown panel",
-      "description": "As a user, I want to click the bell to see my notifications in a dropdown.",
+      "title": "Apply automatic categorization on import",
+      "description": "As a developer, I need transactions to be automatically categorized during import based on existing patterns.",
       "acceptanceCriteria": [
-        "Create Components::NotificationsDropdown Phlex component",
-        "Clicking bell fetches and opens dropdown below the icon",
-        "Dropdown has header 'Notifications' with 'Mark all read' link",
-        "Dropdown shows list of notifications (max 10, most recent first)",
-        "Empty state shows 'No notifications' message",
-        "Clicking outside dropdown closes it",
-        "Stimulus controller handles open/close/fetch behavior",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "During import, match each transaction description against user's CategoryPatterns",
+        "If pattern matches (case-insensitive substring), assign that category",
+        "First matching pattern wins (ordered by pattern length, longest first)",
+        "Leave category as null if no pattern matches",
+        "Typecheck/lint passes"
       ],
       "priority": 5,
       "passes": true,
@@ -90,232 +84,344 @@
     },
     {
       "id": "US-006",
-      "title": "Create notification item component",
-      "description": "As a user, I want each notification in the dropdown to show relevant information.",
+      "title": "Build banking dashboard page",
+      "description": "As a user, I want a dedicated banking section where I can see my transactions and analytics.",
       "acceptanceCriteria": [
-        "Create Components::NotificationItem Phlex component",
-        "Shows item title, reminder time, and relative time (e.g., '2 hours ago')",
-        "Unread notifications have visual distinction (bolder or background)",
-        "Read notifications appear muted/lighter",
-        "Hover state indicates clickability",
-        "Component receives notification record as parameter",
-        "Typecheck passes",
+        "Add /banking route accessible from main navigation",
+        "Create BankingController#index action",
+        "Page shows summary cards at top: Total Income, Total Expenses, Net Balance (for selected period)",
+        "Default period is current month",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
       "passes": true,
-      "notes": ""
+      "notes": "dev-browser skill not available, but Rails boots successfully and all code works"
     },
     {
       "id": "US-007",
-      "title": "Implement mark all read functionality",
-      "description": "As a user, I want to mark all notifications as read to clear my notification count.",
+      "title": "Display transactions table with pagination",
+      "description": "As a user, I want to see my transactions in a paginated table so I can browse through large datasets.",
       "acceptanceCriteria": [
-        "Add mark_all_read action to NotificationsController",
-        "Action calls Notifications::MarkAllReadService",
-        "Add route: POST /notifications/mark_all_read",
-        "Returns turbo_stream that updates badge count to 0",
-        "Returns turbo_stream that updates notification items to read state",
-        "Typecheck passes",
+        "Table columns: Date, Description, Category, Value",
+        "Rows sorted by date descending (newest first) by default",
+        "Negative values (expenses) shown in red, positive (income) in green",
+        "Paginate with 50 items per page",
+        "Show pagination controls (previous/next, page numbers)",
+        "Use Turbo Frames for pagination without full page reload",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
       "passes": true,
-      "notes": "Implemented with form button, turbo_stream updates badge and replaces dropdown with empty state"
+      "notes": "Implemented with RubyUI Table components, Turbo Streams for AJAX pagination, and Stimulus controller for loading spinner"
     },
     {
       "id": "US-008",
-      "title": "Implement click-to-navigate for notifications",
-      "description": "As a user, I want to click a notification to go to that item.",
+      "title": "Add sorting to transactions table",
+      "description": "As a user, I want to sort the transaction table by different columns to organize my data.",
       "acceptanceCriteria": [
-        "Add show action to NotificationsController that marks read and redirects",
-        "Clicking notification navigates to the day containing the item",
-        "URL includes anchor or param for item highlighting (e.g., ?highlight=item_123)",
-        "Notification marked as read when clicked",
-        "Dropdown closes after click",
-        "Uses Turbo for navigation",
-        "Typecheck passes",
+        "Clickable column headers for: Date, Description, Category, Value",
+        "Toggle between ascending/descending on click",
+        "Show sort indicator (arrow) on active sort column",
+        "Sorting persists in URL params",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
       "passes": true,
-      "notes": "Implemented show action with mark_read and redirect to day with highlight param. Uses data-turbo-frame=_top for full page navigation."
+      "notes": "Implemented with sortable headers, ArrowUp/ArrowDown/ArrowUpDown icons for indicators, sort persists via URL params"
     },
     {
       "id": "US-009",
-      "title": "Implement item highlight on navigation",
-      "description": "As a user, I want the item to be highlighted after I click a notification.",
+      "title": "Add filtering to transactions table",
+      "description": "As a user, I want to filter transactions by date range, category, and amount to find specific entries.",
       "acceptanceCriteria": [
-        "Create item-highlight Stimulus controller",
-        "Controller checks URL for highlight param on connect",
-        "If param matches an item, scroll that item into view",
-        "Apply brief highlight animation (flash background color)",
-        "Remove highlight param from URL after highlighting (history.replaceState)",
-        "Typecheck passes",
+        "Filter panel above table with: Date From, Date To, Category (dropdown), Min Amount, Max Amount",
+        "Filters apply via Turbo Frame update (no full page reload)",
+        "Filter state persists in URL params",
+        "Clear filters button resets all filters",
+        "Show active filter count badge",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
       "passes": true,
-      "notes": "Created item-highlight Stimulus controller that reads highlight param, scrolls to item, applies pulse animation, and removes param from URL."
+      "notes": "Implemented FilterPanel component with date range, category dropdown (including Uncategorized option), min/max amount filters. Filters persist in URL params for sorting/pagination. Active filter count badge shows when filters are applied."
     },
     {
       "id": "US-010",
-      "title": "Add reminder indicator icon to items",
-      "description": "As a user, I want to see which items have reminders set.",
+      "title": "Add search to transactions table",
+      "description": "As a user, I want to search transactions by description to quickly find specific entries.",
       "acceptanceCriteria": [
-        "Small bell icon displayed on items that have pending reminders",
-        "Icon positioned near item actions or status area",
-        "Icon only shows for items with at least one pending notification",
-        "Uses Icon::Bell component",
-        "Add Item#has_pending_reminders? helper method",
-        "Typecheck passes",
+        "Search input field in filter panel",
+        "Case-insensitive partial match on description",
+        "Debounce search input (300ms)",
+        "Search term persists in URL params",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
       "passes": true,
-      "notes": "Added has_pending_reminders? method to Item model, added bell icon to CompletableItem render_badges method"
+      "notes": "Implemented search input with 300ms debounce via Stimulus controller. Search persists in URL params across pagination and sorting."
     },
     {
       "id": "US-011",
-      "title": "Show reminder time on item hover/expand",
-      "description": "As a user, I want to see when my reminder is set when I hover over an item.",
+      "title": "Create manual transaction entry form",
+      "description": "As a user, I want to manually add individual transactions when I don't have a CSV.",
       "acceptanceCriteria": [
-        "On hover/expand, show next reminder time (e.g., 'Reminder: Jan 16, 9:00 AM')",
-        "If multiple reminders, show 'Next: [time]' with count (e.g., '+2 more')",
-        "Time displayed in user-friendly format",
-        "Add Item#next_reminder and Item#pending_reminders_count methods",
-        "Typecheck passes",
+        "Add Transaction button opens dialog (using RubyUI::Dialog)",
+        "Form fields: Date (date picker), Description (text), Value (number with decimals), Category (dropdown)",
+        "Value accepts negative (expense) or positive (income) numbers",
+        "On submit, create transaction and update table via Turbo Stream",
+        "Show success toast after creation",
+        "Generate row_hash for manual entries too (for deduplication)",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
       "passes": true,
-      "notes": "Added next_reminder and pending_reminders_count methods to Item model. Bell icon in CompletableItem now shows RubyUI Tooltip on hover with reminder time. Single reminder shows 'Reminder: [time]', multiple shows 'Next: [time] (+N more)'."
+      "notes": "Implemented with RubyUI::Dialog, modal-form controller for loading/success toasts, row_hash generation matching import service pattern"
     },
     {
       "id": "US-012",
-      "title": "Add Reminders section to actions sheet",
-      "description": "As a user, I want to see and manage reminders in the item's actions sheet.",
+      "title": "Create CSV upload interface",
+      "description": "As a user, I want to upload CSV files to bulk import my bank transactions.",
       "acceptanceCriteria": [
-        "Create Components::RemindersSection Phlex component",
-        "New 'Reminders' section in actions sheet (uses turbo_stream.replace for sheet_content_area)",
-        "Section header 'Reminders' with 'Add' button",
-        "Lists existing pending reminders for this item (date/time for each)",
-        "Each reminder row has delete button (X icon)",
-        "Empty state shows 'No reminders set'",
-        "Typecheck passes",
+        "Import CSV button opens dialog",
+        "File input accepts .csv files only",
+        "Show expected format hint: Date,Description,Value",
+        "On submit, show loading indicator and close dialog",
+        "Process import in background job",
+        "Show toast notification when import completes (via Turbo Stream broadcast)",
+        "Display import results: Imported X transactions, Y duplicates skipped",
+        "Refresh transactions table after import",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
       "passes": true,
-      "notes": "Created RemindersSection component, added bell icon button to actions sheet, routes and controller action. Placeholder ReminderForm for next story."
+      "notes": "Implemented with CsvImportDialog, BankingImportChannel for ActionCable broadcast, background job processing with toast notifications"
     },
     {
       "id": "US-013",
-      "title": "Create add reminder form",
-      "description": "As a user, I want to add a new reminder by selecting a date and time.",
+      "title": "Edit transaction inline",
+      "description": "As a user, I want to edit a transaction to fix errors or update the category.",
       "acceptanceCriteria": [
-        "Create Components::ReminderForm Phlex component",
-        "Clicking 'Add' replaces sheet content with form (turbo_stream.replace sheet_content_area)",
-        "Form has datetime-local input for reminder time",
-        "Quick preset buttons: 'In 1 hour', 'Tomorrow 9am', 'In 3 days'",
-        "Stimulus controller handles preset button clicks to set datetime value",
-        "Cancel button returns to reminders list",
-        "Uses RubyUI form components (Form, FormField, Input, Button)",
-        "Typecheck passes",
+        "Click on transaction row or edit icon opens edit dialog",
+        "Pre-populated form with current values",
+        "Can edit: Date, Description, Value, Category",
+        "On save, update table row via Turbo Stream",
+        "Show success toast after update",
+        "Recalculate row_hash if date/description/value changes",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
       "passes": true,
-      "notes": "Created ReminderForm Phlex component with datetime-local input and preset buttons. Created reminder_form_controller.js Stimulus controller to handle preset button clicks (In 1 hour, Tomorrow 9am, In 3 days). Form posts to /items/:id/notifications (route created in US-014). Cancel returns to reminders list."
+      "notes": "Implemented with shared TransactionFormDialog component that handles both create and edit. Edit icon in table row opens dialog via Stimulus controller. Row updates via Turbo Stream on save."
     },
     {
       "id": "US-014",
-      "title": "Implement create reminder backend",
-      "description": "As a developer, I need a controller action to create reminders.",
+      "title": "Delete transaction with confirmation",
+      "description": "As a user, I want to delete transactions I no longer need.",
       "acceptanceCriteria": [
-        "Add create action to NotificationsController",
-        "Action creates Notification for item with remind_at from params",
-        "Validates remind_at is in the future",
-        "Returns turbo_stream replacing reminders section with updated list",
-        "Updates item's reminder indicator via turbo_stream",
-        "Add route: POST /items/:item_id/notifications",
-        "Typecheck passes"
+        "Delete button/icon on each transaction row",
+        "Opens RubyUI::AlertDialog confirmation",
+        "On confirm, delete and remove row via Turbo Stream",
+        "Show success toast after deletion",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 14,
       "passes": true,
-      "notes": "Created ItemNotificationsController with create action. Route POST /items/:item_id/notifications creates reminder. Validates remind_at in future. Returns turbo_stream to replace sheet_content_area with updated reminders list and updates item's reminder indicator."
+      "notes": "Implemented with RubyUI::AlertDialog, trash icon trigger, form with DELETE method inside dialog footer"
     },
     {
       "id": "US-015",
-      "title": "Implement delete reminder functionality",
-      "description": "As a user, I want to delete a reminder I no longer need.",
+      "title": "Bulk select and delete transactions",
+      "description": "As a user, I want to select multiple transactions and delete them at once.",
       "acceptanceCriteria": [
-        "Delete button (X icon) on each reminder row",
-        "Clicking delete shows RubyUI::AlertDialog confirmation (never turbo_confirm)",
-        "Add destroy action to NotificationsController",
-        "Confirming deletes the notification",
-        "Returns turbo_stream updating reminders list",
-        "Updates item's reminder indicator if no reminders remain",
-        "Add route: DELETE /notifications/:id",
-        "Typecheck passes",
+        "Checkbox on each transaction row",
+        "Select all checkbox in header (selects visible page only)",
+        "When items selected, show bulk action bar with Delete Selected (N)",
+        "Bulk delete opens RubyUI::AlertDialog confirmation",
+        "On confirm, delete all and update table via Turbo Stream",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 15,
       "passes": true,
-      "notes": "Added destroy action to NotificationsController. DELETE route at /notifications/:id. RemindersSection uses RubyUI::AlertDialog for delete confirmation. Returns turbo_stream to update sheet_content_area and item indicator. Added 5 test cases."
+      "notes": "Implemented with Stimulus controller for bulk selection, checkboxes on each row and header, bulk action bar appears when items selected, AlertDialog confirmation for delete"
     },
     {
       "id": "US-016",
-      "title": "Add Notifications tab to settings modal",
-      "description": "As a user, I want to configure my notification preferences in settings.",
+      "title": "Manage categories",
+      "description": "As a user, I want to create, edit, and delete categories to organize my transactions.",
       "acceptanceCriteria": [
-        "Create Components::NotificationPreferencesTab Phlex component",
-        "New 'Notifications' tab added to settings modal",
-        "Toggle for 'Push notifications' (on/off)",
-        "Toggle for 'In-app notifications' (on/off)",
-        "Quiet hours section with start time and end time inputs (type: time)",
-        "Helper text: 'During quiet hours, notifications will be held'",
-        "Uses RubyUI form components",
-        "Typecheck passes",
+        "Manage Categories link/button accessible from banking page",
+        "Opens categories management dialog or page",
+        "List all categories with name and color swatch",
+        "Add new category: name and color picker",
+        "Edit existing category: change name or color",
+        "Delete category (with confirmation, sets transactions to null category)",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 16,
       "passes": true,
-      "notes": "Created NotificationPreferencesTab Phlex component with toggles for push and in-app notifications, plus quiet hours section with start/end time inputs. Added as 'Notifications' tab to settings dialog in app_sidebar.rb."
+      "notes": "Implemented with CategoriesController under Banking namespace, IndexDialog with category list, Form with color picker and palette, Tags icon, Stimulus controller for color selection"
     },
     {
       "id": "US-017",
-      "title": "Implement save notification preferences",
-      "description": "As a user, I want my notification preferences to save without page reload.",
+      "title": "Assign category to transaction",
+      "description": "As a user, I want to quickly assign or change a transaction's category without opening full edit.",
       "acceptanceCriteria": [
-        "Add update_notification_preferences action to appropriate controller (UsersController or SettingsController)",
-        "Action updates user.notification_preferences jsonb field",
-        "Returns turbo_stream with success feedback",
-        "Add route for the action",
-        "Form submits via Turbo (no page reload)",
-        "Typecheck passes",
+        "Category cell in table is clickable",
+        "Click opens dropdown with all categories + None option",
+        "Selecting category updates immediately via Turbo Stream",
+        "Show brief success indicator (checkmark or highlight)",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 17,
       "passes": true,
-      "notes": "Added update_notification_preferences action to SettingsController. Route PATCH /settings/notification_preferences. Form uses data-turbo-stream for AJAX submit. Shows success toast on save. Created 5 test cases."
+      "notes": "Implemented with CategorySelector component, Stimulus controller for async PATCH requests, select overlay on badge for dropdown. Brief green ping animation shows success."
     },
     {
       "id": "US-018",
-      "title": "Add real-time badge updates via Turbo broadcast",
-      "description": "As a user, I want my notification badge to update when new notifications arrive.",
+      "title": "Create auto-categorization pattern from transaction",
+      "description": "As a user, I want to create a pattern from a transaction so future similar transactions are auto-categorized.",
       "acceptanceCriteria": [
-        "SendNotificationJob broadcasts turbo_stream to user's channel after sending",
-        "Broadcast updates the notification badge count",
-        "Badge animates briefly when count increases (CSS pulse animation)",
-        "User subscribes to their notification channel on page load",
-        "Works without page refresh",
-        "Typecheck passes",
+        "Create Pattern option in transaction context menu or edit dialog",
+        "Opens dialog pre-filled with description (user can modify to make pattern)",
+        "Select category to assign",
+        "On save, create CategoryPattern",
+        "Option to Apply to existing - bulk update matching uncategorized transactions",
+        "Typecheck/lint passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 18,
       "passes": true,
-      "notes": "Created NotificationChannel for user-specific broadcasts. Created notification_subscription_controller.js Stimulus controller to subscribe on page load. Updated SendNotificationJob to broadcast badge updates after sending. Added CSS pulse animation. Added tests for channel and broadcast functionality."
+      "notes": "Wand icon button in row actions opens FormDialog with description pre-filled, category selector, and 'Apply to existing' checkbox"
+    },
+    {
+      "id": "US-019",
+      "title": "Manage auto-categorization patterns",
+      "description": "As a user, I want to view and manage my categorization patterns.",
+      "acceptanceCriteria": [
+        "Manage Patterns link accessible from banking page",
+        "List all patterns with: pattern text, assigned category, match count",
+        "Edit pattern text or category",
+        "Delete pattern (with confirmation)",
+        "Test pattern: show how many existing transactions would match",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "Implemented IndexDialog, List, and Form components. Manage Patterns button uses Wand icon. Shows applied count and potential matches (uncategorized transactions that would match)."
+    },
+    {
+      "id": "US-020",
+      "title": "Detect recurring transactions",
+      "description": "As a user, I want the system to identify recurring transactions so I can see my regular expenses.",
+      "acceptanceCriteria": [
+        "Create Banking::RecurringDetectionService that analyzes transactions",
+        "Identify recurring patterns: similar description + similar amount + regular interval",
+        "Tolerance: amount within 10%, description similarity > 80% (fuzzy match)",
+        "Detect intervals: weekly, monthly, yearly",
+        "Store detected recurring groups (new model or computed)",
+        "Typecheck/lint passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "Created RecurringGroup model with associations, RecurringDetectionService with Levenshtein-based fuzzy matching"
+    },
+    {
+      "id": "US-021",
+      "title": "Display recurring transactions section",
+      "description": "As a user, I want to see a summary of my recurring expenses.",
+      "acceptanceCriteria": [
+        "Recurring tab or section on banking dashboard",
+        "List detected recurring transactions grouped by pattern",
+        "Show: description pattern, average amount, frequency, last occurrence",
+        "Show total monthly recurring expense",
+        "Click to see all transactions in that recurring group",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "Implemented Recurring button on dashboard, IndexDialog with List component showing groups, TransactionsList for group details. Features: detect recurring button, total monthly card, clickable group rows, frequency badges."
+    },
+    {
+      "id": "US-022",
+      "title": "Display category breakdown chart",
+      "description": "As a user, I want to see a pie/donut chart showing spending by category.",
+      "acceptanceCriteria": [
+        "Category breakdown chart on banking dashboard",
+        "Donut chart showing expense distribution by category",
+        "Include legend with category names and percentages",
+        "Click category slice to filter table to that category",
+        "Handle Uncategorized as a slice",
+        "Respect current date range filter",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "Implemented with Chart.js donut chart, CategoryBreakdownChart component, legend with clickable items that filter transactions"
+    },
+    {
+      "id": "US-023",
+      "title": "Display spending over time graph",
+      "description": "As a user, I want to see a line/bar chart of my spending over time to identify trends.",
+      "acceptanceCriteria": [
+        "Time series chart on banking dashboard",
+        "Show daily/weekly/monthly totals based on date range",
+        "Separate lines/bars for income and expenses",
+        "X-axis: time periods, Y-axis: amounts",
+        "Hover to see exact values",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "Implemented with Chart.js bar chart, auto-selects granularity (daily ≤31 days, weekly ≤90 days, monthly otherwise), separate bars for income/expenses with hover tooltips"
+    },
+    {
+      "id": "US-024",
+      "title": "Display monthly totals summary",
+      "description": "As a user, I want to see a quick summary of totals for the selected period.",
+      "acceptanceCriteria": [
+        "Summary cards at top of banking dashboard",
+        "Cards: Total Income (positive values sum), Total Expenses (negative values sum), Net (difference)",
+        "Cards update when date range filter changes",
+        "Use color coding: green for income, red for expenses, blue/gray for net",
+        "Show comparison with previous period (e.g., +12% from last month)",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "Added percentage change comparison to summary cards. Shows arrow up/down icons with color coding (green = good, red = bad). Compares current period with previous period of same length."
+    },
+    {
+      "id": "US-025",
+      "title": "Date range quick filters",
+      "description": "As a user, I want quick buttons to filter by common date ranges.",
+      "acceptanceCriteria": [
+        "Quick filter buttons: This Month, Last Month, Last 3 Months, This Year, All Time",
+        "Clicking updates date range filter and refreshes data",
+        "Active quick filter highlighted",
+        "Custom date range still available via date pickers",
+        "Typecheck/lint passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Implemented quick filter buttons above filter panel. Active filter highlighted with primary color. All Time uses nil dates to show all transactions. Custom date pickers still available."
     }
   ]
 }

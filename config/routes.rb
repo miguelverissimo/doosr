@@ -293,6 +293,37 @@ Rails.application.routes.draw do
       end
   end
 
+  # Banking
+  resources :banking, only: [ :index ] do
+    collection do
+      get :new_transaction
+      post :create_transaction
+      get :new_csv_import
+      post :import_csv
+      delete :bulk_destroy
+    end
+    member do
+      get :edit_transaction
+      patch :update_transaction
+      patch :update_category
+      delete :destroy_transaction
+    end
+  end
+
+  namespace :banking do
+    resources :categories, only: [ :index, :new, :create, :edit, :update, :destroy ] do
+      collection do
+        get :list
+      end
+    end
+    resources :category_patterns, only: [ :index, :new, :create, :edit, :update, :destroy ]
+    resources :recurring_groups, only: [ :index, :show ] do
+      collection do
+        post :detect
+      end
+    end
+  end
+
   # Checklists
   resources :checklists, only: [ :index, :show, :create, :update, :destroy ] do
     member do

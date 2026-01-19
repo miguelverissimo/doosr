@@ -220,6 +220,9 @@ class ::Views::Layouts::AppLayout < ::Views::Base
               elsif @pathname == "/accounting" || @pathname == "/accounting/"
                 # Accounting page
                 render ::Views::Accounting::Header.new
+              elsif @pathname == "/banking" || @pathname == "/banking/"
+                # Banking page
+                render ::Views::Banking::Header.new
               elsif @pathname == "/fixed_calendar" || @pathname == "/fixed_calendar/"
                 # Fixed Calendar page
                 render ::Views::FixedCalendar::Header.new
