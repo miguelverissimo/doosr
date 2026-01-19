@@ -178,7 +178,7 @@ module Banking
     end
 
     def category_pattern_params
-      params.require(:category_pattern).permit(:pattern, :category_id)
+      params.require(:category_pattern).permit(:pattern, :label, :category_id)
     end
 
     def apply_to_existing_if_requested

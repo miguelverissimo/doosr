@@ -197,7 +197,7 @@ class BankingController < ApplicationController
     @max_amount = params[:max_amount]
     @search = params[:search]
 
-    base_transactions = current_user.bank_transactions.includes(:category)
+    base_transactions = current_user.bank_transactions.includes(:category, :category_pattern)
 
     if @start_date && @end_date
       base_transactions = base_transactions.where(date: @start_date..@end_date)

@@ -70,6 +70,7 @@ module Views
             div(id: "category_pattern_form_errors", class: "text-sm text-destructive")
 
             render_pattern_field
+            render_label_field
             render_category_field
             render_apply_existing_field unless editing?
             render_actions
@@ -89,6 +90,23 @@ module Views
               value: @category_pattern.pattern,
               required: true,
               placeholder: "e.g., AMAZON, UBER, STARBUCKS"
+            )
+            render RubyUI::FormFieldError.new
+          end
+        end
+
+        def render_label_field
+          render RubyUI::FormField.new do
+            render RubyUI::FormFieldLabel.new(for: "category_pattern_label") { "Label (optional)" }
+            p(class: "text-xs text-muted-foreground mb-2") do
+              plain "A friendly name to display instead of the raw description"
+            end
+            render RubyUI::Input.new(
+              type: :text,
+              id: "category_pattern_label",
+              name: "category_pattern[label]",
+              value: @category_pattern.label,
+              placeholder: "e.g., Amazon, Uber Eats, Coffee"
             )
             render RubyUI::FormFieldError.new
           end

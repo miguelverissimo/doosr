@@ -58,6 +58,9 @@ module Views
             div(class: "flex-1 min-w-0") do
               div(class: "flex items-center gap-3 mb-1") do
                 span(class: "font-mono text-sm font-medium truncate") { pattern.pattern }
+                if pattern.label.present?
+                  span(class: "text-xs text-muted-foreground") { pattern.label }
+                end
                 render_category_badge(pattern.category)
               end
               render_match_count(pattern)

@@ -13,7 +13,7 @@ module Views
       def view_template
         TableRow(id: "transaction_#{@transaction.id}") do
           TableCell { @transaction.date.strftime("%b %d, %Y") }
-          TableCell(class: "max-w-xs truncate") { @transaction.description }
+          TableCell(class: "max-w-xs") { render_description }
           TableCell { render_category_selector }
           TableCell(class: "text-right font-mono #{value_color(@transaction.value)}") do
             format_currency(@transaction.value)
@@ -25,6 +25,21 @@ module Views
       end
 
       private
+
+      def render_description
+        div(class: "truncate") do
+          span { @transaction.description }
+          if pattern_label.present?
+            span(class: "ml-2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded") do
+              plain pattern_label
+            end
+          end
+        end
+      end
+
+      def pattern_label
+        @transaction.category_pattern&.label
+      end
 
       def render_create_pattern_button
         Button(
