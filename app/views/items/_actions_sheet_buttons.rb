@@ -12,22 +12,22 @@ module Views
       end
 
       def view_template
-        div(id: "action_sheet_buttons_#{@item.id}", class: "flex items-center justify-between gap-2") do
-          # Left side - primary actions
-          div(class: "flex items-center gap-2") do
+        div(id: "action_sheet_buttons_#{@item.id}", class: "flex items-center justify-between") do
+          # Left side - primary + secondary actions
+          div(class: "flex items-center") do
             if @item.completable?
-              render_completable_primary_actions
+              render_completable_left_actions
             elsif @item.section?
-              render_section_primary_actions
+              render_section_left_actions
             end
           end
 
           # Right side - utility actions
-          div(class: "flex items-center gap-2") do
+          div(class: "flex items-center") do
             if @item.completable?
-              render_completable_utility_actions
+              render_completable_right_actions
             elsif @item.section?
-              render_section_utility_actions
+              render_section_right_actions
             end
           end
         end
@@ -35,190 +35,192 @@ module Views
 
       private
 
-      def render_completable_primary_actions
-        # Complete/Uncomplete - PRIMARY button (filled)
-        render_icon_button(
-          icon: @item.done? ? :circle : :check_circle,
-          action: toggle_state_item_path(@item),
-          method: "patch",
-          params: { "state" => @item.done? ? "todo" : "done" },
-          variant: :primary,
-          disabled: @item.deferred? || @day_is_closed,
-          loading_message: @item.done? ? "Marking as todo..." : "Marking as done..."
-        )
+      def render_completable_left_actions
+        # Group 1: complete, edit, drop
+        div(class: "flex items-center gap-2") do
+          # Complete/Uncomplete - PRIMARY button (filled)
+          render_icon_button(
+            icon: @item.done? ? :circle : :check_circle,
+            action: toggle_state_item_path(@item),
+            method: "patch",
+            params: { "state" => @item.done? ? "todo" : "done" },
+            variant: :primary,
+            disabled: @item.deferred? || @day_is_closed,
+            loading_message: @item.done? ? "Marking as todo..." : "Marking as done..."
+          )
 
-        # Defer/Undefer
-        if @item.deferred?
-          # Show undefer button when item is deferred (unless day is closed)
-          if @day_is_closed
-            render_icon_button(
-              icon: :rotate_ccw,
-              disabled: true
-            )
-          else
-            render_icon_button(
-              icon: :rotate_ccw,
-              action: undefer_item_path(@item),
-              method: "patch",
-              params: { "day_id" => @day&.id },
-              loading_message: "Restoring item..."
-            )
-          end
-        else
-          # Show defer button when item is not deferred (unless day is closed)
-          if @day_is_closed
-            render_icon_button(
-              icon: :clock,
-              disabled: true
-            )
-          else
-            render_icon_button(
-              icon: :clock,
-              href: defer_options_item_path(@item, day_id: @day&.id),
-              params: { data: { turbo_stream: true } }
-            )
-          end
+          # Edit
+          render_icon_button(
+            icon: :edit,
+            href: edit_form_item_path(@item, day_id: @day&.id),
+            params: { data: { turbo_stream: true } },
+            disabled: @item.deferred? || @day_is_closed
+          )
+
+          # Drop/Undrop
+          render_icon_button(
+            icon: @item.dropped? ? :rotate_ccw : :x,
+            action: toggle_state_item_path(@item),
+            method: "patch",
+            params: { "state" => @item.dropped? ? "todo" : "dropped" },
+            variant: :destructive,
+            disabled: @item.deferred? || @day_is_closed,
+            loading_message: @item.dropped? ? "Restoring item..." : "Dropping item..."
+          )
         end
 
-        # Drop/Undrop
-        render_icon_button(
-          icon: @item.dropped? ? :rotate_ccw : :x,
-          action: toggle_state_item_path(@item),
-          method: "patch",
-          params: { "state" => @item.dropped? ? "todo" : "dropped" },
-          variant: :destructive,
-          disabled: @item.deferred? || @day_is_closed,
-          loading_message: @item.dropped? ? "Restoring item..." : "Dropping item..."
-        )
+        # Group 2: defer, recurrence, reminders (with spacing)
+        div(class: "flex items-center gap-2 ml-8") do
+          # Defer/Undefer
+          if @item.deferred?
+            if @day_is_closed
+              render_icon_button(
+                icon: :rotate_ccw,
+                disabled: true
+              )
+            else
+              render_icon_button(
+                icon: :rotate_ccw,
+                action: undefer_item_path(@item),
+                method: "patch",
+                params: { "day_id" => @day&.id },
+                loading_message: "Restoring item..."
+              )
+            end
+          else
+            if @day_is_closed
+              render_icon_button(
+                icon: :defer,
+                disabled: true
+              )
+            else
+              render_icon_button(
+                icon: :defer,
+                href: defer_options_item_path(@item, day_id: @day&.id),
+                params: { data: { turbo_stream: true } }
+              )
+            end
+          end
 
-        # Edit
-        render_icon_button(
-          icon: :edit,
-          href: edit_form_item_path(@item, day_id: @day&.id),
-          params: { data: { turbo_stream: true } },
-          disabled: @item.deferred? || @day_is_closed
-        )
+          # Recurrence
+          render_icon_button(
+            icon: :recycle,
+            href: recurrence_options_item_path(@item, day_id: @day&.id),
+            params: { data: { turbo_stream: true } },
+            disabled: @item.deferred? || @day_is_closed
+          )
 
-        # Recurrence
-        render_icon_button(
-          icon: :recycle,
-          href: recurrence_options_item_path(@item, day_id: @day&.id),
-          params: { data: { turbo_stream: true } },
-          disabled: @item.deferred? || @day_is_closed
-        )
-
-        # Reminders
-        render_icon_button(
-          icon: :bell,
-          href: reminders_item_path(@item, day_id: @day&.id),
-          params: { data: { turbo_stream: true } },
-          disabled: @item.deferred? || @day_is_closed
-        )
+          # Reminders
+          render_icon_button(
+            icon: :bell,
+            href: reminders_item_path(@item, day_id: @day&.id),
+            params: { data: { turbo_stream: true } },
+            disabled: @item.deferred? || @day_is_closed
+          )
+        end
       end
 
-      def render_completable_utility_actions
-        # Reparent/Move
-        render_stimulus_icon_button(
-          icon: :move,
-          controller: "item-move",
-          controller_values: { item_id: @item.id, day_id: @day&.id },
-          action: "click->item-move#startMoving",
-          disabled: @item.deferred? || @day_is_closed
-        )
+      def render_completable_right_actions
+        # Group 3: reparent, move up, move down
+        div(class: "flex items-center gap-2") do
+          # Reparent/Move
+          render_stimulus_icon_button(
+            icon: :move,
+            controller: "item-move",
+            controller_values: { item_id: @item.id, day_id: @day&.id },
+            action: "click->item-move#startMoving",
+            disabled: @item.deferred? || @day_is_closed
+          )
 
-        # Move Up - can move if: day is open AND not at index 0
-        can_move_up = @item_index && @item_index > 0 && !@day_is_closed
-        render_icon_button(
-          icon: :arrow_up,
-          action: move_item_path(@item),
-          method: "patch",
-          params: { "direction" => "up", "day_id" => @day&.id },
-          disabled: !can_move_up,
-          loading_message: "Moving item up..."
-        )
+          # Move Up
+          can_move_up = @item_index && @item_index > 0 && !@day_is_closed
+          render_icon_button(
+            icon: :arrow_up,
+            action: move_item_path(@item),
+            method: "patch",
+            params: { "direction" => "up", "day_id" => @day&.id },
+            disabled: !can_move_up,
+            loading_message: "Moving item up..."
+          )
 
-        # Move Down - can move if: day is open AND not at last position
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
-        render_icon_button(
-          icon: :arrow_down,
-          action: move_item_path(@item),
-          method: "patch",
-          params: { "direction" => "down", "day_id" => @day&.id },
-          disabled: !can_move_down,
-          loading_message: "Moving item down..."
-        )
+          # Move Down
+          can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
+          render_icon_button(
+            icon: :arrow_down,
+            action: move_item_path(@item),
+            method: "patch",
+            params: { "direction" => "down", "day_id" => @day&.id },
+            disabled: !can_move_down,
+            loading_message: "Moving item down..."
+          )
+        end
 
-        # Debug
-        render_stimulus_icon_button(
-          icon: :bug,
-          controller: "item",
-          controller_values: { id: @item.id },
-          action: "click->item#openDebug"
-        )
+        # Debug (with spacing)
+        div(class: "flex items-center ml-8") do
+          render_stimulus_icon_button(
+            icon: :bug,
+            controller: "item",
+            controller_values: { id: @item.id },
+            action: "click->item#openDebug"
+          )
+        end
       end
 
-      def render_section_primary_actions
-        # Edit
-        render_icon_button(
-          icon: :edit,
-          href: edit_form_item_path(@item, day_id: @day&.id),
-          params: { data: { turbo_stream: true } },
-          disabled: @day_is_closed
-        )
-
-        # Drop (placeholder)
-        render_icon_button(
-          icon: :x,
-          disabled: true,
-          variant: :destructive
-        )
-
-        # Reparent (placeholder)
-        render_icon_button(
-          icon: :git_branch,
-          disabled: true
-        )
+      def render_section_left_actions
+        div(class: "flex items-center gap-2") do
+          # Edit
+          render_icon_button(
+            icon: :edit,
+            href: edit_form_item_path(@item, day_id: @day&.id),
+            params: { data: { turbo_stream: true } },
+            disabled: @day_is_closed
+          )
+        end
       end
 
-      def render_section_utility_actions
-        # Reparent/Move
-        render_stimulus_icon_button(
-          icon: :move,
-          controller: "item-move",
-          controller_values: { item_id: @item.id, day_id: @day&.id },
-          action: "click->item-move#startMoving",
-          disabled: @day_is_closed
-        )
+      def render_section_right_actions
+        div(class: "flex items-center gap-2") do
+          # Reparent/Move
+          render_stimulus_icon_button(
+            icon: :move,
+            controller: "item-move",
+            controller_values: { item_id: @item.id, day_id: @day&.id },
+            action: "click->item-move#startMoving",
+            disabled: @day_is_closed
+          )
 
-        # Move Up - can move if: day is open AND not at index 0
-        can_move_up = @item_index && @item_index > 0 && !@day_is_closed
-        render_icon_button(
-          icon: :arrow_up,
-          action: move_item_path(@item),
-          method: "patch",
-          params: { "direction" => "up", "day_id" => @day&.id },
-          disabled: !can_move_up,
-          loading_message: "Moving item up..."
-        )
+          # Move Up
+          can_move_up = @item_index && @item_index > 0 && !@day_is_closed
+          render_icon_button(
+            icon: :arrow_up,
+            action: move_item_path(@item),
+            method: "patch",
+            params: { "direction" => "up", "day_id" => @day&.id },
+            disabled: !can_move_up,
+            loading_message: "Moving item up..."
+          )
 
-        # Move Down - can move if: day is open AND not at last position
-        can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
-        render_icon_button(
-          icon: :arrow_down,
-          action: move_item_path(@item),
-          method: "patch",
-          params: { "direction" => "down", "day_id" => @day&.id },
-          disabled: !can_move_down,
-          loading_message: "Moving item down..."
-        )
+          # Move Down
+          can_move_down = @item_index && @total_items && @item_index < (@total_items - 1) && !@day_is_closed
+          render_icon_button(
+            icon: :arrow_down,
+            action: move_item_path(@item),
+            method: "patch",
+            params: { "direction" => "down", "day_id" => @day&.id },
+            disabled: !can_move_down,
+            loading_message: "Moving item down..."
+          )
+        end
 
-        # Debug
-        render_stimulus_icon_button(
-          icon: :bug,
-          controller: "item",
-          controller_values: { id: @item.id },
-          action: "click->item#openDebug"
-        )
+        # Debug (with spacing)
+        div(class: "flex items-center ml-8") do
+          render_stimulus_icon_button(
+            icon: :bug,
+            controller: "item",
+            controller_values: { id: @item.id },
+            action: "click->item#openDebug"
+          )
+        end
       end
 
       def render_icon_button(icon:, action: nil, href: nil, method: "post", params: {}, disabled: false, variant: :outline, loading_message: "Processing...")

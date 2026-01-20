@@ -93,7 +93,7 @@ class ReusableItemsController < ApplicationController
         if params[:from_edit_form] == "true"
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            ::Views::Items::ActionsSheetContent.new(
+            ::Views::Items::ActionsSheetContentWrapper.new(
               item: @item,
               day: nil,
               list: @list,
@@ -333,7 +333,7 @@ class ReusableItemsController < ApplicationController
             streams = [
               turbo_stream.replace(
                 "sheet_content_area",
-                ::Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContentWrapper.new(
                   item: @item,
                   day: nil,
                   list: @list,

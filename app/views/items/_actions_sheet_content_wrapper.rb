@@ -1,0 +1,281 @@
+# frozen_string_literal: true
+
+module Views
+  module Items
+    class ActionsSheetContentWrapper < ::Views::Base
+      def initialize(item:, day: nil, list: nil, item_index: nil, total_items: nil, is_public_list: false, is_editable: false)
+        @item = item
+        @day = day
+        @list = list
+        @item_index = item_index
+        @total_items = total_items
+        @is_public_list = is_public_list
+        @is_editable = is_editable
+      end
+
+      def view_template
+        # Single sheet_content_area with both mobile and desktop content inside
+        div(id: "sheet_content_area") do
+          # Mobile version
+          div(class: "block md:hidden") do
+            render_mobile_content
+          end
+
+          # Desktop version
+          div(class: "hidden md:block") do
+            render_desktop_content
+          end
+        end
+      end
+
+      private
+
+      def render_mobile_content
+        # Header - simplified for mobile
+        div(class: "mb-4") do
+          h3(class: "text-lg font-semibold text-left pr-8") { @item.title }
+          div(class: "text-xs text-muted-foreground mt-1") do
+            span { "#{@item.item_type.titleize} \u2022 #{@item.state.titleize}" }
+            if @item.has_recurrence?
+              div(class: "flex items-center gap-1 text-blue-500 mt-1") do
+                render ::Components::Icon::Recycle.new(size: "12", class: "shrink-0")
+                plain format_recurrence_rule(@item.recurrence_rule)
+              end
+            end
+          end
+        end
+
+        # Action buttons - mobile layout
+        div(class: "space-y-4") do
+          render_mobile_action_buttons
+          render_child_item_form
+          render_nested_items
+        end
+      end
+
+      def render_desktop_content
+        SheetHeader do
+          SheetTitle(class: "text-left") { @item.title }
+          SheetDescription(class: "text-left text-xs text-muted-foreground space-y-1") do
+            div { "#{@item.item_type.titleize} \u2022 #{@item.state.titleize}" }
+            if @item.has_recurrence?
+              div(class: "flex items-center gap-1 text-blue-500") do
+                render ::Components::Icon::Recycle.new(size: "12", class: "shrink-0")
+                plain format_recurrence_rule(@item.recurrence_rule)
+              end
+            end
+          end
+        end
+
+        SheetMiddle(class: "py-4 space-y-4") do
+          render_desktop_action_buttons
+          render_child_item_form
+          render_nested_items
+        end
+      end
+
+      def render_mobile_action_buttons
+        if @list
+          if @is_public_list
+            render ::Views::Items::Mobile::ActionsSheetButtonsListPublic.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items,
+              is_editable: @is_editable
+            )
+          else
+            render ::Views::Items::Mobile::ActionsSheetButtonsListOwner.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items
+            )
+          end
+        else
+          render ::Views::Items::Mobile::ActionsSheetButtons.new(
+            item: @item,
+            day: @day,
+            item_index: @item_index,
+            total_items: @total_items
+          )
+        end
+      end
+
+      def render_desktop_action_buttons
+        if @list
+          if @is_public_list
+            render ::Views::Items::ActionsSheetButtonsListPublic.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items,
+              is_editable: @is_editable
+            )
+          else
+            render ::Views::Items::ActionsSheetButtonsListOwner.new(
+              item: @item,
+              list: @list,
+              item_index: @item_index,
+              total_items: @total_items
+            )
+          end
+        else
+          render ::Views::Items::ActionsSheetButtons.new(
+            item: @item,
+            day: @day,
+            item_index: @item_index,
+            total_items: @total_items
+          )
+        end
+      end
+
+      def render_child_item_form
+        div(class: "space-y-2") do
+          div(id: "child_item_form_errors_#{@item.id}")
+
+          form(
+            action: items_path,
+            method: "post",
+            data: {
+              controller: "item-form",
+              action: "submit->item-form#submit turbo:submit-end->item-form#clearForm",
+              turbo: "true"
+            },
+            class: "flex items-center gap-2"
+          ) do
+            csrf_token_field
+            input(type: "hidden", name: "parent_item_id", value: @item.id)
+            input(type: "hidden", name: "day_id", value: @day&.id) if @day
+
+            default_type = @list ? "reusable" : "completable"
+            input(
+              type: "hidden",
+              name: "item[item_type]",
+              value: default_type,
+              data: { item_form_target: "itemType" }
+            )
+
+            Input(
+              type: "text",
+              name: "item[title]",
+              placeholder: "Add an item...",
+              class: "flex-1 text-sm h-9",
+              data: { item_form_target: "titleInput" },
+              required: true
+            )
+
+            Button(
+              type: :button,
+              variant: :ghost,
+              icon: true,
+              size: :sm,
+              class: "shrink-0 h-9 w-9",
+              data: { action: @list ? "click->item-form#cycleListType" : "click->item-form#cycleType" }
+            ) do
+              svg(
+                xmlns: "http://www.w3.org/2000/svg",
+                class: "h-4 w-4",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                stroke_width: "2",
+                data: { item_form_target: "typeIcon" }
+              ) do |s|
+                s.circle(cx: "12", cy: "12", r: "10")
+              end
+            end
+
+            Button(type: :submit, variant: :ghost, icon: true, size: :sm, class: "shrink-0 h-9 w-9") do
+              svg(
+                xmlns: "http://www.w3.org/2000/svg",
+                class: "h-4 w-4",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                stroke_width: "2"
+              ) do |s|
+                s.line(x1: "12", y1: "5", x2: "12", y2: "19")
+                s.line(x1: "5", y1: "12", x2: "19", y2: "12")
+              end
+            end
+          end
+        end
+      end
+
+      def render_nested_items
+        descendant = @item.descendant
+        active_item_ids = descendant&.extract_active_item_ids || []
+        inactive_item_ids = descendant&.extract_inactive_item_ids || []
+        all_item_ids = active_item_ids + inactive_item_ids
+        has_items = all_item_ids.any?
+
+        div(class: "space-y-2") do
+          div(id: "nested_items_title_#{@item.id}") do
+            if has_items
+              div(class: "text-sm font-medium text-muted-foreground") { "Nested items" }
+            end
+          end
+
+          div(id: "nested_items_#{@item.id}", class: "space-y-2") do
+            if has_items
+              items = ::Item.where(id: all_item_ids).index_by(&:id)
+
+              active_item_ids.each_with_index do |item_id, index|
+                item = items[item_id]
+                next unless item
+                render ::Views::Items::DrawerChildItem.new(
+                  item: item,
+                  parent_item: @item,
+                  day: @day,
+                  item_index: index,
+                  total_items: active_item_ids.length
+                )
+              end
+
+              inactive_item_ids.each do |item_id|
+                item = items[item_id]
+                next unless item
+                case item.item_type.to_sym
+                when :section
+                  render ::Views::Items::SectionItem.new(record: item, day: @day, list: @list, is_public_list: @is_public_list)
+                else
+                  render ::Views::Items::CompletableItem.new(record: item, day: @day, list: @list, is_public_list: @is_public_list)
+                end
+              end
+            end
+          end
+        end
+      end
+
+      def format_recurrence_rule(rule_json)
+        return "Recurring" if rule_json.blank?
+
+        rule = rule_json.is_a?(String) ? JSON.parse(rule_json) : rule_json
+        frequency = rule["frequency"] || rule[:frequency]
+
+        case frequency
+        when "daily"
+          "Repeats daily"
+        when "every_weekday"
+          "Repeats every weekday"
+        when "every_n_days"
+          interval = rule["interval"] || rule[:interval] || 3
+          "Repeats every #{interval} days"
+        when "weekly"
+          days_of_week = rule["days_of_week"] || rule[:days_of_week] || []
+          day_names = days_of_week.map { |d| Date::DAYNAMES[d][0..2] }.join(", ")
+          "Repeats weekly on #{day_names}"
+        when "monthly"
+          "Repeats monthly"
+        when "yearly"
+          "Repeats yearly"
+        else
+          "Recurring"
+        end
+      rescue JSON::ParserError
+        "Recurring"
+      end
+    end
+  end
+end

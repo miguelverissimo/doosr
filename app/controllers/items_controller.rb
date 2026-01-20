@@ -314,7 +314,7 @@ class ItemsController < ApplicationController
             streams = [
               turbo_stream.replace(
                 "sheet_content_area",
-                ::Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContentWrapper.new(
                   item: @item,
                   day: @day,
                   list: @list,
@@ -525,7 +525,7 @@ class ItemsController < ApplicationController
         if params[:from_edit_form] == "true"
           render turbo_stream: turbo_stream.replace(
             "sheet_content_area",
-            ::Views::Items::ActionsSheetContent.new(
+            ::Views::Items::ActionsSheetContentWrapper.new(
               item: @item,
               day: @day,
               list: @list,
@@ -674,7 +674,7 @@ class ItemsController < ApplicationController
         # Replace just the content area, not the entire drawer
         streams << turbo_stream.replace(
           "sheet_content_area",
-          ::Views::Items::ActionsSheetContent.new(
+          ::Views::Items::ActionsSheetContentWrapper.new(
             item: @item,
             day: @day,
             list: @list,
@@ -1036,7 +1036,7 @@ class ItemsController < ApplicationController
               turbo_stream.update("items_list", rendered_items),
               turbo_stream.replace(
                 "sheet_content_area",
-                ::Views::Items::ActionsSheetContent.new(
+                ::Views::Items::ActionsSheetContentWrapper.new(
                   item: @item,
                   day: @day,
                   item_index: item_index,

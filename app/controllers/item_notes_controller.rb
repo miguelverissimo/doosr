@@ -25,7 +25,7 @@ class ItemNotesController < ApplicationController
             turbo_stream.remove("note_dialog"),
             turbo_stream.replace(
               "sheet_content_area",
-              render_to_string(::Views::Items::ActionsSheetContent.new(
+              render_to_string(::Views::Items::ActionsSheetContentWrapper.new(
                 item: @item,
                 day: @day,
                 list: nil
