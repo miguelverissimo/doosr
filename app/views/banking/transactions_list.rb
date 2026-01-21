@@ -24,7 +24,7 @@ module Views
         @min_amount = min_amount
         @max_amount = max_amount
         @search = search
-        @categories = categories.presence || user.categories.order(:name)
+        @categories = categories.presence || user.categories.top_level.with_subcategories.order(:name)
         super(**attrs)
       end
 

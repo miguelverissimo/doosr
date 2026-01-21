@@ -306,6 +306,8 @@ Rails.application.routes.draw do
       get :edit_transaction
       patch :update_transaction
       patch :update_category
+      get :edit_categories
+      patch :update_categories
       delete :destroy_transaction
     end
   end
@@ -320,6 +322,24 @@ Rails.application.routes.draw do
     resources :recurring_groups, only: [ :index, :show ] do
       collection do
         post :detect
+      end
+    end
+
+    resources :budget_goals, only: [ :index, :new, :create, :edit, :update, :destroy ]
+
+    resources :planned_expenses, only: [ :index, :new, :create, :edit, :update, :destroy ] do
+      member do
+        patch :mark_completed
+      end
+      collection do
+        post :populate_from_recurring
+      end
+    end
+
+    resources :forecasts, only: [ :index ] do
+      collection do
+        get :calendar
+        get :projections
       end
     end
   end

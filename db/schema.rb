@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_21_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -93,7 +93,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
   end
 
   create_table "bank_transactions", force: :cascade do |t|
-    t.bigint "category_id"
     t.bigint "category_pattern_id"
     t.datetime "created_at", null: false
     t.date "date", null: false
@@ -103,7 +102,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.decimal "value", precision: 12, scale: 2, null: false
-    t.index ["category_id"], name: "index_bank_transactions_on_category_id"
     t.index ["category_pattern_id"], name: "index_bank_transactions_on_category_pattern_id"
     t.index ["date"], name: "index_bank_transactions_on_date"
     t.index ["recurring_group_id"], name: "index_bank_transactions_on_recurring_group_id"
@@ -111,13 +109,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
     t.index ["user_id"], name: "index_bank_transactions_on_user_id"
   end
 
+  create_table "budget_goals", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.bigint "category_id"
+    t.datetime "created_at", null: false
+    t.string "goal_type", null: false
+    t.string "name"
+    t.integer "payment_months", default: [], array: true
+    t.string "period", default: "monthly", null: false
+    t.date "start_date"
+    t.decimal "target_amount", precision: 15, scale: 2, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["category_id"], name: "index_budget_goals_on_category_id"
+    t.index ["start_date"], name: "index_budget_goals_on_start_date"
+    t.index ["user_id", "goal_type", "category_id"], name: "index_budget_goals_unique_per_type_category", unique: true
+    t.index ["user_id"], name: "index_budget_goals_on_user_id"
+  end
+
   create_table "categories", force: :cascade do |t|
     t.string "color", null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.bigint "parent_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["user_id", "name"], name: "index_categories_on_user_id_and_name", unique: true
+    t.index ["parent_id"], name: "index_categories_on_parent_id"
+    t.index ["user_id", "name", "parent_id"], name: "index_categories_on_user_name_parent", unique: true
     t.index ["user_id"], name: "index_categories_on_user_id"
   end
 
@@ -457,6 +475,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "planned_expenses", force: :cascade do |t|
+    t.bigint "category_id"
+    t.boolean "completed", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "description", null: false
+    t.date "due_date", null: false
+    t.decimal "expected_amount", precision: 15, scale: 2, null: false
+    t.string "expense_type", default: "one_time", null: false
+    t.bigint "matched_transaction_id"
+    t.bigint "recurring_group_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["category_id"], name: "index_planned_expenses_on_category_id"
+    t.index ["matched_transaction_id"], name: "index_planned_expenses_on_matched_transaction_id"
+    t.index ["recurring_group_id", "due_date"], name: "index_planned_expenses_on_recurring_group_and_date"
+    t.index ["recurring_group_id"], name: "index_planned_expenses_on_recurring_group_id"
+    t.index ["user_id", "completed"], name: "index_planned_expenses_on_user_id_and_completed"
+    t.index ["user_id", "due_date"], name: "index_planned_expenses_on_user_id_and_due_date"
+    t.index ["user_id"], name: "index_planned_expenses_on_user_id"
+  end
+
   create_table "push_subscriptions", force: :cascade do |t|
     t.text "auth_key", null: false
     t.datetime "created_at", null: false
@@ -667,6 +706,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
     t.index ["user_id"], name: "index_tax_brackets_on_user_id"
   end
 
+  create_table "transaction_categorizations", force: :cascade do |t|
+    t.decimal "amount", precision: 12, scale: 2
+    t.bigint "bank_transaction_id", null: false
+    t.bigint "category_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["bank_transaction_id", "category_id"], name: "index_transaction_categorizations_unique", unique: true
+    t.index ["bank_transaction_id"], name: "index_transaction_categorizations_on_bank_transaction_id"
+    t.index ["category_id"], name: "index_transaction_categorizations_on_category_id"
+    t.index ["user_id"], name: "index_transaction_categorizations_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "access_confirmed", default: false, null: false
     t.datetime "created_at", null: false
@@ -697,10 +749,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addresses", "users"
   add_foreign_key "bank_infos", "users"
-  add_foreign_key "bank_transactions", "categories"
   add_foreign_key "bank_transactions", "category_patterns"
   add_foreign_key "bank_transactions", "recurring_groups"
   add_foreign_key "bank_transactions", "users"
+  add_foreign_key "budget_goals", "categories"
+  add_foreign_key "budget_goals", "users"
+  add_foreign_key "categories", "categories", column: "parent_id", on_delete: :nullify
   add_foreign_key "categories", "users"
   add_foreign_key "category_patterns", "categories"
   add_foreign_key "category_patterns", "users"
@@ -751,6 +805,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
   add_foreign_key "notification_logs", "users"
   add_foreign_key "notifications", "items"
   add_foreign_key "notifications", "users"
+  add_foreign_key "planned_expenses", "bank_transactions", column: "matched_transaction_id"
+  add_foreign_key "planned_expenses", "categories"
+  add_foreign_key "planned_expenses", "recurring_groups"
+  add_foreign_key "planned_expenses", "users"
   add_foreign_key "push_subscriptions", "users"
   add_foreign_key "receipt_items", "tax_brackets"
   add_foreign_key "receipt_items", "users"
@@ -767,4 +825,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_19_175644) do
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "tax_brackets", "users"
+  add_foreign_key "transaction_categorizations", "bank_transactions"
+  add_foreign_key "transaction_categorizations", "categories"
+  add_foreign_key "transaction_categorizations", "users"
 end

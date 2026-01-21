@@ -82,6 +82,7 @@ module Views
             div(id: "category_pattern_form_errors", class: "text-sm text-destructive")
 
             render_pattern_field
+            render_label_field
             render_category_field
             render_apply_existing_field unless editing?
 
@@ -115,24 +116,94 @@ module Views
           end
         end
 
-        def render_category_field
+        def render_label_field
           render RubyUI::FormField.new do
-            render RubyUI::FormFieldLabel.new(for: "category_pattern_category_id") { "Category" }
-            select(
-              id: "category_pattern_category_id",
-              name: "category_pattern[category_id]",
-              class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-              required: true
-            ) do
-              option(value: "") { "Select a category" }
-              @categories.each do |category|
-                option(
-                  value: category.id,
-                  selected: @category_pattern.category_id == category.id
-                ) { category.name }
+            render RubyUI::FormFieldLabel.new(for: "category_pattern_label") { "Label (optional)" }
+            p(class: "text-xs text-muted-foreground mb-2") do
+              plain "A friendly name to display instead of the raw description"
+            end
+            render RubyUI::Input.new(
+              type: :text,
+              id: "category_pattern_label",
+              name: "category_pattern[label]",
+              value: @category_pattern.label,
+              placeholder: "e.g., Amazon, Uber Eats, Coffee"
+            )
+            render RubyUI::FormFieldError.new
+          end
+        end
+
+        def render_category_field
+          selected_category = find_selected_category
+
+          render RubyUI::FormField.new do
+            render RubyUI::FormFieldLabel.new { "Category" }
+            Combobox do
+              ComboboxTrigger(placeholder: "Select a category") do
+                if selected_category
+                  render_category_badge(selected_category)
+                end
+              end
+
+              ComboboxPopover do
+                ComboboxSearchInput(placeholder: "Search categories...")
+
+                ComboboxList do
+                  ComboboxEmptyState { "No categories found" }
+
+                  @categories.each do |category|
+                    if category.subcategories.any?
+                      ComboboxListGroup(label: category.name) do
+                        render_category_combobox_item(category, selected_category)
+                        category.subcategories.order(:name).each do |sub|
+                          render_category_combobox_item(sub, selected_category)
+                        end
+                      end
+                    else
+                      render_category_combobox_item(category, selected_category)
+                    end
+                  end
+                end
               end
             end
             render RubyUI::FormFieldError.new
+          end
+        end
+
+        def find_selected_category
+          return nil unless @category_pattern.category_id
+
+          @categories.each do |cat|
+            return cat if cat.id == @category_pattern.category_id
+            cat.subcategories.each do |sub|
+              return sub if sub.id == @category_pattern.category_id
+            end
+          end
+          nil
+        end
+
+        def render_category_combobox_item(category, selected_category)
+          is_selected = selected_category&.id == category.id
+
+          ComboboxItem do
+            ComboboxRadio(
+              name: "category_pattern[category_id]",
+              value: category.id.to_s,
+              checked: is_selected
+            )
+            render_category_badge(category)
+          end
+        end
+
+        def render_category_badge(category)
+          span(
+            class: "inline-flex items-center gap-2"
+          ) do
+            span(
+              class: "h-3 w-3 rounded-full",
+              style: "background-color: #{category.effective_color}"
+            )
+            span { category.subcategory? ? "#{category.name}" : category.name }
           end
         end
 

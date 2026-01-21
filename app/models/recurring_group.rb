@@ -5,6 +5,7 @@ class RecurringGroup < ApplicationRecord
 
   belongs_to :user
   has_many :bank_transactions, dependent: :nullify
+  has_many :planned_expenses, dependent: :nullify
 
   validates :name, presence: true
   validates :description_pattern, presence: true, uniqueness: { scope: :user_id }
@@ -14,6 +15,8 @@ class RecurringGroup < ApplicationRecord
   scope :active, -> { where(active: true) }
   scope :for_user, ->(user) { where(user: user) }
   scope :by_last_occurrence, -> { order(last_occurrence: :desc) }
+  scope :expenses, -> { where("average_amount < 0") }
+  scope :income, -> { where("average_amount > 0") }
 
   def monthly_amount
     case frequency
@@ -34,6 +37,44 @@ class RecurringGroup < ApplicationRecord
     when "monthly" then "Monthly"
     when "yearly" then "Yearly"
     else frequency.capitalize
+    end
+  end
+
+  def future_occurrences(weeks: 12)
+    return [] unless expected_next.present?
+
+    occurrences = []
+    current_date = expected_next
+    end_date = Date.current + weeks.weeks
+
+    while current_date <= end_date
+      occurrences << current_date
+      current_date = next_occurrence_after(current_date)
+    end
+
+    occurrences
+  end
+
+  def expense?
+    average_amount.negative?
+  end
+
+  def income?
+    average_amount.positive?
+  end
+
+  private
+
+  def next_occurrence_after(date)
+    case frequency
+    when "weekly"
+      date + 1.week
+    when "monthly"
+      date + 1.month
+    when "yearly"
+      date + 1.year
+    else
+      date + 1.month
     end
   end
 end

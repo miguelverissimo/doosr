@@ -3,7 +3,7 @@
 module Views
   module Banking
     class Index < ::Views::Base
-      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, min_amount: nil, max_amount: nil, search: nil)
+      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil)
         @user = user
         @start_date = start_date
         @end_date = end_date
@@ -21,6 +21,7 @@ module Views
         @sort_column = sort_column
         @sort_direction = sort_direction
         @category_id = category_id
+        @breakdown_parent_id = breakdown_parent_id
         @min_amount = min_amount
         @max_amount = max_amount
         @search = search
@@ -113,7 +114,8 @@ module Views
             category_breakdown: @category_breakdown,
             start_date: @start_date,
             end_date: @end_date,
-            category_id: @category_id
+            category_id: @category_id,
+            breakdown_parent_id: @breakdown_parent_id
           )
           render ::Views::Banking::SpendingOverTimeChart.new(
             time_series_data: @time_series_data,
@@ -138,6 +140,7 @@ module Views
                 end
               end
               div(class: "flex items-center gap-2") do
+                render_forecast_button
                 render_recurring_button
                 render_manage_patterns_button
                 render_manage_categories_button
@@ -199,6 +202,16 @@ module Views
           "From #{@start_date.strftime('%b %d, %Y')}"
         else
           "Until #{@end_date.strftime('%b %d, %Y')}"
+        end
+      end
+
+      def render_forecast_button
+        a(
+          href: banking_forecasts_path,
+          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+        ) do
+          render ::Components::Icon::TrendingUp.new(size: "16", class: "mr-2")
+          plain "Forecast"
         end
       end
 

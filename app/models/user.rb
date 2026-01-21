@@ -28,6 +28,9 @@ class User < ApplicationRecord
   has_many :categories, dependent: :destroy
   has_many :category_patterns, dependent: :destroy
   has_many :recurring_groups, dependent: :destroy
+  has_many :budget_goals, dependent: :destroy
+  has_many :planned_expenses, dependent: :destroy
+  has_many :transaction_categorizations, dependent: :destroy
 
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy

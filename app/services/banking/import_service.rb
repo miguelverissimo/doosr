@@ -76,14 +76,24 @@ module Banking
       @seen_hashes.add(row_hash)
       matching_pattern = find_matching_pattern(description)
 
-      @user.bank_transactions.create!(
+      transaction = @user.bank_transactions.create!(
         date: date,
         description: description,
         value: value,
         row_hash: row_hash,
-        category: matching_pattern&.category,
         category_pattern: matching_pattern
       )
+
+      # Create transaction_categorization if pattern matched a category
+      if matching_pattern&.category
+        TransactionCategorization.create!(
+          bank_transaction: transaction,
+          category: matching_pattern.category,
+          user: @user,
+          amount: nil
+        )
+      end
+
       @imported += 1
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
       @skipped += 1

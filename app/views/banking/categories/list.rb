@@ -47,6 +47,10 @@ module Views
             div(class: "divide-y divide-border rounded-md border") do
               @categories.each do |category|
                 render_category_row(category)
+                # Render subcategories indented - sort in Ruby to use preloaded data
+                category.subcategories.sort_by(&:name).each do |subcategory|
+                  render_subcategory_row(subcategory)
+                end
               end
             end
           end
@@ -61,10 +65,29 @@ module Views
               render_color_swatch(category.color)
               span(class: "font-medium") { category.name }
               render_transaction_count(category)
+              render_subcategory_count(category)
             end
             div(class: "flex items-center gap-1") do
               render_edit_button(category)
               render_delete_button(category)
+            end
+          end
+        end
+
+        def render_subcategory_row(subcategory)
+          div(
+            id: "category_#{subcategory.id}",
+            class: "flex items-center justify-between p-3 pl-8 hover:bg-muted/50 bg-muted/20"
+          ) do
+            div(class: "flex items-center gap-3") do
+              span(class: "text-muted-foreground") { "└" }
+              render_color_swatch(subcategory.color)
+              span(class: "font-medium") { subcategory.name }
+              render_transaction_count(subcategory)
+            end
+            div(class: "flex items-center gap-1") do
+              render_edit_button(subcategory)
+              render_delete_button(subcategory)
             end
           end
         end
@@ -77,10 +100,20 @@ module Views
         end
 
         def render_transaction_count(category)
-          count = category.bank_transactions.count
+          count = category.transaction_categorizations.count
           if count > 0
             span(class: "text-xs text-muted-foreground") do
               plain "(#{count} transaction#{'s' if count != 1})"
+            end
+          end
+        end
+
+        def render_subcategory_count(category)
+          # Use .size to use preloaded data instead of triggering a count query
+          count = category.subcategories.size
+          if count > 0
+            span(class: "text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded") do
+              plain "#{count} sub"
             end
           end
         end
@@ -116,8 +149,19 @@ module Views
               render AlertDialogHeader.new do
                 render AlertDialogTitle.new { "Delete \"#{category.name}\"?" }
                 render AlertDialogDescription.new do
-                  if category.bank_transactions.count > 0
-                    plain "This will set #{category.bank_transactions.count} transaction(s) to Uncategorized. This action cannot be undone."
+                  messages = []
+                  tc_count = category.transaction_categorizations.count
+                  sub_count = category.subcategories.count
+
+                  if tc_count > 0
+                    messages << "#{tc_count} transaction#{'s' if tc_count != 1} will be uncategorized"
+                  end
+                  if sub_count > 0
+                    messages << "#{sub_count} subcategor#{'ies' if sub_count != 1}#{'y' if sub_count == 1} will become top-level"
+                  end
+
+                  if messages.any?
+                    plain messages.join(". ") + ". This action cannot be undone."
                   else
                     plain "This action cannot be undone."
                   end

@@ -4,10 +4,11 @@ import { Chart, ArcElement, DoughnutController, Tooltip, Legend } from "chart.js
 Chart.register(ArcElement, DoughnutController, Tooltip, Legend)
 
 export default class extends Controller {
-  static targets = ["canvas"]
+  static targets = ["canvas", "loading"]
   static values = {
     data: Array,
-    filterUrl: String
+    filterUrl: String,
+    drilldownMode: { type: Boolean, default: false }
   }
 
   connect() {
@@ -32,6 +33,7 @@ export default class extends Controller {
     const values = data.map(d => Math.abs(d.amount))
     const colors = data.map(d => d.color)
     const categoryIds = data.map(d => d.id)
+    const hasSubcategories = data.map(d => d.has_subcategories || false)
 
     this.chart = new Chart(ctx, {
       type: "doughnut",
@@ -68,7 +70,8 @@ export default class extends Controller {
           if (elements.length > 0) {
             const index = elements[0].index
             const categoryId = categoryIds[index]
-            this.filterByCategory(categoryId)
+            const hasSubs = hasSubcategories[index]
+            this.handleCategoryClick(categoryId, hasSubs)
           }
         },
         onHover: (event, elements) => {
@@ -78,15 +81,31 @@ export default class extends Controller {
     })
   }
 
-  filterByCategory(categoryId) {
+  handleCategoryClick(categoryId, hasSubcategories) {
+    this.showLoading()
+
     const url = new URL(this.filterUrlValue, window.location.origin)
-    if (categoryId === "uncategorized") {
-      url.searchParams.set("category_id", "uncategorized")
-    } else if (categoryId) {
-      url.searchParams.set("category_id", categoryId)
+
+    // If category has subcategories and we're not already in drilldown mode,
+    // drill down into subcategory breakdown
+    if (hasSubcategories && !this.drilldownModeValue) {
+      url.searchParams.set("breakdown_parent_id", categoryId)
+    } else {
+      // Otherwise, filter by this category
+      if (categoryId === "uncategorized") {
+        url.searchParams.set("category_id", "uncategorized")
+      } else if (categoryId) {
+        url.searchParams.set("category_id", categoryId)
+      }
     }
-    
+
     Turbo.visit(url.toString())
+  }
+
+  showLoading() {
+    if (this.hasLoadingTarget) {
+      this.loadingTarget.classList.remove("hidden")
+    }
   }
 
   adjustBrightness(hex, percent) {

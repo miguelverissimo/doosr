@@ -10,8 +10,9 @@ module Views
           #c026d3 #db2777 #78716c #52525b #475569
         ].freeze
 
-        def initialize(category:)
+        def initialize(category:, parent_categories: [])
           @category = category
+          @parent_categories = parent_categories
         end
 
         def view_template
@@ -66,6 +67,7 @@ module Views
             div(id: "category_form_errors", class: "text-sm text-destructive")
 
             render_name_field
+            render_parent_field if @parent_categories.any?
             render_color_field
 
             render_actions
@@ -99,6 +101,29 @@ module Views
               required: true,
               placeholder: "e.g., Groceries"
             )
+            render RubyUI::FormFieldError.new
+          end
+        end
+
+        def render_parent_field
+          render RubyUI::FormField.new do
+            render RubyUI::FormFieldLabel.new(for: "category_parent_id") { "Parent Category (optional)" }
+            div(class: "text-xs text-muted-foreground mb-2") do
+              plain "Make this a subcategory of another category"
+            end
+            select(
+              id: "category_parent_id",
+              name: "category[parent_id]",
+              class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            ) do
+              option(value: "", selected: @category.parent_id.nil?) { "None (top-level category)" }
+              @parent_categories.each do |parent|
+                option(
+                  value: parent.id,
+                  selected: @category.parent_id == parent.id
+                ) { parent.name }
+              end
+            end
             render RubyUI::FormFieldError.new
           end
         end

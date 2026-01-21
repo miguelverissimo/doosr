@@ -10,7 +10,7 @@ class BankingController < ApplicationController
 
   def new_transaction
     @transaction = current_user.bank_transactions.build(date: Date.current)
-    @categories = current_user.categories.order(:name)
+    @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
     respond_to do |format|
       format.turbo_stream do
@@ -67,11 +67,20 @@ class BankingController < ApplicationController
     @transaction.row_hash = generate_row_hash(@transaction)
 
     if @transaction.save
+      # Handle category assignment via transaction_categorizations
+      category_id = params[:category_id]
+      if category_id.present?
+        @transaction.set_categories([category_id])
+      end
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.prepend(
             "transactions_table_body",
-            render_to_string(::Views::Banking::TransactionRow.new(transaction: @transaction), layout: false)
+            render_to_string(::Views::Banking::TransactionRow.new(
+              transaction: @transaction.reload,
+              categories: current_user.categories.top_level.with_subcategories.order(:name)
+            ), layout: false)
           )
         end
       end
@@ -89,7 +98,7 @@ class BankingController < ApplicationController
 
   def edit_transaction
     @transaction = current_user.bank_transactions.find(params[:id])
-    @categories = current_user.categories.order(:name)
+    @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
     respond_to do |format|
       format.turbo_stream do
@@ -110,11 +119,22 @@ class BankingController < ApplicationController
     if @transaction.update(transaction_params)
       @transaction.update_column(:row_hash, generate_row_hash(@transaction))
 
+      # Handle category assignment via transaction_categorizations
+      category_id = params[:category_id]
+      if category_id.present?
+        @transaction.set_categories([category_id])
+      elsif category_id == ""
+        @transaction.transaction_categorizations.destroy_all
+      end
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "transaction_#{@transaction.id}",
-            render_to_string(::Views::Banking::TransactionRow.new(transaction: @transaction.reload, categories: current_user.categories.order(:name)), layout: false)
+            render_to_string(::Views::Banking::TransactionRow.new(
+              transaction: @transaction.reload,
+              categories: current_user.categories.top_level.with_subcategories.order(:name)
+            ), layout: false)
           )
         end
       end
@@ -132,15 +152,69 @@ class BankingController < ApplicationController
 
   def update_category
     @transaction = current_user.bank_transactions.find(params[:id])
-    @categories = current_user.categories.order(:name)
+    @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
     category_id = params.dig(:bank_transaction, :category_id)
     category_id = nil if category_id.blank?
 
-    if @transaction.update(category_id: category_id)
-      respond_to do |format|
-        format.turbo_stream do
-          render turbo_stream: turbo_stream.replace(
+    # Update using set_categories for proper categorization handling
+    if category_id.present?
+      @transaction.set_categories([category_id])
+    else
+      @transaction.transaction_categorizations.destroy_all
+    end
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "transaction_#{@transaction.id}_category",
+          render_to_string(::Views::Banking::CategorySelector.new(
+            transaction: @transaction.reload,
+            categories: @categories,
+            show_success: true
+          ), layout: false)
+        )
+      end
+    end
+  rescue StandardError => e
+    respond_to do |format|
+      format.turbo_stream do
+        head :unprocessable_entity
+      end
+    end
+  end
+
+  def edit_categories
+    @transaction = current_user.bank_transactions.find(params[:id])
+    @categories = current_user.categories.top_level.with_subcategories.order(:name)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.append(
+          "body",
+          render_to_string(::Views::Banking::MultiCategoryDialog.new(
+            transaction: @transaction,
+            categories: @categories
+          ), layout: false)
+        )
+      end
+    end
+  end
+
+  def update_categories
+    @transaction = current_user.bank_transactions.find(params[:id])
+    @categories = current_user.categories.top_level.with_subcategories.order(:name)
+
+    category_ids = params[:category_ids]&.reject(&:blank?) || []
+    amounts = params[:amounts] || {}
+
+    @transaction.set_categories(category_ids, amounts)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.remove("multi_category_dialog"),
+          turbo_stream.replace(
             "transaction_#{@transaction.id}_category",
             render_to_string(::Views::Banking::CategorySelector.new(
               transaction: @transaction.reload,
@@ -148,13 +222,16 @@ class BankingController < ApplicationController
               show_success: true
             ), layout: false)
           )
-        end
+        ]
       end
-    else
-      respond_to do |format|
-        format.turbo_stream do
-          head :unprocessable_entity
-        end
+    end
+  rescue StandardError => e
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "multi_category_form_errors",
+          "<div class='text-sm text-destructive'>#{e.message}</div>"
+        ), status: :unprocessable_entity
       end
     end
   end
@@ -193,11 +270,12 @@ class BankingController < ApplicationController
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : DEFAULT_SORT_COLUMN
     @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : DEFAULT_SORT_DIRECTION
     @category_id = params[:category_id]
+    @breakdown_parent_id = params[:breakdown_parent_id]
     @min_amount = params[:min_amount]
     @max_amount = params[:max_amount]
     @search = params[:search]
 
-    base_transactions = current_user.bank_transactions.includes(:category, :category_pattern)
+    base_transactions = current_user.bank_transactions.includes(:category_pattern, transaction_categorizations: :category)
 
     if @start_date && @end_date
       base_transactions = base_transactions.where(date: @start_date..@end_date)
@@ -263,6 +341,7 @@ class BankingController < ApplicationController
           sort_column: @sort_column,
           sort_direction: @sort_direction,
           category_id: @category_id,
+          breakdown_parent_id: @breakdown_parent_id,
           min_amount: @min_amount,
           max_amount: @max_amount,
           search: @search
@@ -281,12 +360,29 @@ class BankingController < ApplicationController
   end
 
   def apply_category_filter(transactions)
+    # When drilling down into subcategories, filter by parent category
+    if @breakdown_parent_id.present? && @category_id.blank?
+      @categories_cache ||= current_user.categories.includes(:subcategories, :parent).index_by(&:id)
+      parent_category = @categories_cache[@breakdown_parent_id.to_i]
+      if parent_category
+        subcategory_ids = parent_category.subcategories.map(&:id)
+        category_ids = [parent_category.id] + subcategory_ids
+        return transactions.with_any_categorization(category_ids)
+      end
+    end
+
     return transactions if @category_id.blank?
 
     if @category_id == "uncategorized"
-      transactions.where(category_id: nil)
+      # Transactions without any categorizations
+      transactions.without_categorizations
     else
-      transactions.where(category_id: @category_id)
+      # Include subcategories in the filter
+      category = current_user.categories.find_by(id: @category_id)
+      return transactions unless category
+
+      category_ids = category.self_and_subcategory_ids
+      transactions.with_any_categorization(category_ids)
     end
   end
 
@@ -311,6 +407,7 @@ class BankingController < ApplicationController
   def apply_sorting(transactions)
     order_clause = case @sort_column
     when "category"
+      # Sort by first category name via transaction_categorizations
       "categories.name #{@sort_direction} NULLS LAST, bank_transactions.id DESC"
     when "date"
       { date: @sort_direction.to_sym, id: :desc }
@@ -323,14 +420,17 @@ class BankingController < ApplicationController
     end
 
     if @sort_column == "category"
-      transactions.left_joins(:category).order(Arel.sql(order_clause))
+      transactions
+        .left_joins(transaction_categorizations: :category)
+        .group("bank_transactions.id")
+        .order(Arel.sql(order_clause))
     else
       transactions.order(order_clause)
     end
   end
 
   def transaction_params
-    params.require(:bank_transaction).permit(:date, :description, :value, :category_id)
+    params.require(:bank_transaction).permit(:date, :description, :value)
   end
 
   def generate_row_hash(transaction)
@@ -340,36 +440,109 @@ class BankingController < ApplicationController
   end
 
   def compute_category_breakdown(transactions)
-    expenses = transactions.where("value < 0")
+    expense_ids = transactions.where("value < 0").pluck(:id)
+    return [] if expense_ids.empty?
 
-    category_totals = expenses
+    # Preload all categories with subcategories in a single query
+    @categories_cache ||= current_user.categories.includes(:subcategories, :parent).index_by(&:id)
+
+    # If drilling down into a parent category, show subcategory breakdown
+    if @breakdown_parent_id.present?
+      return compute_subcategory_breakdown(expense_ids, @breakdown_parent_id)
+    end
+
+    # Get category totals using a single aggregate query
+    category_amounts = TransactionCategorization
+      .where(bank_transaction_id: expense_ids)
+      .joins(:bank_transaction)
       .group(:category_id)
-      .sum(:value)
+      .sum(Arel.sql("COALESCE(transaction_categorizations.amount, ABS(bank_transactions.value))"))
 
-    total_expenses = category_totals.values.sum(&:abs)
+    # Get categorized transaction IDs in a single query
+    categorized_transaction_ids = TransactionCategorization
+      .where(bank_transaction_id: expense_ids)
+      .distinct
+      .pluck(:bank_transaction_id)
+
+    # Roll up subcategory amounts to parent categories
+    category_totals = Hash.new(0.0)
+    category_amounts.each do |category_id, amount|
+      category = @categories_cache[category_id]
+      next unless category
+
+      # Roll up to parent category if it's a subcategory
+      top_level_id = category.parent_id || category_id
+      category_totals[top_level_id] += amount.to_f
+    end
+
+    # Calculate uncategorized amount
+    uncategorized_ids = expense_ids - categorized_transaction_ids
+    if uncategorized_ids.any?
+      uncategorized_total = BankTransaction.where(id: uncategorized_ids).sum("ABS(value)").to_f
+      category_totals["uncategorized"] = uncategorized_total if uncategorized_total > 0
+    end
+
+    total_expenses = category_totals.values.sum
     return [] if total_expenses.zero?
 
-    categories_by_id = current_user.categories.index_by(&:id)
-
     breakdown = category_totals.map do |category_id, amount|
-      if category_id.nil?
+      if category_id == "uncategorized"
         {
           id: "uncategorized",
           name: "Uncategorized",
           color: "#9CA3AF",
-          amount: amount.abs,
-          percentage: ((amount.abs / total_expenses) * 100).round(1)
+          amount: amount,
+          percentage: ((amount / total_expenses) * 100).round(1),
+          has_subcategories: false
         }
       else
-        category = categories_by_id[category_id]
+        category = @categories_cache[category_id]
         {
           id: category_id,
           name: category&.name || "Unknown",
           color: category&.color || "#6B7280",
-          amount: amount.abs,
-          percentage: ((amount.abs / total_expenses) * 100).round(1)
+          amount: amount,
+          percentage: ((amount / total_expenses) * 100).round(1),
+          has_subcategories: category&.subcategories&.loaded? ? category.subcategories.size > 0 : false
         }
       end
+    end
+
+    breakdown.sort_by { |item| -item[:amount] }
+  end
+
+  def compute_subcategory_breakdown(expense_ids, parent_category_id)
+    # Use cached categories
+    @categories_cache ||= current_user.categories.includes(:subcategories, :parent).index_by(&:id)
+    parent_category = @categories_cache[parent_category_id.to_i]
+    return [] unless parent_category
+
+    # Get category IDs: parent + all subcategories (use loaded association)
+    subcategory_ids = parent_category.subcategories.map(&:id)
+    category_ids = [parent_category.id] + subcategory_ids
+
+    # Get category totals using a single aggregate query
+    category_amounts = TransactionCategorization
+      .where(bank_transaction_id: expense_ids)
+      .where(category_id: category_ids)
+      .joins(:bank_transaction)
+      .group(:category_id)
+      .sum(Arel.sql("COALESCE(transaction_categorizations.amount, ABS(bank_transactions.value))"))
+
+    total_expenses = category_amounts.values.sum.to_f
+    return [] if total_expenses.zero?
+
+    breakdown = category_amounts.map do |category_id, amount|
+      category = @categories_cache[category_id]
+      {
+        id: category_id,
+        name: category&.name || "Unknown",
+        color: category&.color || "#6B7280",
+        amount: amount.to_f,
+        percentage: ((amount.to_f / total_expenses) * 100).round(1),
+        has_subcategories: false,
+        is_parent: category_id == parent_category.id
+      }
     end
 
     breakdown.sort_by { |item| -item[:amount] }

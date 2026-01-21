@@ -23,7 +23,7 @@ module Views
         @search = search
         @sort_column = sort_column
         @sort_direction = sort_direction
-        @categories = user.categories.order(:name)
+        @categories = user.categories.top_level.with_subcategories.order(:name)
       end
 
       def view_template
@@ -113,12 +113,34 @@ module Views
           ) do
             option(value: "") { "All Categories" }
             option(value: "uncategorized", selected: @category_id == "uncategorized") { "Uncategorized" }
-            @categories.each do |category|
+            render_hierarchical_category_options
+          end
+        end
+      end
+
+      def render_hierarchical_category_options
+        @categories.each do |category|
+          # Use .size on preloaded association to avoid queries
+          if category.subcategories.size > 0
+            optgroup(label: category.name) do
               option(
                 value: category.id,
                 selected: @category_id.to_s == category.id.to_s
               ) { category.name }
+
+              # Sort in Ruby to avoid query - subcategories already preloaded
+              category.subcategories.sort_by(&:name).each do |sub|
+                option(
+                  value: sub.id,
+                  selected: @category_id.to_s == sub.id.to_s
+                ) { "  └ #{sub.name}" }
+              end
             end
+          else
+            option(
+              value: category.id,
+              selected: @category_id.to_s == category.id.to_s
+            ) { category.name }
           end
         end
       end

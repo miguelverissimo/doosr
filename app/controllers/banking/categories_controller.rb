@@ -7,7 +7,7 @@ module Banking
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index
-      @categories = current_user.categories.order(:name)
+      @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
       respond_to do |format|
         format.html { redirect_to banking_path }
@@ -21,7 +21,7 @@ module Banking
     end
 
     def list
-      @categories = current_user.categories.order(:name)
+      @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
       respond_to do |format|
         format.turbo_stream do
@@ -35,12 +35,16 @@ module Banking
 
     def new
       @category = current_user.categories.build
+      @parent_categories = current_user.categories.top_level.order(:name)
 
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "categories_content",
-            render_to_string(::Views::Banking::Categories::Form.new(category: @category), layout: false)
+            render_to_string(::Views::Banking::Categories::Form.new(
+              category: @category,
+              parent_categories: @parent_categories
+            ), layout: false)
           )
         end
       end
@@ -68,11 +72,16 @@ module Banking
     end
 
     def edit
+      @parent_categories = current_user.categories.top_level.where.not(id: @category.id).order(:name)
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: turbo_stream.replace(
             "categories_content",
-            render_to_string(::Views::Banking::Categories::Form.new(category: @category), layout: false)
+            render_to_string(::Views::Banking::Categories::Form.new(
+              category: @category,
+              parent_categories: @parent_categories
+            ), layout: false)
           )
         end
       end
@@ -99,7 +108,7 @@ module Banking
 
     def destroy
       @category.destroy!
-      @categories = current_user.categories.order(:name)
+      @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
       respond_to do |format|
         format.turbo_stream do
@@ -118,7 +127,7 @@ module Banking
     end
 
     def category_params
-      params.require(:category).permit(:name, :color)
+      params.require(:category).permit(:name, :color, :parent_id)
     end
   end
 end

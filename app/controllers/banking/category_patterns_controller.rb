@@ -30,9 +30,9 @@ module Banking
       @transaction = find_transaction_if_provided
       @category_pattern = current_user.category_patterns.build(
         pattern: @transaction&.description,
-        category_id: @transaction&.category_id
+        category_id: @transaction&.primary_category&.id
       )
-      @categories = current_user.categories.order(:name)
+      @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
       respond_to do |format|
         format.turbo_stream do
@@ -103,7 +103,7 @@ module Banking
     end
 
     def edit
-      @categories = current_user.categories.order(:name)
+      @categories = current_user.categories.top_level.with_subcategories.order(:name)
 
       respond_to do |format|
         format.turbo_stream do
@@ -185,14 +185,15 @@ module Banking
       return 0 unless params[:apply_to_existing] == "1"
 
       matching_transactions = current_user.bank_transactions
-        .where(category_id: nil)
+        .without_categorizations
         .where("LOWER(description) LIKE ?", "%#{@category_pattern.pattern.downcase}%")
 
-      count = matching_transactions.count
-      matching_transactions.update_all(
-        category_id: @category_pattern.category_id,
-        category_pattern_id: @category_pattern.id
-      )
+      count = 0
+      matching_transactions.find_each do |transaction|
+        transaction.update!(category_pattern_id: @category_pattern.id)
+        transaction.set_categories([@category_pattern.category_id])
+        count += 1
+      end
       count
     end
 
@@ -202,18 +203,22 @@ module Banking
       pattern.bank_transactions.find_each do |transaction|
         if pattern.matches?(transaction.description)
           # Still matches - update category in case it changed
-          transaction.update_columns(category_id: pattern.category_id)
+          transaction.set_categories([pattern.category_id])
         else
           # No longer matches - clear the association
-          transaction.update_columns(category_id: nil, category_pattern_id: nil)
+          transaction.transaction_categorizations.destroy_all
+          transaction.update_columns(category_pattern_id: nil)
         end
       end
 
       # 3. Apply to uncategorized transactions that now match
       current_user.bank_transactions
-        .where(category_id: nil)
+        .without_categorizations
         .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-        .update_all(category_id: pattern.category_id, category_pattern_id: pattern.id)
+        .find_each do |transaction|
+          transaction.update!(category_pattern_id: pattern.id)
+          transaction.set_categories([pattern.category_id])
+        end
     end
 
     def filter_params
@@ -232,7 +237,7 @@ module Banking
       max_amount = fp[:max_amount]
       search = fp[:search]
 
-      transactions = current_user.bank_transactions.includes(:category)
+      transactions = current_user.bank_transactions.includes(:category_pattern, transaction_categorizations: :category)
       transactions = transactions.where(date: start_date..end_date) if start_date && end_date
       transactions = transactions.where("date >= ?", start_date) if start_date && !end_date
       transactions = transactions.where("date <= ?", end_date) if end_date && !start_date
@@ -266,7 +271,16 @@ module Banking
 
     def apply_category_filter_for_list(transactions, category_id)
       return transactions if category_id.blank?
-      category_id == "uncategorized" ? transactions.where(category_id: nil) : transactions.where(category_id: category_id)
+
+      if category_id == "uncategorized"
+        transactions.without_categorizations
+      else
+        category = current_user.categories.find_by(id: category_id)
+        return transactions unless category
+
+        category_ids = category.self_and_subcategory_ids
+        transactions.with_any_categorization(category_ids)
+      end
     end
 
     def apply_amount_filters_for_list(transactions, min_amount, max_amount)
@@ -278,7 +292,10 @@ module Banking
     def apply_sorting_for_list(transactions, sort_column, sort_direction)
       case sort_column
       when "category"
-        transactions.left_joins(:category).order(Arel.sql("categories.name #{sort_direction} NULLS LAST, bank_transactions.id DESC"))
+        transactions
+          .left_joins(transaction_categorizations: :category)
+          .group("bank_transactions.id")
+          .order(Arel.sql("categories.name #{sort_direction} NULLS LAST, bank_transactions.id DESC"))
       when "date"
         transactions.order(date: sort_direction.to_sym, id: :desc)
       when "description"

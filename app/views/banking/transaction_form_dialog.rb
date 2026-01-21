@@ -143,22 +143,44 @@ module Views
       end
 
       def render_category_field
+        current_category_id = @transaction.primary_category&.id
+
         render RubyUI::FormField.new do
-          render RubyUI::FormFieldLabel.new(for: "bank_transaction_category_id") { "Category" }
+          render RubyUI::FormFieldLabel.new(for: "category_id") { "Category" }
           select(
-            id: "bank_transaction_category_id",
-            name: "bank_transaction[category_id]",
+            id: "category_id",
+            name: "category_id",
             class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           ) do
             option(value: "") { "Select a category (optional)" }
-            @categories.each do |category|
-              option(
-                value: category.id,
-                selected: @transaction.category_id == category.id
-              ) { category.name }
-            end
+            render_hierarchical_category_options(current_category_id)
           end
           render RubyUI::FormFieldError.new
+        end
+      end
+
+      def render_hierarchical_category_options(current_category_id)
+        @categories.each do |category|
+          if category.respond_to?(:subcategories) && category.subcategories.any?
+            optgroup(label: category.name) do
+              option(
+                value: category.id,
+                selected: current_category_id == category.id
+              ) { category.name }
+
+              category.subcategories.order(:name).each do |sub|
+                option(
+                  value: sub.id,
+                  selected: current_category_id == sub.id
+                ) { "  └ #{sub.name}" }
+              end
+            end
+          else
+            option(
+              value: category.id,
+              selected: current_category_id == category.id
+            ) { category.name }
+          end
         end
       end
 
