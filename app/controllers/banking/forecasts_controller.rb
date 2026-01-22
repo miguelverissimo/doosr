@@ -6,17 +6,25 @@ module Banking
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index
-      @forecast = ::Banking::ForecastService.new(current_user).call
-      @upcoming_expenses = current_user.planned_expenses.upcoming.limit(10)
-      @categories = current_user.categories.order(:name)
+      @payment_reminders = current_user.payment_reminders.active.upcoming.includes(:day_payment_reminders)
+      @section_spending = ::Banking::SectionSpendingService.new(current_user).call
+
+      # Build a hash of payment_reminder_id => paid_at for quick lookup
+      # Uses the already-included day_payment_reminders association to avoid N+1 queries
+      @paid_status = @payment_reminders.each_with_object({}) do |reminder, paid_status|
+        paid_reminder = reminder.day_payment_reminders
+          .select { |dpr| dpr.paid_at.present? }
+          .max_by(&:paid_at)
+        paid_status[reminder.id] = paid_reminder&.paid_at
+      end
 
       respond_to do |format|
         format.html do
           render ::Views::Banking::Forecasts::Index.new(
             user: current_user,
-            forecast: @forecast,
-            upcoming_expenses: @upcoming_expenses,
-            categories: @categories
+            payment_reminders: @payment_reminders,
+            paid_status: @paid_status,
+            section_spending: @section_spending
           )
         end
       end
@@ -60,6 +68,19 @@ module Banking
               }
             end
           }
+        end
+      end
+    end
+
+    def other_crap
+      @forecast = ::Banking::ForecastService.new(current_user).call
+
+      respond_to do |format|
+        format.html do
+          render ::Views::Banking::Forecasts::OtherCrap.new(
+            user: current_user,
+            forecast: @forecast
+          )
         end
       end
     end

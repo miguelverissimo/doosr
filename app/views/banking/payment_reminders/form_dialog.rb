@@ -94,9 +94,11 @@ module Views
             div(id: "payment_reminder_form_errors", class: "text-sm text-destructive")
 
             render_title_field
+            render_expected_amount_field
             render_cutoff_date_field
             render_payment_url_field
             render_reminder_days_field
+            render_notification_time_field
             render_active_field
 
             render_actions
@@ -121,6 +123,23 @@ module Views
               value: @payment_reminder.title,
               required: true,
               placeholder: "e.g., Property Tax, Insurance Premium"
+            )
+            render RubyUI::FormFieldError.new
+          end
+        end
+
+        def render_expected_amount_field
+          render RubyUI::FormField.new do
+            render RubyUI::FormFieldLabel.new(for: "payment_reminder_expected_amount") { "Expected Amount" }
+            render RubyUI::Input.new(
+              type: :number,
+              id: "payment_reminder_expected_amount",
+              name: "payment_reminder[expected_amount]",
+              value: @payment_reminder.expected_amount.present? ? format_number_for_input(@payment_reminder.expected_amount) : nil,
+              required: true,
+              step: "0.01",
+              min: "0",
+              placeholder: "0.00"
             )
             render RubyUI::FormFieldError.new
           end
@@ -195,6 +214,20 @@ module Views
           end
         end
 
+        def render_notification_time_field
+          render RubyUI::FormField.new do
+            render RubyUI::FormFieldLabel.new(for: "payment_reminder_notification_time") { "Push Notification Time (Optional)" }
+            render RubyUI::Input.new(
+              type: :time,
+              id: "payment_reminder_notification_time",
+              name: "payment_reminder[notification_time]",
+              value: @payment_reminder.notification_time&.strftime("%H:%M")
+            )
+            p(class: "text-xs text-muted-foreground mt-1") { "Receive a push notification at this time on reminder days" }
+            render RubyUI::FormFieldError.new
+          end
+        end
+
         def render_active_field
           # Default to active for new reminders
           is_active = @payment_reminder.persisted? ? @payment_reminder.active? : true
@@ -225,6 +258,12 @@ module Views
             Button(variant: :outline, type: "button", data: { action: "click->modal-form#cancelDialog" }) { "Cancel" }
             Button(variant: :primary, type: "submit") { submit_button_text }
           end
+        end
+
+        def format_number_for_input(number)
+          return nil if number.nil?
+          # Convert to float first to handle scientific notation, then format with 2 decimal places
+          sprintf("%.2f", number.to_f)
         end
       end
     end

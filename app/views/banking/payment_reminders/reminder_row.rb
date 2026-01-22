@@ -14,7 +14,10 @@ module Views
             class: "flex items-center justify-between p-3 rounded-lg border bg-card #{row_classes}"
           ) do
             render_reminder_info
-            render_actions
+            div(class: "flex items-center gap-3") do
+              render_amount if @payment_reminder.expected_amount.present?
+              render_actions
+            end
           end
         end
 
@@ -33,9 +36,9 @@ module Views
         end
 
         def render_reminder_info
-          div(class: "flex items-center gap-3") do
+          div(class: "flex items-center gap-3 flex-1") do
             render_icon
-            div do
+            div(class: "flex-1") do
               div(class: "flex items-center gap-2") do
                 span(class: "font-medium #{@payment_reminder.active? ? '' : 'text-muted-foreground'}") do
                   plain @payment_reminder.title
@@ -49,6 +52,16 @@ module Views
               end
             end
           end
+        end
+
+        def render_amount
+          span(class: "font-mono font-semibold text-red-600 dark:text-red-400") do
+            plain format_currency(@payment_reminder.expected_amount)
+          end
+        end
+
+        def format_currency(amount)
+          "#{view_context.number_with_delimiter(sprintf('%.2f', amount))}"
         end
 
         def render_icon

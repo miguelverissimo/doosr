@@ -12,7 +12,7 @@ module Views
       end
 
       def view_template
-        record = @node.item || @node.list || @node.checklist || @node.note || @node.journal || @node.journal_prompt || @node.journal_fragment
+        record = @node.item || @node.list || @node.checklist || @node.note || @node.journal || @node.journal_prompt || @node.journal_fragment || @node.day_payment_reminder
         return unless record
 
         # Wrap in a container div
@@ -60,9 +60,16 @@ module Views
             render ::Views::Journals::FragmentItem.new(
               fragment: @node.journal_fragment
             )
+          elsif @node.day_payment_reminder
+            render ::Views::DayPaymentReminders::PaymentReminderItem.new(
+              day_payment_reminder: @node.day_payment_reminder,
+              day: @day,
+              list: @list,
+              is_public_list: @public_view
+            )
           end
 
-          # Render children (only for items and prompts, not lists/checklists/notes/journals in day context)
+          # Render children (only for items and prompts, not lists/checklists/notes/journals/day_payment_reminders in day context)
           if @node.children.any? && (@node.item || @node.journal_prompt)
             div(class: "ml-6 mt-2 space-y-2 border-l-2 border-border/50 pl-3") do
               @node.children.each do |child_node|
@@ -82,16 +89,6 @@ module Views
       private
 
       def render_item_component(item)
-        # Check for special item types based on extra_data first
-        if item.extra_data&.dig("payment_reminder_id").present?
-          return render ::Views::Items::PaymentReminderItem.new(
-            record: item,
-            day: @day,
-            list: @list,
-            is_public_list: @public_view
-          )
-        end
-
         case item.item_type.to_sym
         when :completable, :reusable, :trackable
           render ::Views::Items::CompletableItem.new(

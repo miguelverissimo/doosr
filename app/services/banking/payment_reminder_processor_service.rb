@@ -52,8 +52,12 @@ module Banking
     end
 
     def process_reminder(reminder)
-      if reminder.reminder_item_exists_for_date?(@date)
+      existing_day_reminder = @user.day_payment_reminders.find_by(payment_reminder: reminder, reminder_date: @date)
+
+      if existing_day_reminder
         Rails.logger.debug "PaymentReminderProcessorService: Reminder #{reminder.id} - item already exists for #{@date}"
+        # Still try to schedule notification if not already done
+        schedule_notification_if_needed(reminder, existing_day_reminder)
         return skip_existing(reminder)
       end
 
@@ -120,38 +124,72 @@ module Banking
     def create_reminder_item(reminder, section)
       days_until = reminder.days_until_cutoff(@date)
 
-      item = @user.items.create!(
-        title: build_item_title(reminder, days_until),
-        item_type: :completable,
-        state: :todo,
-        extra_data: build_extra_data(reminder, days_until)
+      day_payment_reminder = @user.day_payment_reminders.create!(
+        payment_reminder: reminder,
+        reminder_date: @date,
+        days_until_cutoff: days_until
       )
 
-      section.descendant.add_active_item(item.id)
+      section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
       section.descendant.save!
+
+      # Schedule push notification if notification_time is set
+      schedule_notification(reminder, day_payment_reminder) if reminder.notification_time.present?
 
       @items_created += 1
     end
 
-    def build_item_title(reminder, days_until)
-      if days_until == 0
-        "#{reminder.title} (DUE TODAY)"
-      elsif days_until == 1
-        "#{reminder.title} (due tomorrow)"
-      else
-        "#{reminder.title} (due in #{days_until} days)"
-      end
+    def schedule_notification_if_needed(reminder, day_payment_reminder)
+      return unless reminder.notification_time.present?
+      return if day_payment_reminder.paid?
+      return if notification_already_scheduled?(day_payment_reminder)
+
+      schedule_notification(reminder, day_payment_reminder)
     end
 
-    def build_extra_data(reminder, days_until)
-      {
+    def notification_already_scheduled?(day_payment_reminder)
+      # Check if there's a pending job for this day_payment_reminder
+      SolidQueue::Job
+        .where(class_name: "PaymentReminderNotificationJob")
+        .where(finished_at: nil)
+        .where("arguments LIKE ?", "%day_payment_reminder_id\":#{day_payment_reminder.id}%")
+        .exists?
+    end
+
+    def schedule_notification(reminder, day_payment_reminder)
+      # Build notification time for today at the specified time
+      notification_datetime = @date.in_time_zone.change(
+        hour: reminder.notification_time.hour,
+        min: reminder.notification_time.min
+      )
+
+      # Only schedule if the time is in the future
+      return if notification_datetime <= Time.current
+
+      title = "Payment Reminder: #{reminder.title}"
+      body = if day_payment_reminder.days_until_cutoff.zero?
+        "Payment due today!"
+      elsif day_payment_reminder.days_until_cutoff == 1
+        "Payment due tomorrow"
+      else
+        "Payment due in #{day_payment_reminder.days_until_cutoff} days"
+      end
+
+      if reminder.expected_amount.present?
+        body += " (#{sprintf('%.2f', reminder.expected_amount)})"
+      end
+
+      PaymentReminderNotificationJob.set(wait_until: notification_datetime).perform_later(
+        user_id: @user.id,
         payment_reminder_id: reminder.id,
-        payment_reminder_title: reminder.title,
-        payment_url: reminder.payment_url,
-        cutoff_date: reminder.cutoff_date.to_s,
-        days_until_cutoff: days_until,
-        reminder_date: @date.to_s
-      }
+        day_payment_reminder_id: day_payment_reminder.id,
+        title: title,
+        body: body
+      )
+
+      Rails.logger.info "PaymentReminderProcessorService: Scheduled notification for reminder #{reminder.id} at #{notification_datetime}"
+    rescue StandardError => e
+      Rails.logger.error "Failed to schedule notification for payment reminder #{reminder.id}: #{e.message}"
     end
 
     def skip_existing(reminder)

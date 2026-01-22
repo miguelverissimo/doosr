@@ -136,6 +136,16 @@ Rails.application.routes.draw do
     resources :day_journals, only: [ :create ], path: "journals"
   end
 
+  # Day payment reminders
+  resources :day_payment_reminders, only: [] do
+    member do
+      get "actions", to: "day_payment_reminders#actions_sheet", as: "actions_sheet"
+      patch "move"
+      patch "mark_paid", to: "day_payment_reminders#mark_paid", as: "mark_paid"
+      delete "destroy"
+    end
+  end
+
   # Journal unlock - password entry to unlock encrypted journals
   # Must be defined BEFORE resources :journals to avoid "unlock" and "recover" being treated as :id
   get "journals/unlock", to: "journal_unlock#new", as: :new_journal_unlock
@@ -340,6 +350,7 @@ Rails.application.routes.draw do
       collection do
         get :calendar
         get :projections
+        get :other_crap
       end
     end
 

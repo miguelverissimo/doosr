@@ -1,8 +1,8 @@
 # app/services/item_tree/build.rb
 module ItemTree
   class Build
-    Node = Struct.new(:label, :item, :list, :checklist, :note, :journal, :journal_prompt, :journal_fragment, :children, keyword_init: true) do
-      def initialize(label:, item: nil, list: nil, checklist: nil, note: nil, journal: nil, journal_prompt: nil, journal_fragment: nil, children: [])
+    Node = Struct.new(:label, :item, :list, :checklist, :note, :journal, :journal_prompt, :journal_fragment, :day_payment_reminder, :children, keyword_init: true) do
+      def initialize(label:, item: nil, list: nil, checklist: nil, note: nil, journal: nil, journal_prompt: nil, journal_fragment: nil, day_payment_reminder: nil, children: [])
         super
       end
     end
@@ -43,7 +43,7 @@ module ItemTree
       list_ids = descendant.extract_active_ids_by_type("List") +
                  descendant.extract_inactive_ids_by_type("List")
       checklist_ids = descendant.extract_active_ids_by_type("Checklist") +
-                      descendant.extract_inactive_ids_by_type("Checklist")
+                     descendant.extract_inactive_ids_by_type("Checklist")
       note_ids = descendant.extract_active_ids_by_type("Note") +
                  descendant.extract_inactive_ids_by_type("Note")
       journal_ids = descendant.extract_active_ids_by_type("Journal") +
@@ -52,6 +52,8 @@ module ItemTree
                    descendant.extract_inactive_ids_by_type("JournalPrompt")
       fragment_ids = descendant.extract_active_ids_by_type("JournalFragment") +
                      descendant.extract_inactive_ids_by_type("JournalFragment")
+      day_payment_reminder_ids = descendant.extract_active_ids_by_type("DayPaymentReminder") +
+                                 descendant.extract_inactive_ids_by_type("DayPaymentReminder")
 
       # Fetch items, lists, checklists, notes, and journal types
       items_by_id = fetch_items_indexed(item_ids)
@@ -61,6 +63,7 @@ module ItemTree
       journals_by_id = fetch_journals_indexed(journal_ids)
       prompts_by_id = fetch_journal_prompts_indexed(prompt_ids)
       fragments_by_id = fetch_journal_fragments_indexed(fragment_ids)
+      day_payment_reminders_by_id = fetch_day_payment_reminders_indexed(day_payment_reminder_ids)
 
       # Process tuples in order, creating nodes based on type
       all_tuples.filter_map do |tuple|
@@ -152,6 +155,17 @@ module ItemTree
             journal_fragment: fragment,
             children: []
           )
+
+        when "DayPaymentReminder"
+          day_payment_reminder = day_payment_reminders_by_id[id]
+          next unless day_payment_reminder # stale reference => skip
+
+          # Day payment reminders are leaf nodes (no children)
+          Node.new(
+            label: day_payment_reminder.title,
+            day_payment_reminder: day_payment_reminder,
+            children: []
+          )
         end
       end
     ensure
@@ -194,6 +208,11 @@ module ItemTree
     def fetch_journal_fragments_indexed(ids)
       return {} if ids.empty?
       ::JournalFragment.where(id: ids).index_by(&:id)
+    end
+
+    def fetch_day_payment_reminders_indexed(ids)
+      return {} if ids.empty?
+      DayPaymentReminder.where(id: ids).includes(:payment_reminder).index_by(&:id)
     end
   end
 end

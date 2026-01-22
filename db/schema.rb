@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_21_100001) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_22_164807) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -186,6 +186,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_100001) do
     t.bigint "user_id", null: false
     t.index ["address_id"], name: "index_customers_on_address_id"
     t.index ["user_id"], name: "index_customers_on_user_id"
+  end
+
+  create_table "day_payment_reminders", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "days_until_cutoff", null: false
+    t.datetime "paid_at"
+    t.bigint "payment_reminder_id", null: false
+    t.date "reminder_date", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["payment_reminder_id"], name: "index_day_payment_reminders_on_payment_reminder_id"
+    t.index ["reminder_date"], name: "index_day_payment_reminders_on_reminder_date"
+    t.index ["user_id", "payment_reminder_id", "reminder_date"], name: "index_day_payment_reminders_unique", unique: true
+    t.index ["user_id"], name: "index_day_payment_reminders_on_user_id"
   end
 
   create_table "days", force: :cascade do |t|
@@ -479,6 +493,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_100001) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.date "cutoff_date", null: false
+    t.decimal "expected_amount", precision: 10, scale: 2
+    t.datetime "notification_time"
     t.string "payment_url"
     t.jsonb "reminder_days_before", default: [7, 3, 1], null: false
     t.string "title", null: false
@@ -776,6 +792,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_100001) do
   add_foreign_key "checklists", "users"
   add_foreign_key "customers", "addresses"
   add_foreign_key "customers", "users"
+  add_foreign_key "day_payment_reminders", "payment_reminders"
+  add_foreign_key "day_payment_reminders", "users"
   add_foreign_key "days", "days", column: "imported_from_day_id", on_delete: :nullify
   add_foreign_key "days", "days", column: "imported_to_day_id", on_delete: :nullify
   add_foreign_key "days", "users"

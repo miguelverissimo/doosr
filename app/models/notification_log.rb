@@ -8,7 +8,8 @@ class NotificationLog < ApplicationRecord
   enum :notification_type, {
     scheduled: "scheduled",
     test: "test",
-    admin_test: "admin_test"
+    admin_test: "admin_test",
+    payment_reminder: "payment_reminder"
   }, default: :scheduled, validate: true
 
   enum :status, {

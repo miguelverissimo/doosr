@@ -36,11 +36,10 @@ class PaymentReminder < ApplicationRecord
   end
 
   def reminder_item_exists_for_date?(date)
-    Item.where(user: user)
-        .where("extra_data->>'payment_reminder_id' = ?", id.to_s)
-        .where("extra_data->>'reminder_date' = ?", date.to_s)
-        .exists?
+    DayPaymentReminder.where(user: user, payment_reminder: self, reminder_date: date).exists?
   end
+
+  has_many :day_payment_reminders, dependent: :destroy
 
   def overdue?
     cutoff_date < Date.current

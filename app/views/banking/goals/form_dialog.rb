@@ -135,14 +135,17 @@ module Views
             class: @budget_goal.category_limit? ? "" : "hidden"
           ) do
             render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new(for: "budget_goal_category_id") { "Category" }
+              render RubyUI::FormFieldLabel.new(for: "budget_goal_category_id") { "Section (Category)" }
+              p(class: "text-xs text-muted-foreground mb-2") do
+                plain "Select a section. Spending limits include all subcategories automatically."
+              end
               select(
                 id: "budget_goal_category_id",
                 name: "budget_goal[category_id]",
                 class: "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               ) do
-                option(value: "") { "Select a category" }
-                @categories.each do |category|
+                option(value: "") { "Select a section" }
+                top_level_categories.each do |category|
                   option(
                     value: category.id,
                     selected: @budget_goal.category_id == category.id
@@ -152,6 +155,10 @@ module Views
               render RubyUI::FormFieldError.new
             end
           end
+        end
+
+        def top_level_categories
+          @top_level_categories ||= @categories.select(&:top_level?)
         end
 
         def render_target_amount_field

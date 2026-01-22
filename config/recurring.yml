@@ -19,3 +19,6 @@ development:
   send_notifications:
     class: SendNotificationJob
     schedule: every minute
+  payment_reminder_check:
+    class: Banking::PaymentReminderCheckJob
+    schedule: every minute

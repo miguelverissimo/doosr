@@ -24,7 +24,13 @@ module Banking
     end
 
     def call
-      @user.budget_goals.active.includes(category: :subcategories).map do |goal|
+      goals = @user.budget_goals.active.includes(category: :subcategories).to_a
+
+      # Preload category spending for all category limit goals
+      category_limit_goals = goals.select(&:category_limit?)
+      @preloaded_spending = preload_category_spending(category_limit_goals) if category_limit_goals.any?
+
+      goals.map do |goal|
         calculate_progress(goal)
       end
     end
@@ -78,8 +84,8 @@ module Banking
       # Get category IDs including subcategories
       category_ids = goal.category.self_and_subcategory_ids
 
-      # Query from transaction_categorizations table
-      spent = calculate_category_spending(category_ids, period[:start], @reference_date)
+      # Use preloaded data
+      spent = calculate_category_spending_from_preloaded(category_ids, period[:start], @reference_date)
 
       limit = goal.target_amount.to_f
       progress_pct = limit.positive? ? [(spent / limit) * 100, 100].min : 0
@@ -103,24 +109,44 @@ module Banking
       )
     end
 
-    def calculate_category_spending(category_ids, start_date, end_date)
-      # Get transactions with categorizations in the date range
+    def preload_category_spending(goals)
+      return {} if goals.empty?
+
+      # Collect all category IDs from all goals
+      all_category_ids = goals.flat_map { |g| g.category.self_and_subcategory_ids }.uniq
+
+      # Get the earliest start date needed
+      start_date = goals.map { |g| period_for(g)[:start] }.min
+
+      # Single query to get all categorizations
       categorizations = TransactionCategorization
         .joins(:bank_transaction)
-        .where(category_id: category_ids)
-        .where(bank_transactions: { user_id: @user.id, date: start_date..end_date })
+        .includes(:bank_transaction)
+        .where(category_id: all_category_ids)
+        .where(bank_transactions: { user_id: @user.id, date: start_date..@reference_date })
         .where("bank_transactions.value < 0")
 
-      # Sum amounts: use specified amount if present, otherwise use full transaction value
-      total = 0.0
-      categorizations.includes(:bank_transaction).find_each do |tc|
-        if tc.amount.present?
-          total += tc.amount.abs
-        else
-          total += tc.bank_transaction.value.abs
-        end
+      # Build hash: { category_id => { date => amount } }
+      spending_by_category_date = Hash.new { |h, k| h[k] = Hash.new(0.0) }
+      categorizations.each do |tc|
+        amount = tc.amount.present? ? tc.amount.abs : tc.bank_transaction.value.abs
+        spending_by_category_date[tc.category_id][tc.bank_transaction.date] += amount
       end
 
+      spending_by_category_date
+    end
+
+    def calculate_category_spending_from_preloaded(category_ids, start_date, end_date)
+      return 0.0 unless @preloaded_spending
+
+      total = 0.0
+      category_ids.each do |cat_id|
+        next unless @preloaded_spending[cat_id]
+
+        @preloaded_spending[cat_id].each do |date, amount|
+          total += amount if date >= start_date && date <= end_date
+        end
+      end
       total
     end
 

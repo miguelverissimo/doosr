@@ -31,6 +31,7 @@ class User < ApplicationRecord
   has_many :budget_goals, dependent: :destroy
   has_many :planned_expenses, dependent: :destroy
   has_many :payment_reminders, dependent: :destroy
+  has_many :day_payment_reminders, dependent: :destroy
   has_many :transaction_categorizations, dependent: :destroy
 
   # Accounting
