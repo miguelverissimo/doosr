@@ -58,7 +58,11 @@ module Views
           form(
             action: form_action,
             method: "post",
-            data: { turbo: true },
+            data: {
+              controller: "form-loading",
+              form_loading_message_value: editing? ? "Updating category..." : "Creating category...",
+              turbo: true
+            },
             class: "space-y-4"
           ) do
             csrf_token_field

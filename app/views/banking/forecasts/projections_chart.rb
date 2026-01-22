@@ -67,18 +67,18 @@ module Views
           range = max_balance - min_balance
           range = 1 if range.zero?
 
-          div(class: "flex items-end gap-1 h-full") do
+          div(class: "flex gap-1 h-full pb-5") do
             @projections.each_with_index do |projection, index|
               height_pct = ((projection.ending_balance - min_balance) / range * 100).clamp(5, 100)
               is_negative = projection.ending_balance < 0
 
-              div(class: "flex-1 flex flex-col items-center") do
+              div(class: "flex-1 h-full relative") do
                 div(
-                  class: "w-full rounded-t #{is_negative ? 'bg-red-500' : 'bg-primary'}",
+                  class: "absolute bottom-0 left-0 right-0 rounded-t #{is_negative ? 'bg-red-500' : 'bg-primary'}",
                   style: "height: #{height_pct}%",
                   title: "Week #{index + 1}: #{format_currency(projection.ending_balance)}"
                 )
-                div(class: "text-[10px] text-muted-foreground mt-1") do
+                div(class: "absolute -bottom-5 left-0 right-0 text-center text-[10px] text-muted-foreground") do
                   plain projection.week_start.strftime("%m/%d")
                 end
               end

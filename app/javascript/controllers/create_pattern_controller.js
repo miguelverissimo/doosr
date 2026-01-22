@@ -2,12 +2,22 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = {
-    url: String
+    url: String,
+    loadingMessage: { type: String, default: "Loading pattern dialog..." }
   }
 
   async openDialog(event) {
     event.preventDefault()
     event.stopPropagation()
+
+    // Show loading toast
+    let loadingToastId
+    if (window.toast) {
+      loadingToastId = window.toast(this.loadingMessageValue, {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
 
     try {
       // Pass current filter/pagination params to the dialog
@@ -24,6 +34,9 @@ export default class extends Controller {
         }
       })
 
+      // Dismiss loading toast
+      this.dismissLoadingToast(loadingToastId)
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -38,10 +51,17 @@ export default class extends Controller {
         document.body.appendChild(template.content.cloneNode(true))
       }
     } catch (error) {
+      this.dismissLoadingToast(loadingToastId)
       console.error("Error loading pattern dialog:", error)
       if (window.toast) {
         window.toast("Failed to load pattern dialog", { type: "error" })
       }
+    }
+  }
+
+  dismissLoadingToast(toastId) {
+    if (window.toast && window.toast.dismiss && toastId) {
+      window.toast.dismiss(toastId)
     }
   }
 }

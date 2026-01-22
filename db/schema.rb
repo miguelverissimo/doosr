@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_21_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_21_100001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -475,6 +475,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_090000) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "payment_reminders", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.date "cutoff_date", null: false
+    t.string "payment_url"
+    t.jsonb "reminder_days_before", default: [7, 3, 1], null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "active"], name: "index_payment_reminders_on_user_id_and_active"
+    t.index ["user_id", "cutoff_date"], name: "index_payment_reminders_on_user_id_and_cutoff_date"
+    t.index ["user_id"], name: "index_payment_reminders_on_user_id"
+  end
+
   create_table "planned_expenses", force: :cascade do |t|
     t.bigint "category_id"
     t.boolean "completed", default: false, null: false
@@ -805,6 +819,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_090000) do
   add_foreign_key "notification_logs", "users"
   add_foreign_key "notifications", "items"
   add_foreign_key "notifications", "users"
+  add_foreign_key "payment_reminders", "users"
   add_foreign_key "planned_expenses", "bank_transactions", column: "matched_transaction_id"
   add_foreign_key "planned_expenses", "categories"
   add_foreign_key "planned_expenses", "recurring_groups"

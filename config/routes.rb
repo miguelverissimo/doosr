@@ -342,6 +342,12 @@ Rails.application.routes.draw do
         get :projections
       end
     end
+
+    resources :payment_reminders, only: [ :index, :new, :create, :edit, :update, :destroy ] do
+      member do
+        get :clone
+      end
+    end
   end
 
   # Checklists

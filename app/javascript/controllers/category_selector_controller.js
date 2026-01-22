@@ -16,6 +16,15 @@ export default class extends Controller {
       this.badgeTarget.classList.add("opacity-50")
     }
 
+    // Show loading toast
+    let loadingToastId
+    if (window.toast) {
+      loadingToastId = window.toast("Updating category...", {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
+
     try {
       const response = await fetch(this.urlValue, {
         method: "PATCH",
@@ -31,12 +40,22 @@ export default class extends Controller {
         })
       })
 
+      // Dismiss loading toast
+      this.dismissLoadingToast(loadingToastId)
+
       if (response.ok) {
         const html = await response.text()
         Turbo.renderStreamMessage(html)
+      } else {
+        window.toast && window.toast("Failed to update category", { type: "error" })
+        if (this.hasBadgeTarget) {
+          this.badgeTarget.classList.remove("opacity-50")
+        }
       }
     } catch (error) {
+      this.dismissLoadingToast(loadingToastId)
       console.error("Failed to update category:", error)
+      window.toast && window.toast("Failed to update category", { type: "error" })
       if (this.hasBadgeTarget) {
         this.badgeTarget.classList.remove("opacity-50")
       }
@@ -51,6 +70,15 @@ export default class extends Controller {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 
+    // Show loading toast
+    let loadingToastId
+    if (window.toast) {
+      loadingToastId = window.toast("Loading...", {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
+
     try {
       const response = await fetch(this.editUrlValue, {
         method: "GET",
@@ -60,12 +88,25 @@ export default class extends Controller {
         }
       })
 
+      // Dismiss loading toast
+      this.dismissLoadingToast(loadingToastId)
+
       if (response.ok) {
         const html = await response.text()
         Turbo.renderStreamMessage(html)
+      } else {
+        window.toast && window.toast("Failed to load dialog", { type: "error" })
       }
     } catch (error) {
+      this.dismissLoadingToast(loadingToastId)
       console.error("Failed to open edit dialog:", error)
+      window.toast && window.toast("Failed to load dialog", { type: "error" })
+    }
+  }
+
+  dismissLoadingToast(toastId) {
+    if (window.toast && window.toast.dismiss && toastId) {
+      window.toast.dismiss(toastId)
     }
   }
 }

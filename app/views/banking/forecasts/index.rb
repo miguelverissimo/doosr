@@ -31,6 +31,7 @@ module Views
               render_back_to_banking_button
               render_goals_button
               render_expenses_button
+              render_reminders_button
               render_calendar_button
             end
           end
@@ -73,6 +74,21 @@ module Views
           ) do
             render ::Components::Icon::Calendar.new(size: "16", class: "mr-2")
             plain "Expenses"
+          end
+        end
+
+        def render_reminders_button
+          button(
+            type: "button",
+            class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+            data: {
+              controller: "enable-dialog",
+              enable_dialog_url_value: view_context.banking_payment_reminders_path,
+              action: "click->enable-dialog#openDialog"
+            }
+          ) do
+            render ::Components::Icon::CreditCard.new(size: "16", class: "mr-2")
+            plain "Reminders"
           end
         end
 

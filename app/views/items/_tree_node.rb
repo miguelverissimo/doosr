@@ -82,6 +82,16 @@ module Views
       private
 
       def render_item_component(item)
+        # Check for special item types based on extra_data first
+        if item.extra_data&.dig("payment_reminder_id").present?
+          return render ::Views::Items::PaymentReminderItem.new(
+            record: item,
+            day: @day,
+            list: @list,
+            is_public_list: @public_view
+          )
+        end
+
         case item.item_type.to_sym
         when :completable, :reusable, :trackable
           render ::Views::Items::CompletableItem.new(

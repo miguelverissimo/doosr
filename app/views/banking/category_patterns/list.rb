@@ -132,7 +132,12 @@ module Views
                 render RubyUI::Form.new(
                   action: view_context.banking_category_pattern_path(pattern),
                   method: "post",
-                  data: { turbo_stream: true, action: "submit@document->ruby-ui--alert-dialog#dismiss" },
+                  data: {
+                    controller: "form-loading",
+                    form_loading_message_value: "Deleting pattern...",
+                    turbo_stream: true,
+                    action: "submit@document->ruby-ui--alert-dialog#dismiss"
+                  },
                   class: "inline"
                 ) do
                   render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)

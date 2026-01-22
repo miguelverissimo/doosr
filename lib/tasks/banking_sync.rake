@@ -100,4 +100,21 @@ namespace :banking do
     puts "Import complete!"
     puts "Created: #{user.categories.count} categories, #{user.category_patterns.count} patterns"
   end
+
+  desc "Manually trigger payment reminder check for a user or all users"
+  task check_payment_reminders: :environment do
+    email = ENV["USER_EMAIL"]
+    date = ENV["DATE"] ? Date.parse(ENV["DATE"]) : Date.current
+
+    if email
+      user = User.find_by!(email: email)
+      puts "Checking payment reminders for user: #{email} (date: #{date})"
+      result = Banking::PaymentReminderProcessorService.new(user, date: date).call
+      puts "Result: Created #{result.items_created} items, Skipped #{result.skipped_count}, Errors: #{result.errors.join(', ')}"
+    else
+      puts "Checking payment reminders for all users (date: #{date})"
+      Banking::PaymentReminderCheckJob.new.perform
+      puts "Check complete. See logs for details."
+    end
+  end
 end

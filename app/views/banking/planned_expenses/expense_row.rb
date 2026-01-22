@@ -89,7 +89,11 @@ module Views
           form(
             action: view_context.mark_completed_banking_planned_expense_path(@planned_expense),
             method: "post",
-            data: { turbo: true }
+            data: {
+              controller: "form-loading",
+              form_loading_message_value: "Marking as completed...",
+              turbo: true
+            }
           ) do
             render RubyUI::Input.new(
               type: :hidden,

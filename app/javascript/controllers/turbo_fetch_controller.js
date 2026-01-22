@@ -2,11 +2,21 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = {
-    url: String
+    url: String,
+    loadingMessage: { type: String, default: "Loading..." }
   }
 
   async load(event) {
     if (event) event.preventDefault()
+
+    // Show loading toast
+    let loadingToastId
+    if (window.toast) {
+      loadingToastId = window.toast(this.loadingMessageValue, {
+        type: "loading",
+        description: "Please wait"
+      })
+    }
 
     try {
       const response = await fetch(this.urlValue, {
@@ -14,6 +24,9 @@ export default class extends Controller {
           "Accept": "text/vnd.turbo-stream.html"
         }
       })
+
+      // Dismiss loading toast
+      this.dismissLoadingToast(loadingToastId)
 
       if (response.ok) {
         const html = await response.text()
@@ -43,9 +56,19 @@ export default class extends Controller {
             }
           }
         })
+      } else {
+        window.toast && window.toast("Failed to load content", { type: "error" })
       }
     } catch (error) {
+      this.dismissLoadingToast(loadingToastId)
       console.error("Error fetching turbo stream:", error)
+      window.toast && window.toast("Failed to load content", { type: "error" })
+    }
+  }
+
+  dismissLoadingToast(toastId) {
+    if (window.toast && window.toast.dismiss && toastId) {
+      window.toast.dismiss(toastId)
     }
   }
 }

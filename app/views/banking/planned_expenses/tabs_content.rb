@@ -92,7 +92,11 @@ module Views
             form(
               action: view_context.populate_from_recurring_banking_planned_expenses_path,
               method: "post",
-              data: { turbo: true }
+              data: {
+                controller: "form-loading",
+                form_loading_message_value: "Populating expenses...",
+                turbo: true
+              }
             ) do
               render RubyUI::Input.new(
                 type: :hidden,

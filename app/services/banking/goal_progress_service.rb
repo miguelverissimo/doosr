@@ -24,7 +24,7 @@ module Banking
     end
 
     def call
-      @user.budget_goals.active.map do |goal|
+      @user.budget_goals.active.includes(category: :subcategories).map do |goal|
         calculate_progress(goal)
       end
     end

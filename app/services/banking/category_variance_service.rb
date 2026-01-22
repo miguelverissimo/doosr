@@ -58,7 +58,7 @@ module Banking
     private
 
     def analyze_all_categories
-      @user.categories.map do |category|
+      @user.categories.includes(:subcategories).map do |category|
         analyze_category(category)
       end.compact
     end

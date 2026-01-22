@@ -46,7 +46,7 @@ class Category < ApplicationRecord
   end
 
   def self_and_subcategory_ids
-    [id] + subcategories.pluck(:id)
+    [id] + subcategories.map(&:id)
   end
 
   def all_transaction_categorizations

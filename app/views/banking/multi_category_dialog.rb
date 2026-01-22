@@ -40,6 +40,10 @@ module Views
           form(
             action: view_context.update_categories_banking_path(@transaction),
             method: "post",
+            data: {
+              controller: "form-loading",
+              form_loading_message_value: "Saving categories..."
+            },
             class: "space-y-4 mt-4"
           ) do
             csrf_token_field

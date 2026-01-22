@@ -34,6 +34,7 @@ module Banking
     end
 
     def call
+      preload_data
       current_balance = calculate_current_balance
       projections = calculate_weekly_projections(current_balance)
       warnings = generate_warnings(projections)
@@ -50,6 +51,29 @@ module Banking
     end
 
     private
+
+    def preload_data
+      # Preload recurring groups with their future occurrences
+      @income_groups = @user.recurring_groups.active.income.to_a
+      @expense_groups = @user.recurring_groups.active.expenses.to_a
+
+      # Pre-calculate occurrences for each group
+      @income_occurrences = @income_groups.map do |group|
+        [group, group.future_occurrences(weeks: WEEKS_TO_PROJECT)]
+      end.to_h
+
+      @expense_occurrences = @expense_groups.map do |group|
+        [group, group.future_occurrences(weeks: WEEKS_TO_PROJECT)]
+      end.to_h
+
+      # Preload planned expenses for the entire projection period
+      end_date = Date.current.beginning_of_week + WEEKS_TO_PROJECT.weeks
+      @planned_expenses_by_week = @user.planned_expenses
+        .pending
+        .one_time
+        .where(due_date: Date.current.beginning_of_week..end_date)
+        .group_by { |pe| pe.due_date.beginning_of_week }
+    end
 
     def calculate_current_balance
       @user.bank_transactions.sum(:value).to_f
@@ -88,11 +112,12 @@ module Banking
     end
 
     def calculate_recurring_amount(week_start, week_end, income:)
-      groups = income ? @user.recurring_groups.active.income : @user.recurring_groups.active.expenses
+      groups = income ? @income_groups : @expense_groups
+      occurrences_map = income ? @income_occurrences : @expense_occurrences
 
       total = 0.0
       groups.each do |group|
-        occurrences = group.future_occurrences(weeks: WEEKS_TO_PROJECT)
+        occurrences = occurrences_map[group]
         occurrences.each do |date|
           next unless date >= week_start && date <= week_end
 
@@ -103,18 +128,14 @@ module Banking
     end
 
     def calculate_planned_expenses(week_start, week_end)
-      @user.planned_expenses
-        .pending
-        .one_time
-        .where(due_date: week_start..week_end)
-        .sum(:expected_amount)
-        .to_f
+      expenses = @planned_expenses_by_week[week_start] || []
+      expenses.sum(&:expected_amount).to_f
     end
 
     def estimate_variable_spending(week_start, week_end, recurring_expenses, planned_expenses)
       historical_weekly = calculate_historical_weekly_average
 
-      recurring_weekly = @user.recurring_groups.active.expenses.sum do |g|
+      recurring_weekly = @expense_groups.sum do |g|
         g.monthly_amount / 4.33
       end
 

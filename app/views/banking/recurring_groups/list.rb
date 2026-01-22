@@ -32,7 +32,11 @@ module Views
           render RubyUI::Form.new(
             action: detect_banking_recurring_groups_path,
             method: "post",
-            data: { turbo_stream: true },
+            data: {
+              controller: "form-loading",
+              form_loading_message_value: "Detecting recurring patterns...",
+              turbo_stream: true
+            },
             class: "inline"
           ) do
             render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: form_authenticity_token)
