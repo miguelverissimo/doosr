@@ -29,7 +29,6 @@ module Views
             div(class: "flex items-center gap-2") do
               render_back_to_banking_button
               render_other_crap_button
-              render_reminders_button
             end
           end
         end
@@ -41,21 +40,6 @@ module Views
           ) do
             render ::Components::Icon::ArrowLeft.new(size: "16", class: "mr-2")
             plain "Back to Banking"
-          end
-        end
-
-        def render_reminders_button
-          button(
-            type: "button",
-            class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
-            data: {
-              controller: "enable-dialog",
-              enable_dialog_url_value: view_context.banking_payment_reminders_path,
-              action: "click->enable-dialog#openDialog"
-            }
-          ) do
-            render ::Components::Icon::CreditCard.new(size: "16", class: "mr-2")
-            plain "Reminders"
           end
         end
 

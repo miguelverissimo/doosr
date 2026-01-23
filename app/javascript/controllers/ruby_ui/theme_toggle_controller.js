@@ -51,6 +51,8 @@ export default class extends Controller {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    // Dispatch custom event for other controllers to listen to
+    window.dispatchEvent(new CustomEvent("theme-changed", { detail: { theme } }));
   }
 }
 

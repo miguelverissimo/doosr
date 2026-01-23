@@ -10,16 +10,26 @@ export default class extends Controller {
   }
 
   connect() {
-    this.renderChart()
+    // Small delay to ensure theme is applied
+    requestAnimationFrame(() => this.renderChart())
+
+    // Listen for theme changes
+    this.handleThemeChange = () => this.renderChart()
+    window.addEventListener("theme-changed", this.handleThemeChange)
   }
 
   disconnect() {
     if (this.chart) {
       this.chart.destroy()
     }
+    window.removeEventListener("theme-changed", this.handleThemeChange)
   }
 
   renderChart() {
+    if (this.chart) {
+      this.chart.destroy()
+    }
+
     const ctx = this.canvasTarget.getContext("2d")
     const data = this.dataValue
 
@@ -29,7 +39,7 @@ export default class extends Controller {
 
     const isDarkMode = document.documentElement.classList.contains('dark')
     const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-    const textColor = isDarkMode ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)'
+    const textColor = isDarkMode ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)'
 
     this.chart = new Chart(ctx, {
       type: "bar",

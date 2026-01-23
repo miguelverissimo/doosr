@@ -228,9 +228,10 @@ class ::Views::Layouts::AppLayout < ::Views::Base
                 render ::Views::FixedCalendar::Header.new
               end
 
-              # Notification bell - always visible when user is logged in
+              # Notification bell - always visible when user is logged in, aligned right
               if view_context.current_user
                 div(
+                  class: "ml-auto",
                   data: {
                     controller: "notification-subscription",
                     notification_subscription_user_id_value: view_context.current_user.id

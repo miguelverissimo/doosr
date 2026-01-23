@@ -12,13 +12,10 @@ module Views
 
         def view_template
           div(id: "forecast_main_content", class: "space-y-6") do
-            # Two main features side by side
-            div(class: "grid gap-6 lg:grid-cols-2") do
-              render_upcoming_payments_section
-              render ::Views::Banking::Forecasts::SpendingLimitsSection.new(
-                section_spending: @section_spending
-              )
-            end
+            render_upcoming_payments_section
+            render ::Views::Banking::Forecasts::SpendingLimitsSection.new(
+              section_spending: @section_spending
+            )
           end
         end
 
@@ -35,75 +32,115 @@ module Views
             div(class: "flex items-center justify-between p-4 border-b") do
               div(class: "flex items-center gap-3") do
                 render ::Components::Icon::CreditCard.new(size: "20", class: "text-muted-foreground")
-                h2(class: "font-semibold") { "Upcoming Payments" }
+                h2(class: "font-semibold") { "Payment Reminders" }
               end
-              button(
-                type: "button",
-                class: "text-sm text-muted-foreground hover:text-foreground",
-                data: {
-                  controller: "enable-dialog",
-                  enable_dialog_url_value: view_context.banking_payment_reminders_path,
-                  action: "click->enable-dialog#openDialog"
-                }
-              ) { "Manage" }
             end
 
-            if @payment_reminders.empty?
-              render_empty_payments_state
-            else
-              # Summary stats
-              div(class: "p-4 border-b bg-muted/30") do
-                div(class: "grid grid-cols-2 gap-4") do
+            # Summary stats
+            div(class: "p-4 border-b bg-muted/30") do
+              div(class: "grid grid-cols-2 gap-4") do
+                div do
+                  div(class: "text-xs text-muted-foreground mb-1") { "Total Upcoming" }
+                  div(class: "text-lg font-semibold") { format_currency(total_upcoming) }
+                end
+                if next_payment
                   div do
-                    div(class: "text-xs text-muted-foreground mb-1") { "Total Upcoming" }
-                    div(class: "text-lg font-semibold") { format_currency(total_upcoming) }
-                  end
-                  if next_payment
-                    div do
-                      div(class: "text-xs text-muted-foreground mb-1") { "Next Payment" }
-                      div(class: "text-lg font-semibold") do
-                        if next_payment.cutoff_date < Date.current
-                          span(class: "text-red-600 dark:text-red-400") { "Overdue" }
-                        elsif next_payment.cutoff_date == Date.current
-                          span(class: "text-amber-600 dark:text-amber-400") { "Due Today" }
-                        else
-                          days = (next_payment.cutoff_date - Date.current).to_i
-                          plain "In #{days} #{days == 1 ? 'day' : 'days'}"
-                        end
+                    div(class: "text-xs text-muted-foreground mb-1") { "Next Payment" }
+                    div(class: "text-lg font-semibold") do
+                      if next_payment.cutoff_date < Date.current
+                        span(class: "text-red-600 dark:text-red-400") { "Overdue" }
+                      elsif next_payment.cutoff_date == Date.current
+                        span(class: "text-amber-600 dark:text-amber-400") { "Due Today" }
+                      else
+                        days = (next_payment.cutoff_date - Date.current).to_i
+                        plain "In #{days} #{days == 1 ? 'day' : 'days'}"
                       end
                     end
                   end
                 end
               end
+            end
 
-              # Monthly breakdown chart
-              div(class: "p-4 border-b") do
-                render_monthly_chart(monthly_data)
-              end
+            # Monthly breakdown chart
+            div(class: "p-4 border-b") do
+              render_monthly_chart(monthly_data)
+            end
 
-              # Payments list
-              div(class: "divide-y max-h-96 overflow-y-auto") do
-                @payment_reminders.sort_by(&:cutoff_date).each do |reminder|
-                  render_payment_item(reminder)
+            # Payment reminders management interface
+            div(class: "p-4") do
+              render_reminders_tabs
+              render_add_reminder_button
+            end
+          end
+        end
+
+        def render_reminders_tabs
+          all_reminders = view_context.current_user.payment_reminders.order(cutoff_date: :asc)
+
+          div(data: { controller: "tabs" }) do
+            div(class: "flex gap-2 mb-4") do
+              render_tab_button("active", "Active", true)
+              render_tab_button("upcoming", "Upcoming", false)
+              render_tab_button("inactive", "Inactive", false)
+            end
+
+            render_tab_panel("active", all_reminders.select(&:active?), true)
+            render_tab_panel("upcoming", all_reminders.select { |r| r.active? && r.cutoff_date <= Date.current + 7.days && r.cutoff_date >= Date.current }, false)
+            render_tab_panel("inactive", all_reminders.reject(&:active?), false)
+          end
+        end
+
+        def render_tab_button(id, label, active)
+          button(
+            type: "button",
+            class: "px-4 py-2 text-sm font-medium rounded-md transition-colors #{active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'}",
+            data: {
+              action: "click->tabs#switch",
+              tabs_target: "tab",
+              tab_id: id
+            }
+          ) { label }
+        end
+
+        def render_tab_panel(id, reminders, active)
+          div(
+            data: { tabs_target: "panel", panel_id: id },
+            class: active ? "" : "hidden"
+          ) do
+            if reminders.empty?
+              render_tab_empty_state(id)
+            else
+              div(class: "space-y-2 max-h-96 overflow-y-auto") do
+                reminders.each do |reminder|
+                  render ::Views::Banking::PaymentReminders::ReminderRow.new(payment_reminder: reminder)
                 end
               end
             end
           end
         end
 
-        def render_empty_payments_state
-          div(class: "p-8 text-center") do
-            render ::Components::Icon::CreditCard.new(size: "32", class: "mx-auto mb-3 text-muted-foreground")
-            p(class: "text-sm font-medium mb-1") { "No upcoming payments" }
-            p(class: "text-xs text-muted-foreground mb-4") do
-              plain "Add payment reminders to track upcoming bills and expenses."
-            end
+        def render_tab_empty_state(type)
+          message = case type
+          when "active" then "No active payment reminders"
+          when "upcoming" then "No reminders due in the next 7 days"
+          when "inactive" then "No inactive reminders"
+          else "No reminders"
+          end
+
+          div(class: "text-center py-8") do
+            render ::Components::Icon::CreditCard.new(size: "32", class: "mx-auto text-muted-foreground mb-3")
+            p(class: "text-sm text-muted-foreground") { message }
+          end
+        end
+
+        def render_add_reminder_button
+          div(class: "mt-4") do
             button(
               type: "button",
-              class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4",
+              class: "w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-dashed border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2",
               data: {
                 controller: "enable-dialog",
-                enable_dialog_url_value: view_context.banking_payment_reminders_path,
+                enable_dialog_url_value: view_context.new_banking_payment_reminder_path,
                 action: "click->enable-dialog#openDialog"
               }
             ) do
@@ -153,81 +190,8 @@ module Views
           end
         end
 
-        def render_payment_item(reminder)
-          is_paid = paid?(reminder)
-          is_overdue = reminder.cutoff_date < Date.current && !is_paid
-          is_soon = reminder.cutoff_date <= Date.current + 7.days && !is_overdue && !is_paid
-
-          item_classes = "flex items-center justify-between px-4 py-3 hover:bg-muted/50"
-          item_classes += " opacity-60" if is_paid
-
-          div(class: item_classes) do
-            div(class: "flex items-center gap-3 min-w-0") do
-              # Status indicator dot
-              if is_paid
-                render ::Components::Icon::CheckCircle.new(size: "16", class: "text-green-600 dark:text-green-400 shrink-0")
-              elsif is_overdue
-                div(class: "w-2 h-2 rounded-full bg-red-500 shrink-0")
-              elsif is_soon
-                div(class: "w-2 h-2 rounded-full bg-amber-500 shrink-0")
-              else
-                div(class: "w-2 h-2 rounded-full bg-muted-foreground/30 shrink-0")
-              end
-
-              div(class: "min-w-0") do
-                title_classes = ["font-medium truncate"]
-                title_classes << "line-through text-muted-foreground" if is_paid
-                div(class: title_classes.join(" ")) do
-                  plain reminder.title
-                  if is_paid
-                    span(class: "ml-2 text-xs text-green-600 dark:text-green-400") { "(Paid)" }
-                  end
-                end
-                span(class: "text-sm text-muted-foreground") do
-                  if is_paid
-                    paid_at = @paid_status[reminder.id]
-                    if paid_at
-                      plain "Paid: #{format_datetime(paid_at)}"
-                    else
-                      plain "Paid"
-                    end
-                  elsif is_overdue
-                    plain "Overdue #{reminder.cutoff_date.strftime('%b %d')}"
-                  else
-                    plain reminder.cutoff_date.strftime("%b %d")
-                  end
-                end
-              end
-            end
-
-            div(class: "flex items-center gap-3 shrink-0") do
-              if reminder.expected_amount.present? && reminder.expected_amount > 0
-                amount_classes = ["font-mono font-medium"]
-                amount_classes << "text-muted-foreground line-through" if is_paid
-                span(class: amount_classes.join(" ")) do
-                  plain format_currency(reminder.expected_amount)
-                end
-              end
-              if reminder.payment_url.present? && !is_paid
-                a(
-                  href: reminder.payment_url,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                  class: "text-primary hover:text-primary/80 text-sm font-medium"
-                ) do
-                  render ::Components::Icon::ExternalLink.new(size: "16")
-                end
-              end
-            end
-          end
-        end
-
         def paid?(reminder)
           @paid_status.key?(reminder.id) && @paid_status[reminder.id].present?
-        end
-
-        def format_datetime(datetime)
-          datetime.strftime("%b %d, %Y at %l:%M %p")
         end
 
         def format_currency(amount)
