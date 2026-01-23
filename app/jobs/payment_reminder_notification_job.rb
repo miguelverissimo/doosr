@@ -11,9 +11,11 @@ class PaymentReminderNotificationJob < ApplicationJob
     return unless payment_reminder&.active?
 
     day_payment_reminder = DayPaymentReminder.find_by(id: day_payment_reminder_id)
-    return if day_payment_reminder&.paid?
+    return unless day_payment_reminder
+    return if day_payment_reminder.paid?
+    return if day_payment_reminder.notified_at.present?
 
-    ::PushNotifications::Sender.new(
+    result = ::PushNotifications::Sender.new(
       user: user,
       title: title,
       body: body,
@@ -25,5 +27,10 @@ class PaymentReminderNotificationJob < ApplicationJob
       },
       notification_type: :payment_reminder
     ).send_to_all
+
+    # Mark as notified if at least one notification was sent successfully
+    if result[:success] && result[:sent_count].to_i > 0
+      day_payment_reminder.update!(notified_at: Time.current)
+    end
   end
 end

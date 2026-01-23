@@ -159,6 +159,7 @@ module Banking
     def schedule_notification_if_needed(reminder, day_payment_reminder)
       return unless reminder.notification_time.present?
       return if day_payment_reminder.paid?
+      return if day_payment_reminder.notified_at.present?
       return if notification_already_scheduled?(day_payment_reminder)
 
       schedule_notification(reminder, day_payment_reminder)
