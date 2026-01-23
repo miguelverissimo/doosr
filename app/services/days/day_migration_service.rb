@@ -3,7 +3,9 @@
 module Days
   class DayMigrationService
     # Service for migrating items from a source day to a target day
-    # Handles permanent sections matching and uses CopyToDescendantService for recursive copying
+    # Matches sections by title (case-insensitive) - if target day already has a section
+    # with the same title, children are migrated to that existing section instead of
+    # creating a duplicate. Uses CopyToDescendantService for recursive copying.
     #
     # Returns: { success: Boolean, target_day: Day, migrated_count: Integer }
 
@@ -82,24 +84,30 @@ module Days
     def migrate_items(source_items, target_day)
       migrated_count = 0
 
-      # Build map of permanent sections in target day (these should already exist)
-      permanent_section_map = build_permanent_section_map(target_day)
+      # Build map of ALL existing sections in target day by title (case-insensitive)
+      target_section_map = build_target_section_map(target_day)
 
-      # PASS 1: Migrate permanent section children
-      # Find permanent sections in source and migrate their children to matching sections in target
+      # PASS 1: Migrate section children for sections that already exist in target
+      # Find sections in source that have matching sections in target, migrate their children
       source_items.each do |source_item|
-        if is_permanent_section?(source_item)
-          migrate_permanent_section_children(source_item, permanent_section_map, target_day)
-          # NOTE: We do NOT increment migrated_count for permanent sections themselves
+        next unless source_item.item_type == "section"
+
+        # Check if target day has a section with the same title (case-insensitive)
+        target_section = target_section_map[source_item.title.downcase]
+        if target_section
+          migrate_section_children(source_item, target_section)
+          # NOTE: We do NOT increment migrated_count for matched sections themselves
           # because they already exist in target day and we're only migrating their children
         end
       end
 
-      # PASS 2: Migrate all non-permanent items
-      # These go to the root of the target day
+      # PASS 2: Migrate all non-section items and sections without matches in target
       source_items.each do |source_item|
-        # Skip permanent sections - they were handled in Pass 1
-        next if is_permanent_section?(source_item)
+        # Skip sections that already exist in target - they were handled in Pass 1
+        if source_item.item_type == "section"
+          target_section = target_section_map[source_item.title.downcase]
+          next if target_section
+        end
 
         # Check if this item should be migrated based on settings and state
         if should_migrate_item?(source_item)
@@ -118,7 +126,7 @@ module Days
       migrated_count
     end
 
-    def build_permanent_section_map(target_day)
+    def build_target_section_map(target_day)
       return {} unless target_day.descendant
 
       map = {}
@@ -126,22 +134,14 @@ module Days
       items = Item.where(id: active_item_ids)
 
       items.each do |item|
-        if item.item_type == "section" && item.extra_data&.dig("permanent_section")
-          map[item.title] = item
-        end
+        # Map ALL sections by lowercase title for case-insensitive matching
+        map[item.title.downcase] = item if item.item_type == "section"
       end
 
       map
     end
 
-    def is_permanent_section?(item)
-      item.item_type == "section" && item.extra_data&.dig("permanent_section")
-    end
-
-    def migrate_permanent_section_children(source_section, permanent_section_map, target_day)
-      target_section = permanent_section_map[source_section.title]
-      return unless target_section
-
+    def migrate_section_children(source_section, target_section)
       # Get children from source section (ONLY active items - inactive items NEVER get migrated)
       return unless source_section.descendant
 
@@ -154,10 +154,6 @@ module Days
       # Copy each child to target section
       # CRITICAL: Check if item should be migrated before copying (state filtering)
       source_children.each do |child_item|
-        # CRITICAL: NEVER migrate permanent sections - they should not be nested
-        # If we find one, skip it to prevent duplicates
-        next if is_permanent_section?(child_item)
-
         # CRITICAL: Only copy items that pass the should_migrate_item? check
         next unless should_migrate_item?(child_item)
 
@@ -179,12 +175,8 @@ module Days
         return item.state == "todo"
       end
 
-      # For non-permanent sections, check the active_item_sections setting
-      if item.item_type == "section" && !is_permanent_section?(item)
-        return migration_settings.dig("active_item_sections") != false
-      end
-
-      true
+      # For sections, check the active_item_sections setting
+      migration_settings.dig("active_item_sections") != false
     end
 
     def migrate_list_links(target_day)

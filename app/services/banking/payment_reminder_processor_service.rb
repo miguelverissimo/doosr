@@ -31,6 +31,23 @@ module Banking
       )
     end
 
+    # Process a single reminder immediately (called on create/update)
+    # This ensures notifications are scheduled right away without waiting for the job
+    def process_single(reminder)
+      return unless reminder.active? && reminder.should_remind_on?(@date)
+
+      process_reminder(reminder)
+      Result.new(
+        success: @errors.empty?,
+        items_created: @items_created,
+        skipped_count: @skipped_count,
+        errors: @errors
+      )
+    rescue StandardError => e
+      Rails.logger.error "PaymentReminderProcessorService: Failed to process single reminder #{reminder.id}: #{e.message}"
+      Result.new(success: false, items_created: 0, skipped_count: 0, errors: [e.message])
+    end
+
     private
 
     def process_reminders
@@ -156,6 +173,8 @@ module Banking
         .exists?
     end
 
+    NOTIFICATION_GRACE_PERIOD = 1.hour
+
     def schedule_notification(reminder, day_payment_reminder)
       # Build notification time for today at the specified time
       notification_datetime = @date.in_time_zone.change(
@@ -163,8 +182,9 @@ module Banking
         min: reminder.notification_time.min
       )
 
-      # Only schedule if the time is in the future
-      return if notification_datetime <= Time.current
+      # Schedule if in the future OR within the grace period (1 hour ago)
+      # This handles cases where the job runs slightly after the notification time
+      return if notification_datetime < Time.current - NOTIFICATION_GRACE_PERIOD
 
       title = "Payment Reminder: #{reminder.title}"
       body = if day_payment_reminder.days_until_cutoff.zero?
@@ -179,15 +199,23 @@ module Banking
         body += " (#{sprintf('%.2f', reminder.expected_amount)})"
       end
 
-      PaymentReminderNotificationJob.set(wait_until: notification_datetime).perform_later(
+      job_args = {
         user_id: @user.id,
         payment_reminder_id: reminder.id,
         day_payment_reminder_id: day_payment_reminder.id,
         title: title,
         body: body
-      )
+      }
 
-      Rails.logger.info "PaymentReminderProcessorService: Scheduled notification for reminder #{reminder.id} at #{notification_datetime}"
+      # If notification time is in the past (but within grace period), send immediately
+      # Otherwise schedule for the specified time
+      if notification_datetime <= Time.current
+        PaymentReminderNotificationJob.perform_later(**job_args)
+        Rails.logger.info "PaymentReminderProcessorService: Sending immediate notification for reminder #{reminder.id} (was scheduled for #{notification_datetime})"
+      else
+        PaymentReminderNotificationJob.set(wait_until: notification_datetime).perform_later(**job_args)
+        Rails.logger.info "PaymentReminderProcessorService: Scheduled notification for reminder #{reminder.id} at #{notification_datetime}"
+      end
     rescue StandardError => e
       Rails.logger.error "Failed to schedule notification for payment reminder #{reminder.id}: #{e.message}"
     end

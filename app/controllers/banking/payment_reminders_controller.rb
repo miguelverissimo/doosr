@@ -47,6 +47,9 @@ module Banking
       @payment_reminder = current_user.payment_reminders.build(payment_reminder_params)
 
       if @payment_reminder.save
+        # Immediately process for today (creates DayPaymentReminder and schedules notification)
+        Banking::PaymentReminderProcessorService.new(current_user).process_single(@payment_reminder)
+
         respond_to do |format|
           format.turbo_stream do
             streams = [
@@ -93,6 +96,9 @@ module Banking
 
     def update
       if @payment_reminder.update(payment_reminder_params)
+        # Re-process for today (schedules notification if not already done)
+        Banking::PaymentReminderProcessorService.new(current_user).process_single(@payment_reminder)
+
         respond_to do |format|
           format.turbo_stream do
             streams = [

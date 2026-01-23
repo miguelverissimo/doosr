@@ -10,7 +10,7 @@ production:
     schedule: every hour at minute 12
   payment_reminder_check:
     class: Banking::PaymentReminderCheckJob
-    schedule: every day at 6am
+    schedule: every day at midnight
 
 development:
   notification_check:
