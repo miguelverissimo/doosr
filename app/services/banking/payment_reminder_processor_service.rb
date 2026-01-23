@@ -160,18 +160,19 @@ module Banking
       return unless reminder.notification_time.present?
       return if day_payment_reminder.paid?
       return if day_payment_reminder.notified_at.present?
-      return if notification_already_scheduled?(day_payment_reminder)
+
+      # Cancel any existing pending jobs (notification_time may have changed)
+      cancel_pending_notification_jobs(day_payment_reminder)
 
       schedule_notification(reminder, day_payment_reminder)
     end
 
-    def notification_already_scheduled?(day_payment_reminder)
-      # Check if there's a pending job for this day_payment_reminder
+    def cancel_pending_notification_jobs(day_payment_reminder)
       SolidQueue::Job
         .where(class_name: "PaymentReminderNotificationJob")
         .where(finished_at: nil)
         .where("arguments LIKE ?", "%day_payment_reminder_id\":#{day_payment_reminder.id}%")
-        .exists?
+        .destroy_all
     end
 
     NOTIFICATION_GRACE_PERIOD = 1.hour
