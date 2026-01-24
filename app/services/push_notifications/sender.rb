@@ -88,6 +88,7 @@ module PushNotifications
           body: body,
           icon: "#{base_url}/web-app-manifest-192x192.png",
           badge: "#{base_url}/web-app-manifest-192x192.png",
+          sound: "#{base_url}/notification.wav",
           data: data.merge(
             path: data[:path] || "/",
             timestamp: Time.current.to_i

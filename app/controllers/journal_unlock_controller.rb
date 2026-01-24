@@ -73,9 +73,24 @@ class JournalUnlockController < ApplicationController
     # Get the journal ID from the referer URL
     journal_id = extract_journal_id_from_referer
     if journal_id.blank?
+      # Unlocking from journals index page - refresh the list
+      @journals = current_user.journals.ordered_by_date.page(1).per(5)
+
       return respond_to do |format|
         format.turbo_stream do
-          render turbo_stream: turbo_stream.action(:redirect, journals_path)
+          render turbo_stream: [
+            turbo_stream.remove("journal_unlock_dialog"),
+            turbo_stream.replace(
+              "journals_filter_section",
+              render_to_string(::Views::Journals::List.new(journals: @journals), layout: false)
+            ),
+            turbo_stream.append("body", <<~SCRIPT.html_safe)
+              <script>
+                window.dispatchEvent(new CustomEvent('journal:unlocked'));
+                window.toast && window.toast('Journals unlocked successfully', { type: 'success' });
+              </script>
+            SCRIPT
+          ]
         end
       end
     end

@@ -147,9 +147,15 @@ class JournalsController < ApplicationController
             turbo_stream.append("body", "<script>Turbo.cache.clear(); window.toast && window.toast('Journal locked', { type: 'success' });</script>")
           ]
         else
-          # Locking from journals index page - clear cache and reload
+          # Locking from journals index page - refresh the list
+          @journals = current_user.journals.ordered_by_date.page(1).per(5)
+
           render turbo_stream: [
-            turbo_stream.append("body", "<script>Turbo.cache.clear(); window.toast && window.toast('Journals locked', { type: 'success' }); setTimeout(() => Turbo.visit(window.location.href, { action: 'replace' }), 100);</script>")
+            turbo_stream.replace(
+              "journals_filter_section",
+              render_to_string(::Views::Journals::List.new(journals: @journals), layout: false)
+            ),
+            turbo_stream.append("body", "<script>Turbo.cache.clear(); window.toast && window.toast('Journals locked', { type: 'success' });</script>")
           ]
         end
       end

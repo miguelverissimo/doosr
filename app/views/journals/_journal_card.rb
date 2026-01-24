@@ -45,10 +45,17 @@ module Views
       def render_journal_info
         prompts_text = "#{@journal.journal_prompts.count} prompts"
 
-        if journal_locked?
-          span(class: "flex items-center gap-1") do
-            plain "#{prompts_text} · "
-            render ::Components::Icon::Lock.new(size: "12", class: "inline")
+        if view_context.current_user.journal_protection_enabled?
+          if journal_locked?
+            span(class: "flex items-center gap-1") do
+              plain "#{prompts_text} · "
+              render ::Components::Icon::Lock.new(size: "12", class: "inline text-muted-foreground")
+            end
+          else
+            span(class: "flex items-center gap-1") do
+              plain "#{prompts_text} · #{@journal.journal_fragments.count} entries · "
+              render ::Components::Icon::LockOpen.new(size: "12", class: "inline text-muted-foreground")
+            end
           end
         else
           plain "#{prompts_text} · #{@journal.journal_fragments.count} entries"

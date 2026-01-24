@@ -21,17 +21,31 @@ module Views
               p(class: "text-sm text-muted-foreground") { "Your daily journal entries" }
             end
             div(class: "flex gap-2") do
-              # Lock button (only show if protection is enabled)
+              # Lock/Unlock button (only show if protection is enabled)
               if view_context.current_user.journal_protection_enabled?
-                render RubyUI::Form.new(
-                  action: view_context.lock_journals_path,
-                  method: "post",
-                  data: { turbo: true }
-                ) do
-                  render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
-                  Button(variant: :outline, size: :default, type: :submit) do
-                    render ::Components::Icon::Lock.new(size: "14", class: "mr-2")
-                    plain "Lock"
+                if view_context.journals_unlocked?
+                  render RubyUI::Form.new(
+                    action: view_context.lock_journals_path,
+                    method: "post",
+                    data: { turbo: true }
+                  ) do
+                    render RubyUI::Input.new(type: :hidden, name: "authenticity_token", value: view_context.form_authenticity_token)
+                    Button(variant: :tinted, tint: :purple, type: :submit) do
+                      render ::Components::Icon::Lock.new(size: "12", class: "mr-2")
+                      plain "Lock"
+                    end
+                  end
+                else
+                  Button(
+                    variant: :tinted,
+                    tint: :purple,
+                    data: {
+                      controller: "journal-unlock-button",
+                      action: "click->journal-unlock-button#openDialog"
+                    }
+                  ) do
+                    render ::Components::Icon::LockOpen.new(size: "12", class: "mr-2")
+                    plain "Unlock"
                   end
                 end
               end

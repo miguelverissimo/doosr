@@ -40,6 +40,11 @@ class Note < ApplicationRecord
     content.length > 100 ? "#{content[0..97]}..." : content
   end
 
+  # Render content as markdown
+  def rendered_markdown
+    ApplicationController.helpers.render_markdown(content)
+  end
+
   # Check if this note is attached to any descendants
   def attached?
     parent_descendants.exists?
