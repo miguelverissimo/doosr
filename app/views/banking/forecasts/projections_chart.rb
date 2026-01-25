@@ -63,7 +63,7 @@ module Views
 
         def render_fallback_chart
           min_balance = @projections.map(&:ending_balance).min
-          max_balance = [@current_balance, @projections.map(&:ending_balance).max].max
+          max_balance = [ @current_balance, @projections.map(&:ending_balance).max ].max
           range = max_balance - min_balance
           range = 1 if range.zero?
 

@@ -191,7 +191,7 @@ module Banking
       count = 0
       matching_transactions.find_each do |transaction|
         transaction.update!(category_pattern_id: @category_pattern.id)
-        transaction.set_categories([@category_pattern.category_id])
+        transaction.set_categories([ @category_pattern.category_id ])
         count += 1
       end
       count
@@ -203,7 +203,7 @@ module Banking
       pattern.bank_transactions.find_each do |transaction|
         if pattern.matches?(transaction.description)
           # Still matches - update category in case it changed
-          transaction.set_categories([pattern.category_id])
+          transaction.set_categories([ pattern.category_id ])
         else
           # No longer matches - clear the association
           transaction.transaction_categorizations.destroy_all
@@ -217,7 +217,7 @@ module Banking
         .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
         .find_each do |transaction|
           transaction.update!(category_pattern_id: pattern.id)
-          transaction.set_categories([pattern.category_id])
+          transaction.set_categories([ pattern.category_id ])
         end
     end
 

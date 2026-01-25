@@ -13,6 +13,6 @@ class CreateBudgetGoals < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :budget_goals, [:user_id, :goal_type, :category_id], unique: true, name: "index_budget_goals_unique_per_type_category"
+    add_index :budget_goals, [ :user_id, :goal_type, :category_id ], unique: true, name: "index_budget_goals_unique_per_type_category"
   end
 end

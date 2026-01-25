@@ -3,7 +3,7 @@
 module Banking
   class PlannedExpensesController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_planned_expense, only: [:edit, :update, :destroy, :mark_completed]
+    before_action :set_planned_expense, only: [ :edit, :update, :destroy, :mark_completed ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index

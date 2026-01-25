@@ -59,11 +59,11 @@ module Banking
 
       # Pre-calculate occurrences for each group
       @income_occurrences = @income_groups.map do |group|
-        [group, group.future_occurrences(weeks: WEEKS_TO_PROJECT)]
+        [ group, group.future_occurrences(weeks: WEEKS_TO_PROJECT) ]
       end.to_h
 
       @expense_occurrences = @expense_groups.map do |group|
-        [group, group.future_occurrences(weeks: WEEKS_TO_PROJECT)]
+        [ group, group.future_occurrences(weeks: WEEKS_TO_PROJECT) ]
       end.to_h
 
       # Preload planned expenses for the entire projection period
@@ -139,10 +139,10 @@ module Banking
         g.monthly_amount / 4.33
       end
 
-      variable_weekly = [historical_weekly - recurring_weekly, 0].max
+      variable_weekly = [ historical_weekly - recurring_weekly, 0 ].max
 
       already_covered = recurring_expenses + planned_expenses
-      [variable_weekly - (already_covered / 7.0 * 7), 0].max
+      [ variable_weekly - (already_covered / 7.0 * 7), 0 ].max
     end
 
     def calculate_historical_weekly_average

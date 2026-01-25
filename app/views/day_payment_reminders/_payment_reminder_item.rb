@@ -79,7 +79,7 @@ module Views
       def render_content
         div(class: "flex-1 min-w-0") do
           div(class: "truncate") do
-            title_classes = ["text-sm font-medium truncate"]
+            title_classes = [ "text-sm font-medium truncate" ]
             title_classes << "line-through text-muted-foreground" if @day_payment_reminder.paid?
             p(class: title_classes.join(" ")) do
               plain @day_payment_reminder.title
@@ -96,7 +96,7 @@ module Views
         return unless @day_payment_reminder.expected_amount.present? && @day_payment_reminder.expected_amount > 0
 
         div(class: "flex items-center gap-3 shrink-0 ml-auto") do
-          amount_classes = ["font-mono font-medium text-sm"]
+          amount_classes = [ "font-mono font-medium text-sm" ]
           amount_classes << "text-muted-foreground line-through" if @day_payment_reminder.paid?
           span(class: amount_classes.join(" ")) do
             plain format_currency(@day_payment_reminder.expected_amount)

@@ -70,7 +70,7 @@ class BankingController < ApplicationController
       # Handle category assignment via transaction_categorizations
       category_id = params[:category_id]
       if category_id.present?
-        @transaction.set_categories([category_id])
+        @transaction.set_categories([ category_id ])
       end
 
       respond_to do |format|
@@ -122,7 +122,7 @@ class BankingController < ApplicationController
       # Handle category assignment via transaction_categorizations
       category_id = params[:category_id]
       if category_id.present?
-        @transaction.set_categories([category_id])
+        @transaction.set_categories([ category_id ])
       elsif category_id == ""
         @transaction.transaction_categorizations.destroy_all
       end
@@ -159,7 +159,7 @@ class BankingController < ApplicationController
 
     # Update using set_categories for proper categorization handling
     if category_id.present?
-      @transaction.set_categories([category_id])
+      @transaction.set_categories([ category_id ])
     else
       @transaction.transaction_categorizations.destroy_all
     end
@@ -366,7 +366,7 @@ class BankingController < ApplicationController
       parent_category = @categories_cache[@breakdown_parent_id.to_i]
       if parent_category
         subcategory_ids = parent_category.subcategories.map(&:id)
-        category_ids = [parent_category.id] + subcategory_ids
+        category_ids = [ parent_category.id ] + subcategory_ids
         return transactions.with_any_categorization(category_ids)
       end
     end
@@ -519,7 +519,7 @@ class BankingController < ApplicationController
 
     # Get category IDs: parent + all subcategories (use loaded association)
     subcategory_ids = parent_category.subcategories.map(&:id)
-    category_ids = [parent_category.id] + subcategory_ids
+    category_ids = [ parent_category.id ] + subcategory_ids
 
     # Get category totals using a single aggregate query
     category_amounts = TransactionCategorization

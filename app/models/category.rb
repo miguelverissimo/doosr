@@ -12,7 +12,7 @@ class Category < ApplicationRecord
   has_many :budget_goals, dependent: :destroy
   has_many :planned_expenses, dependent: :nullify
 
-  validates :name, presence: true, uniqueness: { scope: [:user_id, :parent_id] }
+  validates :name, presence: true, uniqueness: { scope: [ :user_id, :parent_id ] }
   validates :color, presence: true
   validate :parent_cannot_be_subcategory
   validate :cannot_have_deeply_nested_parent
@@ -46,7 +46,7 @@ class Category < ApplicationRecord
   end
 
   def self_and_subcategory_ids
-    [id] + subcategories.map(&:id)
+    [ id ] + subcategories.map(&:id)
   end
 
   def all_transaction_categorizations

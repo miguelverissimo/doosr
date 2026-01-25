@@ -16,8 +16,8 @@ class CreatePlannedExpenses < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :planned_expenses, [:user_id, :due_date]
-    add_index :planned_expenses, [:user_id, :completed]
-    add_index :planned_expenses, [:recurring_group_id, :due_date], name: "index_planned_expenses_on_recurring_group_and_date"
+    add_index :planned_expenses, [ :user_id, :due_date ]
+    add_index :planned_expenses, [ :user_id, :completed ]
+    add_index :planned_expenses, [ :recurring_group_id, :due_date ], name: "index_planned_expenses_on_recurring_group_and_date"
   end
 end

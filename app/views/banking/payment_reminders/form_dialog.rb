@@ -19,7 +19,7 @@ module Views
           { value: 0, label: "On due date" }
         ].freeze
 
-        DEFAULT_REMINDER_DAYS = [7, 3, 0].freeze
+        DEFAULT_REMINDER_DAYS = [ 7, 3, 0 ].freeze
 
         def initialize(payment_reminder:)
           @payment_reminder = payment_reminder

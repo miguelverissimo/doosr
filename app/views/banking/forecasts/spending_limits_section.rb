@@ -125,7 +125,7 @@ module Views
                   div(class: "h-2 bg-muted/50 rounded-full overflow-hidden") do
                     div(
                       class: "h-full #{progress_color} transition-all",
-                      style: "width: #{[spending.progress_percentage, 100].min}%"
+                      style: "width: #{[ spending.progress_percentage, 100 ].min}%"
                     )
                   end
                 end

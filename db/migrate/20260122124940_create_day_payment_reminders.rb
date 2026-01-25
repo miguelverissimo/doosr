@@ -9,7 +9,7 @@ class CreateDayPaymentReminders < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :day_payment_reminders, [:user_id, :payment_reminder_id, :reminder_date], unique: true, name: "index_day_payment_reminders_unique"
+    add_index :day_payment_reminders, [ :user_id, :payment_reminder_id, :reminder_date ], unique: true, name: "index_day_payment_reminders_unique"
     add_index :day_payment_reminders, :reminder_date
   end
 end

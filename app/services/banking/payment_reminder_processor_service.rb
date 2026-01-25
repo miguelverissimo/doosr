@@ -27,7 +27,7 @@ module Banking
         success: false,
         items_created: @items_created,
         skipped_count: @skipped_count,
-        errors: ["Processing failed: #{e.message}"]
+        errors: [ "Processing failed: #{e.message}" ]
       )
     end
 
@@ -45,7 +45,7 @@ module Banking
       )
     rescue StandardError => e
       Rails.logger.error "PaymentReminderProcessorService: Failed to process single reminder #{reminder.id}: #{e.message}"
-      Result.new(success: false, items_created: 0, skipped_count: 0, errors: [e.message])
+      Result.new(success: false, items_created: 0, skipped_count: 0, errors: [ e.message ])
     end
 
     private

@@ -2,7 +2,7 @@
 
 class DayPaymentRemindersController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_day_payment_reminder, only: [:actions_sheet, :move, :destroy, :mark_paid]
+  before_action :set_day_payment_reminder, only: [ :actions_sheet, :move, :destroy, :mark_paid ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def actions_sheet
@@ -81,10 +81,10 @@ class DayPaymentRemindersController < ApplicationController
         if @day
           @day = current_user.days.includes(:descendant).find(@day.id)
           @day.descendant.reload
-          
+
           # Build tree ONCE using ItemTree::Build
           tree = ::ItemTree::Build.call(@day.descendant, root_label: "day")
-          
+
           # Render tree nodes from the pre-built tree
           rendered_items = tree.children.map do |node|
             render_to_string(::Views::Items::TreeNode.new(node: node, day: @day), layout: false)
@@ -92,10 +92,10 @@ class DayPaymentRemindersController < ApplicationController
         elsif @list
           @list = current_user.lists.includes(:descendant).find(@list.id)
           @list.descendant.reload
-          
+
           # Build tree ONCE using ItemTree::Build
           tree = ::ItemTree::Build.call(@list.descendant, root_label: "list")
-          
+
           # Render tree nodes from the pre-built tree
           rendered_items = tree.children.map do |node|
             render_to_string(::Views::Items::TreeNode.new(node: node, context: @list), layout: false)
@@ -121,10 +121,10 @@ class DayPaymentRemindersController < ApplicationController
         if @day
           @day = current_user.days.includes(:descendant).find(@day.id)
           @day.descendant.reload
-          
+
           # Build tree ONCE using ItemTree::Build
           tree = ::ItemTree::Build.call(@day.descendant, root_label: "day")
-          
+
           # Render tree nodes from the pre-built tree
           rendered_items = tree.children.map do |node|
             render_to_string(::Views::Items::TreeNode.new(node: node, day: @day), layout: false)
@@ -132,10 +132,10 @@ class DayPaymentRemindersController < ApplicationController
         elsif @list
           @list = current_user.lists.includes(:descendant).find(@list.id)
           @list.descendant.reload
-          
+
           # Build tree ONCE using ItemTree::Build
           tree = ::ItemTree::Build.call(@list.descendant, root_label: "list")
-          
+
           # Render tree nodes from the pre-built tree
           rendered_items = tree.children.map do |node|
             render_to_string(::Views::Items::TreeNode.new(node: node, context: @list), layout: false)

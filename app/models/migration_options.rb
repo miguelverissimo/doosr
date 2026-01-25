@@ -14,6 +14,12 @@ class MigrationOptions
       label: "Migrate Notes",
       description: "Include notes when importing"
     },
+    financial_reminders: {
+      type: :boolean,
+      default: true,
+      label: "Migrate Financial Reminders",
+      description: "Include payment reminders from the Financial Operations section"
+    },
     items: {
       label: "Per Item Settings",
       sections_with_no_active_items: {

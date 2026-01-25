@@ -40,6 +40,12 @@ module Days
         # Migrate list links from source day to target day
         migrate_list_links(target_day)
 
+        # Migrate notes from source day to target day
+        migrate_notes(target_day)
+
+        # Migrate financial reminders from source day to target day
+        migrate_day_payment_reminders(target_day)
+
         # CRITICAL: Mark migration chain
         source_day.update!(
           imported_to_day_id: target_day.id,
@@ -180,6 +186,9 @@ module Days
     end
 
     def migrate_list_links(target_day)
+      # Check if links migration is enabled (default: true)
+      return unless migration_settings.fetch("links", true)
+
       # Get list links from source day
       source_list_ids = source_day.descendant.extract_active_ids_by_type("List")
       return if source_list_ids.empty?
@@ -196,6 +205,85 @@ module Days
       end
 
       target_day.descendant.save!
+    end
+
+    def migrate_notes(target_day)
+      # Check if notes migration is enabled (default: false)
+      return unless migration_settings.fetch("notes", false)
+
+      # Get notes from source day
+      source_note_ids = source_day.descendant.extract_active_ids_by_type("Note")
+      return if source_note_ids.empty?
+
+      # Add each note to target day (only if user still owns it and it still exists)
+      source_note_ids.each do |note_id|
+        note = user.notes.find_by(id: note_id)
+        next unless note
+
+        # Add to target day if not already present
+        unless target_day.descendant.active_record?("Note", note_id)
+          target_day.descendant.add_active_record("Note", note_id)
+        end
+      end
+
+      target_day.descendant.save!
+    end
+
+    def migrate_day_payment_reminders(target_day)
+      # Check if financial reminders migration is enabled (default: true)
+      return unless migration_settings.fetch("financial_reminders", true)
+
+      # Find the Financial Operations section in source day
+      source_section = find_financial_operations_section(source_day)
+      return unless source_section&.descendant
+
+      # Get payment reminders from the section
+      source_reminder_ids = source_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+      return if source_reminder_ids.empty?
+
+      # Find or create Financial Operations section in target day
+      target_section = find_or_create_financial_operations_section(target_day)
+
+      # Add each payment reminder to target section (only if it still exists)
+      source_reminder_ids.each do |reminder_id|
+        reminder = DayPaymentReminder.find_by(id: reminder_id)
+        next unless reminder
+
+        # Add to target section if not already present
+        unless target_section.descendant.active_record?("DayPaymentReminder", reminder_id)
+          target_section.descendant.add_active_record("DayPaymentReminder", reminder_id)
+        end
+      end
+
+      target_section.descendant.save!
+    end
+
+    def find_financial_operations_section(day)
+      return nil unless day.descendant
+
+      section_ids = day.descendant.extract_active_item_ids
+      Item.sections
+          .where(id: section_ids)
+          .where("LOWER(title) = ?", "financial operations")
+          .first
+    end
+
+    def find_or_create_financial_operations_section(day)
+      existing = find_financial_operations_section(day)
+      return existing if existing
+
+      section = user.items.create!(
+        title: "Financial Operations",
+        item_type: :section,
+        state: :todo,
+        extra_data: { financial_operations_section: true }
+      )
+
+      section.create_descendant!(active_items: [], inactive_items: [])
+      day.descendant.prepend_active_record("Item", section.id)
+      day.descendant.save!
+
+      section
     end
   end
 end

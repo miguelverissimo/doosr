@@ -7,13 +7,13 @@ class CreatePaymentReminders < ActiveRecord::Migration[8.1]
       t.string :title, null: false
       t.date :cutoff_date, null: false
       t.string :payment_url
-      t.jsonb :reminder_days_before, null: false, default: [7, 3, 1]
+      t.jsonb :reminder_days_before, null: false, default: [ 7, 3, 1 ]
       t.boolean :active, null: false, default: true
 
       t.timestamps
     end
 
-    add_index :payment_reminders, [:user_id, :active]
-    add_index :payment_reminders, [:user_id, :cutoff_date]
+    add_index :payment_reminders, [ :user_id, :active ]
+    add_index :payment_reminders, [ :user_id, :cutoff_date ]
   end
 end

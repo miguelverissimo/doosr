@@ -44,7 +44,7 @@ module Banking
     def calculate_progress(goal)
       period = period_for(goal)
       days_in_period = (period[:end] - period[:start]).to_i + 1
-      days_elapsed = [(@reference_date - period[:start]).to_i + 1, days_in_period].min
+      days_elapsed = [ (@reference_date - period[:start]).to_i + 1, days_in_period ].min
 
       if goal.savings?
         calculate_savings_progress(goal, period, days_in_period, days_elapsed)
@@ -62,14 +62,14 @@ module Banking
       current_savings = income - expenses
 
       prorated_target = (goal.target_amount.to_f * days_elapsed) / days_in_period
-      progress_pct = prorated_target.positive? ? [(current_savings / prorated_target) * 100, 100].min : 0
+      progress_pct = prorated_target.positive? ? [ (current_savings / prorated_target) * 100, 100 ].min : 0
 
       GoalProgress.new(
         goal: goal,
         current_amount: current_savings,
         target_amount: goal.target_amount,
         progress_percentage: progress_pct.round(1),
-        remaining_amount: [goal.target_amount - current_savings, 0].max,
+        remaining_amount: [ goal.target_amount - current_savings, 0 ].max,
         on_track: current_savings >= prorated_target,
         period_start: period[:start],
         period_end: period[:end],
@@ -88,7 +88,7 @@ module Banking
       spent = calculate_category_spending_from_preloaded(category_ids, period[:start], @reference_date)
 
       limit = goal.target_amount.to_f
-      progress_pct = limit.positive? ? [(spent / limit) * 100, 100].min : 0
+      progress_pct = limit.positive? ? [ (spent / limit) * 100, 100 ].min : 0
 
       prorated_limit = (limit * days_elapsed) / days_in_period
       on_track = spent <= prorated_limit
@@ -98,7 +98,7 @@ module Banking
         current_amount: spent,
         target_amount: limit,
         progress_percentage: progress_pct.round(1),
-        remaining_amount: [limit - spent, 0].max,
+        remaining_amount: [ limit - spent, 0 ].max,
         on_track: on_track,
         period_start: period[:start],
         period_end: period[:end],
@@ -156,17 +156,17 @@ module Banking
       case goal.period
       when "weekly"
         start = @reference_date.beginning_of_week
-        start = [start, effective_start].max
+        start = [ start, effective_start ].max
         { start: start, end: start.end_of_week }
       when "monthly"
         start = @reference_date.beginning_of_month
-        start = [start, effective_start].max
+        start = [ start, effective_start ].max
         { start: start, end: start.end_of_month }
       when "quarterly"
         quarterly_period_for(goal, effective_start)
       when "yearly"
         start = @reference_date.beginning_of_year
-        start = [start, effective_start].max
+        start = [ start, effective_start ].max
         { start: start, end: start.end_of_year }
       when "custom"
         custom_period_for(goal, effective_start)

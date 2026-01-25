@@ -41,7 +41,7 @@ module Banking
       variable_categories.each do |analysis|
         break if remaining <= 0 || analysis.reduction_potential <= 0
 
-        reduction = [analysis.reduction_potential, remaining].min
+        reduction = [ analysis.reduction_potential, remaining ].min
         suggestions << {
           category: analysis.category,
           current_average: analysis.monthly_average,
@@ -83,7 +83,7 @@ module Banking
         standard_deviation: std_dev.round(2),
         coefficient_of_variation: cv.round(3),
         is_variable: cv > VARIABLE_THRESHOLD,
-        reduction_potential: [(avg - min), 0].max.round(2),
+        reduction_potential: [ (avg - min), 0 ].max.round(2),
         monthly_amounts: monthly_amounts
       )
     end

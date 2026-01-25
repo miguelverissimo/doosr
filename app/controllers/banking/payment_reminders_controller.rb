@@ -3,7 +3,7 @@
 module Banking
   class PaymentRemindersController < ApplicationController
     before_action :authenticate_user!
-    before_action :set_payment_reminder, only: [:edit, :update, :destroy, :clone]
+    before_action :set_payment_reminder, only: [ :edit, :update, :destroy, :clone ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index
@@ -27,7 +27,7 @@ module Banking
         title: params[:title],
         cutoff_date: Date.current + 30.days,
         payment_url: params[:payment_url],
-        reminder_days_before: params[:reminder_days_before] || [7, 3, 0],
+        reminder_days_before: params[:reminder_days_before] || [ 7, 3, 0 ],
         active: params[:active].nil? ? true : params[:active] == "true"
       )
 
@@ -157,16 +157,16 @@ module Banking
     def clone
       # Open the create modal with pre-filled values from the original reminder
       original = @payment_reminder
-      
+
       # Ensure reminder_days_before is an array
       reminder_days = if original.reminder_days_before.is_a?(Array)
         original.reminder_days_before.dup
       elsif original.reminder_days_before.present?
         Array(original.reminder_days_before)
       else
-        [7, 3, 0]
+        [ 7, 3, 0 ]
       end
-      
+
       @payment_reminder = current_user.payment_reminders.build(
         title: original.title,
         expected_amount: original.expected_amount,

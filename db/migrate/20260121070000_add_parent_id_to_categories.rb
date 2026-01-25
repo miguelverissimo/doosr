@@ -8,7 +8,7 @@ class AddParentIdToCategories < ActiveRecord::Migration[8.1]
     add_index :categories, :parent_id
 
     # Remove the old unique constraint and add new one that accounts for parent_id
-    remove_index :categories, [:user_id, :name]
-    add_index :categories, [:user_id, :name, :parent_id], unique: true, name: "index_categories_on_user_name_parent"
+    remove_index :categories, [ :user_id, :name ]
+    add_index :categories, [ :user_id, :name, :parent_id ], unique: true, name: "index_categories_on_user_name_parent"
   end
 end

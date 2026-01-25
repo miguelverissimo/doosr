@@ -38,8 +38,8 @@ module Banking
         spent = category_ids.sum { |id| spending_by_category[id] || 0.0 }
         limit = goal.target_amount.to_f
 
-        progress_pct = limit.positive? ? [(spent / limit) * 100, 100].min : 0
-        remaining = [limit - spent, 0].max
+        progress_pct = limit.positive? ? [ (spent / limit) * 100, 100 ].min : 0
+        remaining = [ limit - spent, 0 ].max
         over_limit = spent > limit
 
         SectionSpending.new(

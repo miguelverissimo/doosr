@@ -10,7 +10,7 @@ class BudgetGoal < ApplicationRecord
     9 => "September", 10 => "October", 11 => "November", 12 => "December"
   }.freeze
 
-  QUARTERLY_MONTHS = [3, 6, 9, 12].freeze
+  QUARTERLY_MONTHS = [ 3, 6, 9, 12 ].freeze
 
   belongs_to :user
   belongs_to :category, optional: true

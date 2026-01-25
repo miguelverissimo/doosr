@@ -10,15 +10,15 @@ class DayPaymentReminder < ApplicationRecord
 
   validates :reminder_date, presence: true
   validates :days_until_cutoff, presence: true
-  validates :user_id, uniqueness: { scope: [:payment_reminder_id, :reminder_date], message: "already has this payment reminder for this date" }
+  validates :user_id, uniqueness: { scope: [ :payment_reminder_id, :reminder_date ], message: "already has this payment reminder for this date" }
 
   # Find all descendants containing this day payment reminder
   def parent_descendants
     tuple = { "DayPaymentReminder" => id }
     Descendant.where(
       "active_items @> ? OR inactive_items @> ?",
-      [tuple].to_json,
-      [tuple].to_json
+      [ tuple ].to_json,
+      [ tuple ].to_json
     )
   end
 

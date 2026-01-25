@@ -27,7 +27,7 @@ module Banking
         success: false,
         created_count: @created_count,
         skipped_count: @skipped_count,
-        errors: ["Population failed: #{e.message}"]
+        errors: [ "Population failed: #{e.message}" ]
       )
     end
 

@@ -11,7 +11,7 @@ class CreateTransactionCategorizations < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :transaction_categorizations, [:bank_transaction_id, :category_id],
+    add_index :transaction_categorizations, [ :bank_transaction_id, :category_id ],
               unique: true,
               name: "index_transaction_categorizations_unique"
   end

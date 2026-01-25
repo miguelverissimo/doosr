@@ -886,4 +886,708 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     # MUST be the exact past date we specified
     assert_equal past_date, target_day.date
   end
+
+  # ============================================================================
+  # Note Migration Tests
+  # ============================================================================
+
+  test "migrates notes from source day to target day when notes setting is true" do
+    note = @user.notes.create!(content: "Test Note content")
+
+    @source_day.descendant.add_active_record("Note", note.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "notes" => true }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_includes target_note_ids, note.id
+  end
+
+  test "does not migrate notes when notes setting is false (default)" do
+    note = @user.notes.create!(content: "Test Note content")
+
+    @source_day.descendant.add_active_record("Note", note.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}  # notes defaults to false
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_not_includes target_note_ids, note.id
+  end
+
+  test "migrates multiple notes preserving all" do
+    note1 = @user.notes.create!(content: "Note 1 content")
+    note2 = @user.notes.create!(content: "Note 2 content")
+    note3 = @user.notes.create!(content: "Note 3 content")
+
+    @source_day.descendant.add_active_record("Note", note1.id)
+    @source_day.descendant.add_active_record("Note", note2.id)
+    @source_day.descendant.add_active_record("Note", note3.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "notes" => true }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_equal 3, target_note_ids.length
+    assert_includes target_note_ids, note1.id
+    assert_includes target_note_ids, note2.id
+    assert_includes target_note_ids, note3.id
+  end
+
+  test "does not duplicate notes already present in target day" do
+    note = @user.notes.create!(content: "Test Note content")
+
+    # Add note to source day
+    @source_day.descendant.add_active_record("Note", note.id)
+    @source_day.descendant.save!
+
+    # Create target day with same note already present
+    target_day = @user.days.create!(date: @target_date, state: :open)
+    target_day.descendant || target_day.create_descendant!
+    target_day.descendant.add_active_record("Note", note.id)
+    target_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "notes" => true }
+    )
+
+    result = service.call
+    target_day.reload
+
+    # Note should only appear once
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_equal 1, target_note_ids.count { |id| id == note.id }
+  end
+
+  test "skips deleted notes during migration" do
+    note = @user.notes.create!(content: "Test Note content")
+    note_id = note.id
+
+    @source_day.descendant.add_active_record("Note", note_id)
+    @source_day.descendant.save!
+
+    # Delete the note
+    note.destroy!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "notes" => true }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Deleted note should not be migrated
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_not_includes target_note_ids, note_id
+  end
+
+  # ============================================================================
+  # List Link Migration Tests
+  # ============================================================================
+
+  test "migrates list links from source day to target day" do
+    list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list-#{SecureRandom.hex(4)}")
+
+    @source_day.descendant.add_active_record("List", list.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_includes target_list_ids, list.id
+  end
+
+  test "migrates multiple list links" do
+    list1 = @user.lists.create!(title: "List 1", list_type: :private_list, slug: "list-1-#{SecureRandom.hex(4)}")
+    list2 = @user.lists.create!(title: "List 2", list_type: :private_list, slug: "list-2-#{SecureRandom.hex(4)}")
+
+    @source_day.descendant.add_active_record("List", list1.id)
+    @source_day.descendant.add_active_record("List", list2.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_equal 2, target_list_ids.length
+    assert_includes target_list_ids, list1.id
+    assert_includes target_list_ids, list2.id
+  end
+
+  test "does not duplicate list links already present in target day" do
+    list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list-dup-#{SecureRandom.hex(4)}")
+
+    @source_day.descendant.add_active_record("List", list.id)
+    @source_day.descendant.save!
+
+    # Create target day with same list already present
+    target_day = @user.days.create!(date: @target_date, state: :open)
+    target_day.descendant || target_day.create_descendant!
+    target_day.descendant.add_active_record("List", list.id)
+    target_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day.reload
+
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_equal 1, target_list_ids.count { |id| id == list.id }
+  end
+
+  test "does not migrate list links when links setting is false" do
+    list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list-no-migrate-#{SecureRandom.hex(4)}")
+
+    @source_day.descendant.add_active_record("List", list.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "links" => false }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_not_includes target_list_ids, list.id
+  end
+
+  # ============================================================================
+  # Financial Operations (DayPaymentReminder) Migration Tests
+  # ============================================================================
+
+  test "migrates day payment reminders from Financial Operations section" do
+    # Create payment reminder and day payment reminder
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3, 1 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+
+    # Create Financial Operations section in source day
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Find Financial Operations section in target day
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+
+    assert_not_nil target_financial_section
+    target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_includes target_reminder_ids, day_payment_reminder.id
+  end
+
+  test "migrates multiple day payment reminders" do
+    payment_reminder1 = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3, 1 ]
+    )
+    payment_reminder2 = @user.payment_reminders.create!(
+      title: "Electricity",
+      cutoff_date: Date.today + 10.days,
+      reminder_days_before: [ 5 ]
+    )
+    day_reminder1 = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder1,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+    day_reminder2 = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder2,
+      reminder_date: @source_date,
+      days_until_cutoff: 10
+    )
+
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_reminder1.id)
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_reminder2.id)
+    financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+
+    target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_equal 2, target_reminder_ids.length
+    assert_includes target_reminder_ids, day_reminder1.id
+    assert_includes target_reminder_ids, day_reminder2.id
+  end
+
+  test "creates Financial Operations section in target if not exists" do
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    # Pre-create target day WITHOUT Financial Operations section
+    target_day = @user.days.create!(date: @target_date, state: :open)
+    target_day.descendant || target_day.create_descendant!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day.reload
+
+    # Should have created Financial Operations section
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+
+    assert_not_nil target_financial_section
+    assert target_financial_section.extra_data&.dig("financial_operations_section")
+  end
+
+  test "does not duplicate payment reminders already in target Financial Operations section" do
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+
+    # Create Financial Operations section in source day
+    source_financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    source_financial_section.reload
+    source_financial_section.descendant || source_financial_section.create_descendant!
+    source_financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    source_financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(source_financial_section.id)
+    @source_day.descendant.save!
+
+    # Create target day with Financial Operations section that already has the reminder
+    target_day = @user.days.create!(date: @target_date, state: :open)
+    target_day.descendant || target_day.create_descendant!
+    target_financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    target_financial_section.reload
+    target_financial_section.descendant || target_financial_section.create_descendant!
+    target_financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    target_financial_section.descendant.save!
+    target_day.descendant.add_active_item(target_financial_section.id)
+    target_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day.reload
+    target_financial_section.reload
+
+    # Should only have one instance of the reminder
+    target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_equal 1, target_reminder_ids.count { |id| id == day_payment_reminder.id }
+  end
+
+  test "skips deleted payment reminders during migration" do
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+    reminder_id = day_payment_reminder.id
+
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", reminder_id)
+    financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    # Delete the day payment reminder
+    day_payment_reminder.destroy!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+
+    # Section may not be created if no reminders to migrate
+    if target_financial_section
+      target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+      assert_not_includes target_reminder_ids, reminder_id
+    end
+  end
+
+  test "does not create Financial Operations section if no reminders to migrate" do
+    # No financial section in source day
+    item = @user.items.create!(title: "Task", state: :todo)
+    @source_day.descendant.add_active_item(item.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Should NOT have Financial Operations section
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    financial_sections = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+
+    assert_equal 0, financial_sections.count
+  end
+
+  test "does not migrate financial reminders when financial_reminders setting is false" do
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: { "financial_reminders" => false }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Should NOT have Financial Operations section (or should be empty)
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_active_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+
+    if target_financial_section
+      target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+      assert_not_includes target_reminder_ids, day_payment_reminder.id
+    end
+  end
+
+  # ============================================================================
+  # Combined Migration Tests
+  # ============================================================================
+
+  test "migrates items, notes, lists, and payment reminders together when all enabled" do
+    # Create item
+    item = @user.items.create!(title: "Task", state: :todo)
+    @source_day.descendant.add_active_item(item.id)
+
+    # Create note
+    note = @user.notes.create!(content: "Test Note content")
+    @source_day.descendant.add_active_record("Note", note.id)
+
+    # Create list
+    list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list-combined-#{SecureRandom.hex(4)}")
+    @source_day.descendant.add_active_record("List", list.id)
+
+    # Create payment reminder
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+    @source_day.descendant.add_active_item(financial_section.id)
+
+    @source_day.descendant.save!
+
+    # Enable all migration settings
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {
+        "notes" => true,
+        "links" => true,
+        "financial_reminders" => true
+      }
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Verify items migrated
+    target_item_ids = target_day.descendant.extract_active_item_ids
+    target_items = Item.where(id: target_item_ids)
+    assert target_items.any? { |i| i.title == "Task" }
+
+    # Verify notes migrated
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_includes target_note_ids, note.id
+
+    # Verify lists migrated
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_includes target_list_ids, list.id
+
+    # Verify payment reminders migrated
+    target_financial_section = Item.where(id: target_item_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+    assert_not_nil target_financial_section
+    target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_includes target_reminder_ids, day_payment_reminder.id
+  end
+
+  test "respects default migration settings (links: true, notes: false, financial_reminders: true)" do
+    # Create note (should NOT be migrated by default)
+    note = @user.notes.create!(content: "Test Note content")
+    @source_day.descendant.add_active_record("Note", note.id)
+
+    # Create list (should be migrated by default)
+    list = @user.lists.create!(title: "Test List", list_type: :private_list, slug: "test-list-defaults-#{SecureRandom.hex(4)}")
+    @source_day.descendant.add_active_record("List", list.id)
+
+    # Create payment reminder (should be migrated by default)
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+    @source_day.descendant.add_active_item(financial_section.id)
+
+    @source_day.descendant.save!
+
+    # Use empty settings to test defaults
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # Notes should NOT be migrated (default: false)
+    target_note_ids = target_day.descendant.extract_active_ids_by_type("Note")
+    assert_not_includes target_note_ids, note.id
+
+    # Lists should be migrated (default: true)
+    target_list_ids = target_day.descendant.extract_active_ids_by_type("List")
+    assert_includes target_list_ids, list.id
+
+    # Payment reminders should be migrated (default: true)
+    target_item_ids = target_day.descendant.extract_active_item_ids
+    target_financial_section = Item.where(id: target_item_ids)
+      .where("LOWER(title) = ?", "financial operations")
+      .first
+    assert_not_nil target_financial_section
+    target_reminder_ids = target_financial_section.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_includes target_reminder_ids, day_payment_reminder.id
+  end
 end
