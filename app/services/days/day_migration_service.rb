@@ -46,6 +46,9 @@ module Days
         # Migrate financial reminders from source day to target day
         migrate_day_payment_reminders(target_day)
 
+        # CRITICAL: Ensure Financial Operations section is ALWAYS first
+        ensure_financial_operations_first(target_day)
+
         # CRITICAL: Mark migration chain
         source_day.update!(
           imported_to_day_id: target_day.id,
@@ -284,6 +287,22 @@ module Days
       day.descendant.save!
 
       section
+    end
+
+    def ensure_financial_operations_first(day)
+      return unless day.descendant
+
+      financial_section = find_financial_operations_section(day)
+      return unless financial_section
+
+      # Check if Financial Operations is already first
+      first_item = day.descendant.active_items&.first
+      return if first_item == [ "Item", financial_section.id ]
+
+      # Remove from current position and prepend to front
+      day.descendant.remove_active_item(financial_section.id)
+      day.descendant.prepend_active_record("Item", financial_section.id)
+      day.descendant.save!
     end
   end
 end

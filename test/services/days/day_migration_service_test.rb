@@ -1528,6 +1528,79 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     assert_includes target_reminder_ids, day_payment_reminder.id
   end
 
+  test "CRITICAL: Financial Operations section MUST be first after migration" do
+    # Create permanent sections that would normally come first
+    @user.permanent_sections = [ "Work", "Personal" ]
+    @user.save!
+
+    # Create Financial Operations section in source day (NOT first)
+    work_section = @user.items.create!(
+      title: "Work",
+      item_type: :section,
+      state: :todo,
+      extra_data: { "permanent_section" => true }
+    )
+    work_section.reload
+    work_section.descendant || work_section.create_descendant!
+    work_item = @user.items.create!(title: "Work Task", state: :todo)
+    work_section.descendant.add_active_item(work_item.id)
+    work_section.descendant.save!
+
+    financial_section = @user.items.create!(
+      title: "Financial Operations",
+      item_type: :section,
+      state: :todo,
+      extra_data: { financial_operations_section: true }
+    )
+    financial_section.reload
+    financial_section.descendant || financial_section.create_descendant!
+
+    payment_reminder = @user.payment_reminders.create!(
+      title: "Rent",
+      cutoff_date: Date.today + 5.days,
+      reminder_days_before: [ 3 ]
+    )
+    day_payment_reminder = @user.day_payment_reminders.create!(
+      payment_reminder: payment_reminder,
+      reminder_date: @source_date,
+      days_until_cutoff: 5
+    )
+    financial_section.descendant.add_active_record("DayPaymentReminder", day_payment_reminder.id)
+    financial_section.descendant.save!
+
+    # Add items in order: Work FIRST, then Financial Operations
+    @source_day.descendant.add_active_item(work_section.id)
+    @source_day.descendant.add_active_item(financial_section.id)
+    @source_day.descendant.save!
+
+    # Verify source day has Work first (not Financial Operations)
+    source_active_ids = @source_day.descendant.extract_active_item_ids
+    source_first_item = Item.find(source_active_ids.first)
+    assert_equal "Work", source_first_item.title
+
+    service = Days::DayMigrationService.new(
+      user: @user,
+      source_day: @source_day,
+      target_date: @target_date,
+      migration_settings: {}
+    )
+
+    result = service.call
+    target_day = result[:target_day]
+
+    # CRITICAL: Financial Operations MUST be first in target day
+    target_active_ids = target_day.descendant.extract_active_item_ids
+    first_item = Item.find(target_active_ids.first)
+
+    assert_equal "Financial Operations", first_item.title,
+      "Financial Operations section MUST always be the first section after migration"
+
+    # Verify payment reminders were migrated to Financial Operations section
+    first_item.reload
+    reminder_ids = first_item.descendant.extract_active_ids_by_type("DayPaymentReminder")
+    assert_includes reminder_ids, day_payment_reminder.id
+  end
+
   test "respects default migration settings (links: true, notes: false, financial_reminders: true)" do
     # Create note (should NOT be migrated by default)
     note = @user.notes.create!(content: "Test Note content")
