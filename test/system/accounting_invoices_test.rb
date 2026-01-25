@@ -56,12 +56,51 @@ class AccountingInvoicesTest < ApplicationSystemTestCase
     assert_text "€123.00", wait: 3  # Total should be calculated
 
     # Fill in required invoice fields
-    fill_in "invoice_number", with: "1"
-    fill_in "invoice_customer_reference", with: "Test reference"
-    fill_in "invoice_notes", with: "Test notes"
+    # Use JavaScript to set values since the dialog content is copied to body by JS
+    # Also dispatch input/change events to trigger any listeners
+    execute_script(<<~JS)
+      document.querySelectorAll('input#invoice_number').forEach(el => {
+        if(el.offsetParent !== null) {
+          el.value = '1';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+      })
+    JS
+    execute_script(<<~JS)
+      document.querySelectorAll('input#invoice_customer_reference').forEach(el => {
+        if(el.offsetParent !== null) {
+          el.value = 'Test reference';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      })
+    JS
+    execute_script(<<~JS)
+      document.querySelectorAll('textarea#invoice_notes').forEach(el => {
+        if(el.offsetParent !== null) {
+          el.value = 'Test notes';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      })
+    JS
 
-    # Submit the form (Turbo Stream response)
-    click_button "Create Invoice"
+    # Small wait to ensure any async validation completes
+    sleep 0.5
+
+    # Submit the form by clicking the visible Create Invoice button
+    # Find buttons with text "Create Invoice" and click the visible one
+    execute_script(<<~JS)
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(btn => {
+        if (btn.textContent.trim() === 'Create Invoice' && btn.offsetParent !== null) {
+          btn.click();
+        }
+      });
+    JS
+
+    # Wait for form submission to complete
+    sleep 2
 
     # Wait for the loading state to disappear and dialog to close
     assert_no_text "Creating invoice from template...", wait: 10

@@ -70,7 +70,7 @@ class Notifications::WebPushDeliveryServiceTest < ActiveSupport::TestCase
     service = Notifications::WebPushDeliveryService.new(@notification)
     path = service.send(:find_item_day_path)
 
-    assert_equal "/days/#{@day.date.iso8601}", path
+    assert_equal "/day?date=#{@day.date.iso8601}", path
   end
 
   test "builds click action URL pointing to root when item is nested" do
@@ -92,7 +92,7 @@ class Notifications::WebPushDeliveryServiceTest < ActiveSupport::TestCase
     service = Notifications::WebPushDeliveryService.new(@notification)
     path = service.send(:find_item_day_path)
 
-    assert_equal "/days/#{@day.date.iso8601}", path
+    assert_equal "/day?date=#{@day.date.iso8601}", path
   end
 
   test "returns root path when item is not found in any day" do

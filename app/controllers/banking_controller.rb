@@ -7,6 +7,8 @@ class BankingController < ApplicationController
   SORTABLE_COLUMNS = %w[date description category value].freeze
   DEFAULT_SORT_COLUMN = "date"
   DEFAULT_SORT_DIRECTION = "desc"
+  CATEGORY_SORT_ASC = "categories.name ASC NULLS LAST, bank_transactions.id DESC"
+  CATEGORY_SORT_DESC = "categories.name DESC NULLS LAST, bank_transactions.id DESC"
 
   def new_transaction
     @transaction = current_user.bank_transactions.build(date: Date.current)
@@ -405,27 +407,21 @@ class BankingController < ApplicationController
   end
 
   def apply_sorting(transactions)
-    order_clause = case @sort_column
+    case @sort_column
     when "category"
-      # Sort by first category name via transaction_categorizations
-      "categories.name #{@sort_direction} NULLS LAST, bank_transactions.id DESC"
-    when "date"
-      { date: @sort_direction.to_sym, id: :desc }
-    when "description"
-      { description: @sort_direction.to_sym, id: :desc }
-    when "value"
-      { value: @sort_direction.to_sym, id: :desc }
-    else
-      { date: :desc, id: :desc }
-    end
-
-    if @sort_column == "category"
+      order_sql = @sort_direction == "asc" ? CATEGORY_SORT_ASC : CATEGORY_SORT_DESC
       transactions
         .left_joins(transaction_categorizations: :category)
         .group("bank_transactions.id")
-        .order(Arel.sql(order_clause))
+        .order(Arel.sql(order_sql))
+    when "date"
+      transactions.order(date: @sort_direction.to_sym, id: :desc)
+    when "description"
+      transactions.order(description: @sort_direction.to_sym, id: :desc)
+    when "value"
+      transactions.order(value: @sort_direction.to_sym, id: :desc)
     else
-      transactions.order(order_clause)
+      transactions.order(date: :desc, id: :desc)
     end
   end
 

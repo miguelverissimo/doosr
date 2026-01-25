@@ -289,13 +289,17 @@ module Banking
       transactions
     end
 
+    CATEGORY_SORT_ASC = "categories.name ASC NULLS LAST, bank_transactions.id DESC"
+    CATEGORY_SORT_DESC = "categories.name DESC NULLS LAST, bank_transactions.id DESC"
+
     def apply_sorting_for_list(transactions, sort_column, sort_direction)
       case sort_column
       when "category"
+        order_sql = sort_direction == "asc" ? CATEGORY_SORT_ASC : CATEGORY_SORT_DESC
         transactions
           .left_joins(transaction_categorizations: :category)
           .group("bank_transactions.id")
-          .order(Arel.sql("categories.name #{sort_direction} NULLS LAST, bank_transactions.id DESC"))
+          .order(Arel.sql(order_sql))
       when "date"
         transactions.order(date: sort_direction.to_sym, id: :desc)
       when "description"
