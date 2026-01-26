@@ -110,6 +110,7 @@ Rails.application.routes.draw do
       patch "defer", to: "items#defer", as: "defer"
       patch "undefer", to: "items#undefer", as: "undefer"
       patch "update_recurrence", to: "items#update_recurrence", as: "update_recurrence"
+      patch "drop_section", to: "items#drop_section", as: "drop_section"
       get "debug", to: "items#debug", as: "debug"
     end
 

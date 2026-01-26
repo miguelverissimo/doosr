@@ -4,7 +4,14 @@ module Views
   module Items
     class SectionItem < BaseItem
       def item_classes
-        "flex w-full cursor-pointer items-center gap-2 rounded-md bg-muted p-3 text-left transition-colors hover:bg-muted/85"
+        base_classes = "flex w-full cursor-pointer items-center gap-2 rounded-md bg-muted p-3 text-left transition-colors hover:bg-muted/85"
+
+        # Add opacity for dropped sections
+        if @record.dropped?
+          "#{base_classes} opacity-50"
+        else
+          base_classes
+        end
       end
 
       def render_icon
@@ -15,11 +22,20 @@ module Views
 
       def render_content
         div(class: "flex-1 min-w-0") do
-          h3(class: "font-semibold text-sm truncate") { @record.title }
+          title_classes = "font-semibold text-sm truncate"
+          title_classes += " line-through text-muted-foreground" if @record.dropped?
+          h3(class: title_classes) { @record.title }
         end
       end
 
       def render_badges
+        # Dropped badge
+        if @record.dropped?
+          span(class: "shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground") do
+            plain "dropped"
+          end
+        end
+
         # Notes indicator
         if @record.has_notes?
           span(class: "shrink-0 flex items-center justify-center h-5 w-5") do

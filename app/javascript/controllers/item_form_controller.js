@@ -163,6 +163,12 @@ export default class extends Controller {
 	}
 
 	submit(e) {
+		// CRITICAL: Ensure hidden field matches currentTypeValue before submission
+		// This is a safeguard in case selectSection/selectCompletable didn't update the hidden field
+		if (this.hasItemTypeTarget) {
+			this.itemTypeTarget.value = this.currentTypeValue;
+		}
+
 		// Show loading toast based on item type
 		if (window.toast) {
 			const itemType = this.currentTypeValue === "section" ? "section" : "item";

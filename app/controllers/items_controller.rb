@@ -122,7 +122,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
+                item_component_for(@item, day: @day, list: @list, is_public_list: false)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -201,7 +201,7 @@ class ItemsController < ApplicationController
               render turbo_stream: [
                 turbo_stream.append(
                   "items_list",
-                  ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
+                  item_component_for(@item, day: @day, list: @list, is_public_list: false)
                 ),
                 turbo_stream.update("item_form_errors", "")
               ]
@@ -215,7 +215,7 @@ class ItemsController < ApplicationController
             render turbo_stream: [
               turbo_stream.append(
                 "items_list",
-                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: false)
+                item_component_for(@item, day: @day, list: @list, is_public_list: false)
               ),
               turbo_stream.update("item_form_errors", "")
             ]
@@ -349,24 +349,14 @@ class ItemsController < ApplicationController
               @item.reload
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
-                ::Views::Items::CompletableItem.new(
-                  record: @item,
-                  day: @day,
-                  list: nil,
-                  is_public_list: false
-                )
+                item_component_for(@item, day: @day, list: nil, is_public_list: false)
               )
             else
               # Fallback: reload and render
               @item.reload
               streams << turbo_stream.replace(
                 "item_#{@item.id}",
-                ::Views::Items::CompletableItem.new(
-                  record: @item,
-                  day: nil,
-                  list: nil,
-                  is_public_list: false
-                )
+                item_component_for(@item, day: nil, list: nil, is_public_list: false)
               )
             end
 
@@ -393,7 +383,7 @@ class ItemsController < ApplicationController
             else
               stream = turbo_stream.replace(
                 "item_#{@item.id}",
-                ::Views::Items::CompletableItem.new(record: @item, day: @day, list: @list, is_public_list: @is_public_list || false)
+                item_component_for(@item, day: @day, list: @list, is_public_list: @is_public_list || false)
               )
             end
 
@@ -663,12 +653,7 @@ class ItemsController < ApplicationController
         @item.reload
         streams << turbo_stream.replace(
           "item_#{@item.id}",
-          ::Views::Items::CompletableItem.new(
-            record: @item,
-            day: @day,
-            list: @list,
-            is_public_list: false
-          )
+          item_component_for(@item, day: @day, list: @list, is_public_list: false)
         )
 
         # Replace just the content area, not the entire drawer
@@ -691,6 +676,7 @@ class ItemsController < ApplicationController
   def toggle_state
     @item = @acting_user.items.find(params[:id])
     new_state = params[:state]
+    @day = find_day
     # @list may already be set by set_acting_user for public lists
     @list ||= @acting_user.lists.find(params[:list_id]) if params[:list_id].present?
 
@@ -701,17 +687,60 @@ class ItemsController < ApplicationController
     when "dropped"
       @item.set_dropped!
     when "todo"
-      @item.set_todo!
+      # Sections use special method to restore from dropped state
+      if @item.section?
+        @item.set_section_todo!
+      else
+        @item.set_todo!
+      end
     end
 
     respond_to do |format|
       format.turbo_stream do
-        stream = turbo_stream.replace("item_#{@item.id}", ::Views::Items::CompletableItem.new(record: @item, day: find_day, list: @list, is_public_list: false))
+        if @day&.descendant
+          # Reload to get fresh data
+          @day.reload
+          @day.descendant.reload
 
-        # Broadcast to list if this is a list item
-        broadcast_list_update(@list, [ stream ]) if @list
+          # Build tree ONCE using ItemTree::Build
+          tree = ItemTree::Build.call(@day.descendant, root_label: "day")
 
-        render turbo_stream: stream
+          # Render tree nodes from the pre-built tree
+          rendered_items = tree.children.map do |node|
+            render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+          end.join
+
+          # Reload the item to get fresh state
+          @item.reload
+
+          # Get active item IDs for positioning
+          active_item_ids = @day.descendant.extract_active_item_ids
+
+          # Calculate position for the actions sheet
+          item_index = active_item_ids.index(@item.id)
+          total_items = active_item_ids.length
+
+          render turbo_stream: [
+            turbo_stream.update("items_list", rendered_items),
+            turbo_stream.replace(
+              "sheet_content_area",
+              ::Views::Items::ActionsSheetContentWrapper.new(
+                item: @item,
+                day: @day,
+                list: @list,
+                item_index: item_index,
+                total_items: total_items
+              )
+            )
+          ]
+        else
+          stream = turbo_stream.replace("item_#{@item.id}", item_component_for(@item, day: @day, list: @list, is_public_list: false))
+
+          # Broadcast to list if this is a list item
+          broadcast_list_update(@list, [ stream ]) if @list
+
+          render turbo_stream: stream
+        end
       end
       format.html { redirect_back(fallback_location: root_path) }
     end
@@ -1137,6 +1166,111 @@ class ItemsController < ApplicationController
     end
   end
 
+  def drop_section
+    @item = @acting_user.items.find(params[:id])
+    @day = find_day
+
+    # Only sections can be dropped with this action
+    unless @item.section?
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast('Only sections can be dropped with this action', { type: 'error' })</script>")
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: "Only sections can be dropped") }
+      end
+      return
+    end
+
+    # Count active children for confirmation
+    active_children_count = count_active_descendants(@item.descendant)
+
+    # Check if confirmation is needed (if section has active children)
+    if active_children_count > 0 && params[:confirmed] != "true"
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "sheet_content_area",
+            ::Views::Items::DropSectionConfirmation.new(
+              section: @item,
+              day: @day,
+              active_children_count: active_children_count
+            )
+          )
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: "Confirmation required") }
+      end
+      return
+    end
+
+    # Drop the section using the service
+    service = ::Items::DropSectionService.new(
+      section: @item,
+      user: @acting_user
+    )
+
+    result = service.call
+
+    if result[:success]
+      dropped_count = result[:dropped_count]
+
+      respond_to do |format|
+        format.turbo_stream do
+          if @day&.descendant
+            # Reload to get fresh data
+            @day.reload
+            @day.descendant.reload
+
+            # Build tree ONCE using ItemTree::Build
+            tree = ItemTree::Build.call(@day.descendant, root_label: "day")
+
+            # Render tree nodes from the pre-built tree
+            rendered_items = tree.children.map do |node|
+              render_to_string(Views::Items::TreeNode.new(node: node, day: @day))
+            end.join
+
+            # Reload the item to get fresh state
+            @item.reload
+
+            # Get active item IDs for positioning
+            active_item_ids = @day.descendant.extract_active_item_ids
+
+            # Calculate position for the actions sheet
+            item_index = active_item_ids.index(@item.id)
+            total_items = active_item_ids.length
+
+            # Show toast and reload the actions sheet
+            toast_message = "#{dropped_count} item#{dropped_count > 1 ? 's' : ''} dropped"
+
+            render turbo_stream: [
+              turbo_stream.update("items_list", rendered_items),
+              turbo_stream.replace(
+                "sheet_content_area",
+                ::Views::Items::ActionsSheetContentWrapper.new(
+                  item: @item,
+                  day: @day,
+                  item_index: item_index,
+                  total_items: total_items
+                )
+              ),
+              turbo_stream.append("body", "<script>window.toast && window.toast(#{toast_message.to_json}, { type: 'success' })</script>")
+            ]
+          else
+            flash[:alert] = "Failed to drop section"
+            head :ok
+          end
+        end
+        format.html { redirect_back(fallback_location: root_path, notice: "Section dropped successfully") }
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.append("body", "<script>window.toast && window.toast(#{result[:error].to_json}, { type: 'error' })</script>")
+        end
+        format.html { redirect_back(fallback_location: root_path, alert: result[:error]) }
+      end
+    end
+  end
+
   def debug
     @item = @acting_user.items.find(params[:id])
 
@@ -1181,6 +1315,15 @@ class ItemsController < ApplicationController
   def find_day
     return nil unless params[:day_id].present? && user_signed_in?
     @acting_user.days.find(params[:day_id])
+  end
+
+  # Render the correct component based on item type
+  def item_component_for(item, day:, list:, is_public_list:)
+    if item.section?
+      ::Views::Items::SectionItem.new(record: item, day: day, list: list, is_public_list: is_public_list)
+    else
+      ::Views::Items::CompletableItem.new(record: item, day: day, list: list, is_public_list: is_public_list)
+    end
   end
 
   def broadcast_list_update(list, streams)
@@ -1247,6 +1390,28 @@ class ItemsController < ApplicationController
     end
 
     item_ids.uniq
+  end
+
+  # Count active items in a descendant tree (for drop section confirmation)
+  def count_active_descendants(descendant)
+    return 0 unless descendant
+
+    count = 0
+    active_item_ids = descendant.extract_active_item_ids
+
+    return 0 if active_item_ids.empty?
+
+    items = Item.where(id: active_item_ids).includes(:descendant)
+
+    items.each do |item|
+      count += 1
+
+      if item.descendant
+        count += count_active_descendants(item.descendant)
+      end
+    end
+
+    count
   end
 
   # Recursively delete an item and all its descendants

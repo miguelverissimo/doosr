@@ -226,7 +226,7 @@ module Views
             data: {
               controller: "item-form",
               action: "submit->item-form#submit turbo:submit-end->item-form#clearForm",
-              turbo: "true"
+              turbo_stream: true
             },
             class: "flex items-center gap-2"
           ) do

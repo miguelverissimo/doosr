@@ -16,22 +16,29 @@ module Views
       def view_template
         # Single sheet_content_area with both mobile and desktop content inside
         div(id: "sheet_content_area") do
-          # Mobile version
+          # Mobile version - header and buttons only
           div(class: "block md:hidden") do
-            render_mobile_content
+            render_mobile_header
+            render_mobile_action_buttons
           end
 
-          # Desktop version
+          # Desktop version - header and buttons only
           div(class: "hidden md:block") do
-            render_desktop_content
+            render_desktop_header
+            render_desktop_action_buttons
+          end
+
+          # Shared form and nested items (no duplicate IDs)
+          div(class: "mt-4 space-y-4") do
+            render_child_item_form
+            render_nested_items
           end
         end
       end
 
       private
 
-      def render_mobile_content
-        # Header - simplified for mobile
+      def render_mobile_header
         div(class: "mb-4") do
           h3(class: "text-lg font-semibold text-left pr-8") { @item.title }
           div(class: "text-xs text-muted-foreground mt-1") do
@@ -44,16 +51,9 @@ module Views
             end
           end
         end
-
-        # Action buttons - mobile layout
-        div(class: "space-y-4") do
-          render_mobile_action_buttons
-          render_child_item_form
-          render_nested_items
-        end
       end
 
-      def render_desktop_content
+      def render_desktop_header
         SheetHeader do
           SheetTitle(class: "text-left") { @item.title }
           SheetDescription(class: "text-left text-xs text-muted-foreground space-y-1") do
@@ -65,12 +65,6 @@ module Views
               end
             end
           end
-        end
-
-        SheetMiddle(class: "py-4 space-y-4") do
-          render_desktop_action_buttons
-          render_child_item_form
-          render_nested_items
         end
       end
 
@@ -140,7 +134,7 @@ module Views
             data: {
               controller: "item-form",
               action: "submit->item-form#submit turbo:submit-end->item-form#clearForm",
-              turbo: "true"
+              turbo_stream: true
             },
             class: "flex items-center gap-2"
           ) do

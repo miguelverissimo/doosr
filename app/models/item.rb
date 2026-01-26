@@ -262,6 +262,68 @@ class Item < ApplicationRecord
     completable? || reusable?
   end
 
+  def can_be_dropped?
+    completable? || reusable? || section?
+  end
+
+  # Drop a section (sections use this instead of set_dropped!)
+  def set_section_dropped!
+    return false unless section?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+
+    if containing_descendant
+      # If already in inactive items, just update state
+      if containing_descendant.inactive_item?(id)
+        update!(state: :dropped, dropped_at: Time.current)
+        return true
+      end
+
+      # If in active items, move to inactive items FIRST, then update state
+      if containing_descendant.active_item?(id)
+        containing_descendant.remove_active_item(id)
+        containing_descendant.add_inactive_item(id)
+        containing_descendant.save!
+        update!(state: :dropped, dropped_at: Time.current)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
+    update!(state: :dropped, dropped_at: Time.current)
+    true
+  end
+
+  # Restore a dropped section back to todo
+  def set_section_todo!
+    return false unless section?
+
+    # Find the descendant this item belongs to
+    containing_descendant = Descendant.containing_item(id)
+
+    if containing_descendant
+      # If already in active items, just update state
+      if containing_descendant.active_item?(id)
+        update!(state: :todo, dropped_at: nil)
+        return true
+      end
+
+      # If in inactive items, move to active items FIRST, then update state
+      if containing_descendant.inactive_item?(id)
+        containing_descendant.remove_inactive_item(id)
+        containing_descendant.add_active_item(id)
+        containing_descendant.save!
+        update!(state: :todo, dropped_at: nil)
+        return true
+      end
+    end
+
+    # No descendant or item not in any array - just update state
+    update!(state: :todo, dropped_at: nil)
+    true
+  end
+
   # Nesting support
   def has_nested_items?
     descendant&.active_items&.any? || descendant&.inactive_items&.any?
@@ -409,9 +471,12 @@ class Item < ApplicationRecord
   end
 
   def section_cannot_have_completion_state
-    # Only sections and trackables cannot have completion states
-    if (section? || trackable?) && !todo?
-      errors.add(:state, "#{item_type} items can only be in 'todo' state")
+    # Sections can be in todo or dropped state (for dropping with children)
+    # Trackables can only be in todo state
+    if section? && !todo? && !dropped?
+      errors.add(:state, "section items can only be in 'todo' or 'dropped' state")
+    elsif trackable? && !todo?
+      errors.add(:state, "trackable items can only be in 'todo' state")
     end
   end
 

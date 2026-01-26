@@ -298,6 +298,268 @@ class ItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
+  # Section creation tests
+
+  test "creating section item sets correct item_type" do
+    day = @user.days.create!(date: Date.today, state: :open)
+
+    post items_path, params: {
+      item: { title: "My Section", item_type: "section" },
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    created_item = @user.items.find_by(title: "My Section")
+    assert_not_nil created_item
+    assert created_item.section?, "Item should be a section"
+    assert_equal "todo", created_item.state
+  end
+
+  test "creating section item renders SectionItem component" do
+    day = @user.days.create!(date: Date.today, state: :open)
+
+    post items_path, params: {
+      item: { title: "My Section", item_type: "section" },
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+    # SectionItem has bg-muted class and hash icon
+    assert_match /bg-muted/, response.body
+  end
+
+  # Drop section tests
+
+  test "drop_section drops section without children" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Empty Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    patch drop_section_item_path(section), params: {
+      day_id: day.id,
+      confirmed: "true"
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    section.reload
+    assert section.dropped?, "Section should be dropped"
+    assert_not_nil section.dropped_at
+  end
+
+  test "drop_section with children shows confirmation when not confirmed" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Section with Children", item_type: :section, state: :todo)
+    child_item = @user.items.create!(title: "Child Item", item_type: :completable, state: :todo)
+
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add child to section
+    section.descendant.add_active_item(child_item.id)
+    section.descendant.save!
+
+    # Request without confirmation
+    patch drop_section_item_path(section), params: {
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+    # Should show confirmation dialog
+    assert_match /1 active item/, response.body
+    assert_match /will also be dropped/, response.body
+
+    # Section should NOT be dropped yet
+    section.reload
+    assert section.todo?, "Section should still be in todo state"
+  end
+
+  test "drop_section with children drops all when confirmed" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Section with Children", item_type: :section, state: :todo)
+    child_item1 = @user.items.create!(title: "Child Item 1", item_type: :completable, state: :todo)
+    child_item2 = @user.items.create!(title: "Child Item 2", item_type: :completable, state: :todo)
+
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add children to section
+    section.descendant.add_active_item(child_item1.id)
+    section.descendant.add_active_item(child_item2.id)
+    section.descendant.save!
+
+    # Request with confirmation
+    patch drop_section_item_path(section), params: {
+      day_id: day.id,
+      confirmed: "true"
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    # All items should be dropped
+    section.reload
+    child_item1.reload
+    child_item2.reload
+
+    assert section.dropped?, "Section should be dropped"
+    assert child_item1.dropped?, "Child item 1 should be dropped"
+    assert child_item2.dropped?, "Child item 2 should be dropped"
+  end
+
+  test "drop_section with nested children drops recursively" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Parent Section", item_type: :section, state: :todo)
+    nested_section = @user.items.create!(title: "Nested Section", item_type: :section, state: :todo)
+    grandchild = @user.items.create!(title: "Grandchild Item", item_type: :completable, state: :todo)
+
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add nested section to parent section
+    section.descendant.add_active_item(nested_section.id)
+    section.descendant.save!
+
+    # Add grandchild to nested section
+    nested_section.descendant.add_active_item(grandchild.id)
+    nested_section.descendant.save!
+
+    # Request with confirmation
+    patch drop_section_item_path(section), params: {
+      day_id: day.id,
+      confirmed: "true"
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    # All items should be dropped recursively
+    section.reload
+    nested_section.reload
+    grandchild.reload
+
+    assert section.dropped?, "Parent section should be dropped"
+    assert nested_section.dropped?, "Nested section should be dropped"
+    assert grandchild.dropped?, "Grandchild item should be dropped"
+  end
+
+  test "dropped section has muted appearance" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Dropped Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Drop the section
+    section.set_section_dropped!
+
+    # Reload day view
+    get day_path(date: day.date.to_s)
+
+    assert_response :success
+    # Dropped section should have opacity-50 class
+    assert_match /opacity-50/, response.body
+  end
+
+  # Nested items tests
+
+  test "adding item to section updates drawer" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "My Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add nested item from drawer
+    post items_path, params: {
+      item: { title: "Nested Item", item_type: "completable" },
+      parent_item_id: section.id,
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    # Verify item was created and added to section
+    nested_item = @user.items.find_by(title: "Nested Item")
+    assert_not_nil nested_item
+
+    # Reload section's descendant to get fresh data
+    section.descendant.reload
+    assert section.descendant.active_item?(nested_item.id), "Item should be in section's active items"
+
+    # Response should append to nested_items container
+    assert_match /turbo-stream.*action="append".*target="nested_items_#{section.id}"/, response.body
+  end
+
+  test "adding item to section updates day tree" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "My Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add nested item from drawer
+    post items_path, params: {
+      item: { title: "Nested Item", item_type: "completable" },
+      parent_item_id: section.id,
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    # Response should replace item_with_children in day tree
+    assert_match /turbo-stream.*action="replace".*target="item_with_children_#{section.id}"/, response.body
+  end
+
+  test "adding first item to section shows nested items title" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "Empty Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Ensure section has no children
+    assert_equal 0, section.descendant.active_items.count
+
+    # Add first nested item
+    post items_path, params: {
+      item: { title: "First Nested Item", item_type: "completable" },
+      parent_item_id: section.id,
+      day_id: day.id
+    }, as: :turbo_stream
+
+    assert_response :success
+
+    # Response should update nested_items_title to show "Nested items" heading
+    assert_match /turbo-stream.*action="update".*target="nested_items_title_#{section.id}"/, response.body
+    assert_match /Nested items/, response.body
+  end
+
+  test "adding multiple items to section maintains order" do
+    day = @user.days.create!(date: Date.today, state: :open)
+    section = @user.items.create!(title: "My Section", item_type: :section, state: :todo)
+    day.descendant.add_active_item(section.id)
+    day.descendant.save!
+
+    # Add first nested item
+    post items_path, params: {
+      item: { title: "First Item", item_type: "completable" },
+      parent_item_id: section.id,
+      day_id: day.id
+    }, as: :turbo_stream
+
+    # Add second nested item
+    post items_path, params: {
+      item: { title: "Second Item", item_type: "completable" },
+      parent_item_id: section.id,
+      day_id: day.id
+    }, as: :turbo_stream
+
+    section.descendant.reload
+    active_item_ids = section.descendant.extract_active_item_ids
+    items = Item.where(id: active_item_ids).index_by(&:id)
+
+    # Items should be in order added
+    assert_equal "First Item", items[active_item_ids[0]].title
+    assert_equal "Second Item", items[active_item_ids[1]].title
+  end
+
   private
 
   def sign_out

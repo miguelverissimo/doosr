@@ -173,8 +173,31 @@ module Views
             icon: :edit,
             href: edit_form_item_path(@item, day_id: @day&.id),
             params: { data: { turbo_stream: true } },
-            disabled: @day_is_closed
+            disabled: @item.dropped? || @day_is_closed
           )
+
+          # Drop/Undrop
+          if @item.dropped?
+            render_icon_button(
+              icon: :rotate_ccw,
+              action: toggle_state_item_path(@item),
+              method: "patch",
+              params: { "state" => "todo", "day_id" => @day&.id },
+              variant: :outline,
+              disabled: @day_is_closed,
+              loading_message: "Restoring section..."
+            )
+          else
+            render_icon_button(
+              icon: :x,
+              action: drop_section_item_path(@item),
+              method: "patch",
+              params: { "day_id" => @day&.id },
+              variant: :destructive,
+              disabled: @day_is_closed,
+              loading_message: "Dropping section..."
+            )
+          end
         end
       end
 
@@ -265,7 +288,7 @@ module Views
             end
 
             # :primary = filled purple, :destructive = filled red, :outline = border only
-            Button(variant: variant, size: :lg, icon: true) do
+            Button(type: :submit, variant: variant, size: :lg, icon: true) do
               icon_class = ::Components::Icon::Base.for(icon)
               render icon_class.new(size: "20")
             end
