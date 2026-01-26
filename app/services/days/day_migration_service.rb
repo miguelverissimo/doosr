@@ -20,14 +20,6 @@ module Days
 
     def call
       ActiveRecord::Base.transaction do
-        # CRITICAL: Check if source day has already been migrated from
-        if source_day.imported_to_day_id.present?
-          existing_target = Day.find_by(id: source_day.imported_to_day_id)
-          if existing_target
-            raise StandardError, "This day has already been migrated to #{existing_target.date.strftime('%Y-%m-%d')}. Cannot migrate again."
-          end
-        end
-
         # Ensure target day exists with permanent sections
         target_day = ensure_target_day_exists
 

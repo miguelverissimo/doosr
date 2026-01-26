@@ -810,7 +810,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     assert_not_nil target_day.imported_at
   end
 
-  test "CRITICAL: prevents duplicate migration from same source day" do
+  test "allows multiple migrations from same source day" do
     item = @user.items.create!(title: "Task", state: :todo)
     @source_day.descendant.add_active_item(item.id)
     @source_day.descendant.save!
@@ -825,7 +825,7 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
     result1 = service1.call
     assert result1[:success]
 
-    # Attempt second migration from same source day
+    # Second migration from same source day should also succeed
     another_date = @target_date + 1.day
     service2 = Days::DayMigrationService.new(
       user: @user,
@@ -836,9 +836,8 @@ class Days::DayMigrationServiceTest < ActiveSupport::TestCase
 
     result2 = service2.call
 
-    # Should fail
-    assert_not result2[:success]
-    assert_includes result2[:error], "already been migrated"
+    # Should succeed - multiple migrations from same source are allowed
+    assert result2[:success]
   end
 
   test "CRITICAL: migrates to exact target date specified" do
