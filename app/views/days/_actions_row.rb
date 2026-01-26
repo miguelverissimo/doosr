@@ -1,8 +1,9 @@
 module Views
   module Days
     class ActionsRow < ::Views::Base
-      def initialize(day:)
+      def initialize(day:, date:)
         @day = day
+        @date = date
       end
 
       def view_template

@@ -49,12 +49,12 @@ module Views
 
           # Mobile actions row
           div(class: "block md:hidden") do
-            render ::Views::Days::Mobile::ActionsRow.new(day: @day)
+            render ::Views::Days::Mobile::ActionsRow.new(day: @day, date: @date)
           end
 
           # Desktop actions row
           div(class: "hidden md:block") do
-            render ::Views::Days::ActionsRow.new(day: @day)
+            render ::Views::Days::ActionsRow.new(day: @day, date: @date)
           end
 
           # Root target for moving items (hidden by default) - BELOW input, ABOVE items
