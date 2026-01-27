@@ -3,7 +3,6 @@
 class DayPaymentRemindersController < ApplicationController
   before_action :authenticate_user!
   before_action :set_day_payment_reminder, only: [ :actions_sheet, :move, :destroy, :mark_paid ]
-  layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def actions_sheet
     @day = current_user.days.find(params[:day_id]) if params[:day_id].present?
@@ -32,8 +31,8 @@ class DayPaymentRemindersController < ApplicationController
             list: @list,
             reminder_index: @reminder_index,
             total_reminders: @total_reminders
-          ))
-        )
+          ), layout: false)
+        ), layout: false
       end
     end
   end
@@ -104,7 +103,7 @@ class DayPaymentRemindersController < ApplicationController
           return head :unprocessable_entity
         end
 
-        render turbo_stream: turbo_stream.update("items_list", rendered_items)
+        render turbo_stream: turbo_stream.update("items_list", rendered_items), layout: false
       end
     end
   end
@@ -148,7 +147,7 @@ class DayPaymentRemindersController < ApplicationController
           turbo_stream.remove("day_payment_reminder_actions_sheet"),
           turbo_stream.update("items_list", rendered_items),
           turbo_stream.append("body", "<script>window.toast && window.toast('Payment marked as paid', { type: 'success' });</script>")
-        ]
+        ], layout: false
       end
       format.html { redirect_to @day ? day_path(@day) : list_path(@list) }
     end
@@ -173,7 +172,7 @@ class DayPaymentRemindersController < ApplicationController
           turbo_stream.remove("day_payment_reminder_actions_sheet"),
           turbo_stream.remove("day_payment_reminder_#{@day_payment_reminder.id}"),
           turbo_stream.append("body", "<script>window.toast && window.toast('Payment reminder removed', { type: 'success' });</script>")
-        ]
+        ], layout: false
       end
     end
   end
