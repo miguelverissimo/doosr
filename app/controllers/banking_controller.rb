@@ -286,8 +286,8 @@ class BankingController < ApplicationController
   end
 
   def index
-    @start_date = parse_date_param(params[:start_date], nil)
-    @end_date = parse_date_param(params[:end_date], nil)
+    @start_date = parse_date_param(params[:start_date], (Date.current - 3.months).beginning_of_month)
+    @end_date = parse_date_param(params[:end_date], Date.current.end_of_month)
     @page = params[:page] || 1
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : DEFAULT_SORT_COLUMN
     @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : DEFAULT_SORT_DIRECTION

@@ -252,7 +252,7 @@ module Views
       end
 
       def non_default_date_range?
-        default_start = Date.current.beginning_of_month
+        default_start = (Date.current - 3.months).beginning_of_month
         default_end = Date.current.end_of_month
         @start_date != default_start || @end_date != default_end
       end
