@@ -12,7 +12,9 @@ module Views
         max_amount: nil,
         search: nil,
         sort_column: "date",
-        sort_direction: "desc"
+        sort_direction: "desc",
+        bank_account_id: nil,
+        transfer_filter: "exclude"
       )
         @user = user
         @start_date = start_date
@@ -23,7 +25,10 @@ module Views
         @search = search
         @sort_column = sort_column
         @sort_direction = sort_direction
+        @bank_account_id = bank_account_id
+        @transfer_filter = transfer_filter
         @categories = user.categories.top_level.with_subcategories.order(:name)
+        @bank_accounts = user.bank_accounts.ordered
       end
 
       def view_template
@@ -46,6 +51,9 @@ module Views
             input(type: :hidden, name: "sort", value: @sort_column)
             input(type: :hidden, name: "direction", value: @sort_direction)
 
+            div(class: "mb-2") do
+              span(class: "text-sm font-medium text-muted-foreground") { "Filters" }
+            end
             render_filter_fields
             render_action_buttons
           end
@@ -55,11 +63,15 @@ module Views
       private
 
       def render_filter_fields
-        div(class: "grid grid-cols-2 md:grid-cols-6 gap-4") do
+        div(class: "grid grid-cols-2 md:grid-cols-4 gap-4") do
           render_search_field
           render_date_from_field
           render_date_to_field
           render_category_field
+        end
+        div(class: "grid grid-cols-2 md:grid-cols-4 gap-4 mt-4") do
+          render_bank_account_field
+          render_transfer_filter_field
           render_min_amount_field
           render_max_amount_field
         end
@@ -145,6 +157,39 @@ module Views
         end
       end
 
+      def render_bank_account_field
+        div do
+          label(class: "text-sm font-medium mb-1 block") { "Account" }
+          select(
+            name: "bank_account_id",
+            class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          ) do
+            option(value: "") { "All Accounts" }
+            option(value: "none", selected: @bank_account_id == "none") { "Unassigned" }
+            @bank_accounts.each do |account|
+              option(
+                value: account.id,
+                selected: @bank_account_id.to_s == account.id.to_s
+              ) { account.name }
+            end
+          end
+        end
+      end
+
+      def render_transfer_filter_field
+        div do
+          label(class: "text-sm font-medium mb-1 block") { "Transfers" }
+          select(
+            name: "transfer_filter",
+            class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          ) do
+            option(value: "exclude", selected: @transfer_filter == "exclude") { "Exclude Transfers" }
+            option(value: "all", selected: @transfer_filter == "all") { "Include All" }
+            option(value: "only", selected: @transfer_filter == "only") { "Transfers Only" }
+          end
+        end
+      end
+
       def render_min_amount_field
         div do
           label(class: "text-sm font-medium mb-1 block") { "Min Amount" }
@@ -173,9 +218,9 @@ module Views
 
       def render_action_buttons
         div(class: "flex items-center gap-2") do
-          render_active_filter_badge
-          Button(variant: :primary, type: :submit) { "Apply Filters" }
+          Button(variant: :primary, size: :sm, type: :submit) { "Apply Filters" }
           render_clear_filters_button if any_filters_active?
+          render_active_filter_badge
         end
       end
 
@@ -189,7 +234,7 @@ module Views
       end
 
       def render_clear_filters_button
-        a(
+        render ::Components::ColoredLink.new(
           href: view_context.banking_index_path(
             sort: @sort_column,
             direction: @sort_direction
@@ -197,12 +242,13 @@ module Views
           data: {
             action: "click->transactions-pagination#showSpinner"
           },
-          class: "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-9 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+          variant: :outline,
+          size: :sm,
         ) { "Clear Filters" }
       end
 
       def any_filters_active?
-        @category_id.present? || @min_amount.present? || @max_amount.present? || @search.present? || non_default_date_range?
+        @category_id.present? || @min_amount.present? || @max_amount.present? || @search.present? || non_default_date_range? || @bank_account_id.present? || @transfer_filter != "exclude"
       end
 
       def non_default_date_range?
@@ -218,6 +264,8 @@ module Views
         count += 1 if @min_amount.present?
         count += 1 if @max_amount.present?
         count += 1 if @search.present?
+        count += 1 if @bank_account_id.present?
+        count += 1 if @transfer_filter != "exclude"
         count
       end
 
@@ -228,6 +276,76 @@ module Views
           end
           render_uncategorized_filter_button
         end
+        render_account_quick_filters if @bank_accounts.any?
+      end
+
+      def render_account_quick_filters
+        div(class: "flex flex-wrap gap-2 mb-4") do
+          render_all_accounts_button
+          @bank_accounts.each do |account|
+            render_account_filter_button(account)
+          end
+        end
+      end
+
+      def render_all_accounts_button
+        is_active = @bank_account_id.blank?
+        variant = is_active ? :orange : :outline
+
+        url_params = base_filter_params.merge(bank_account_id: nil)
+
+        render ::Components::ColoredLink.new(
+          href: view_context.banking_index_path(url_params),
+          variant: variant,
+          size: :sm,
+          data: {
+            action: "click->transactions-pagination#showSpinner"
+          }
+        ) { "All Accounts" }
+      end
+
+      def render_account_filter_button(account)
+        is_active = @bank_account_id.to_s == account.id.to_s
+
+        url_params = base_filter_params.merge(
+          bank_account_id: is_active ? nil : account.id
+        )
+
+        button_class = if is_active
+          "inline-flex items-center gap-1.5 h-8 px-3 py-1 rounded-md text-sm font-medium ring-2 ring-primary ring-offset-2"
+        else
+          "inline-flex items-center gap-1.5 h-8 px-3 py-1 rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+        end
+
+        a(
+          href: view_context.banking_index_path(url_params),
+          class: button_class,
+          data: {
+            action: "click->transactions-pagination#showSpinner"
+          }
+        ) do
+          div(
+            class: "inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold",
+            style: "background-color: #{account.bg_color}; color: #{account.fg_color};"
+          ) do
+            plain account.display_letter
+          end
+          span { account.name }
+        end
+      end
+
+      def base_filter_params
+        {
+          sort: @sort_column,
+          direction: @sort_direction,
+          category_id: @category_id,
+          min_amount: @min_amount,
+          max_amount: @max_amount,
+          search: @search,
+          transfer_filter: @transfer_filter,
+          start_date: @start_date&.to_s,
+          end_date: @end_date&.to_s
+        }.compact_blank
       end
 
       def quick_date_options
@@ -274,11 +392,7 @@ module Views
       def render_quick_date_button(option)
         is_active = quick_filter_active?(option)
 
-        button_class = if is_active
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-8 px-3 py-1 bg-primary text-primary-foreground"
-        else
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-8 px-3 py-1 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-        end
+        variant = is_active ? :orange : :outline
 
         url_params = {
           sort: @sort_column,
@@ -286,7 +400,9 @@ module Views
           category_id: @category_id,
           min_amount: @min_amount,
           max_amount: @max_amount,
-          search: @search
+          search: @search,
+          bank_account_id: @bank_account_id,
+          transfer_filter: @transfer_filter
         }.compact_blank
 
         if option[:start_date]
@@ -297,9 +413,10 @@ module Views
           url_params[:end_date] = "all"
         end
 
-        a(
+        render ::Components::ColoredLink.new(
           href: view_context.banking_index_path(url_params),
-          class: button_class,
+          size: :sm,
+          variant: variant,
           data: {
             action: "click->transactions-pagination#showSpinner"
           }
@@ -317,18 +434,16 @@ module Views
       def render_uncategorized_filter_button
         is_active = @category_id == "uncategorized"
 
-        button_class = if is_active
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-8 px-3 py-1 bg-primary text-primary-foreground"
-        else
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-8 px-3 py-1 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-        end
+        variant = is_active ? :orange : :outline
 
         url_params = {
           sort: @sort_column,
           direction: @sort_direction,
           min_amount: @min_amount,
           max_amount: @max_amount,
-          search: @search
+          search: @search,
+          bank_account_id: @bank_account_id,
+          transfer_filter: @transfer_filter
         }.compact_blank
 
         url_params[:start_date] = @start_date.to_s if @start_date.present?
@@ -340,9 +455,10 @@ module Views
           url_params[:category_id] = "uncategorized"
         end
 
-        a(
+        render ::Components::ColoredLink.new(
           href: view_context.banking_index_path(url_params),
-          class: button_class,
+          variant: variant,
+          size: :sm,
           data: {
             action: "click->transactions-pagination#showSpinner"
           }

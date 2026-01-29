@@ -4,13 +4,15 @@ module Banking
   class ImportService
     Result = Struct.new(:success, :total, :imported, :skipped, :errors, keyword_init: true)
 
-    def initialize(user, csv_content)
+    def initialize(user, csv_content, bank_account: nil)
       @user = user
       @csv_content = csv_content
+      @bank_account = bank_account
       @imported = 0
       @skipped = 0
       @errors = []
       @patterns = user.category_patterns.by_length_desc.includes(:category)
+      @transfer_patterns = user.transfer_patterns.by_length_desc
       @seen_hashes = Set.new
     end
 
@@ -68,20 +70,23 @@ module Banking
       row_hash = generate_row_hash(date, description, value)
 
       # Skip if already seen in this batch or exists in database
-      if @seen_hashes.include?(row_hash) || @user.bank_transactions.exists?(row_hash: row_hash)
+      if @seen_hashes.include?(row_hash) || duplicate_exists?(row_hash)
         @skipped += 1
         return
       end
 
       @seen_hashes.add(row_hash)
       matching_pattern = find_matching_pattern(description)
+      is_transfer = find_matching_transfer_pattern(description).present?
 
       transaction = @user.bank_transactions.create!(
         date: date,
         description: description,
         value: value,
         row_hash: row_hash,
-        category_pattern: matching_pattern
+        category_pattern: matching_pattern,
+        bank_account: @bank_account,
+        is_transfer: is_transfer
       )
 
       # Create transaction_categorization if pattern matched a category
@@ -158,6 +163,19 @@ module Banking
     def find_matching_pattern(description)
       # Patterns are pre-ordered by length descending, so first match wins
       @patterns.find { |pattern| pattern.matches?(description) }
+    end
+
+    def find_matching_transfer_pattern(description)
+      # Transfer patterns are pre-ordered by length descending, so first match wins
+      @transfer_patterns.find { |pattern| pattern.matches?(description) }
+    end
+
+    def duplicate_exists?(row_hash)
+      if @bank_account
+        @bank_account.bank_transactions.exists?(row_hash: row_hash)
+      else
+        @user.bank_transactions.where(bank_account_id: nil).exists?(row_hash: row_hash)
+      end
     end
   end
 end

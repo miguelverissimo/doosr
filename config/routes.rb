@@ -320,10 +320,13 @@ Rails.application.routes.draw do
       get :edit_categories
       patch :update_categories
       delete :destroy_transaction
+      patch :toggle_transfer
     end
   end
 
   namespace :banking do
+    resources :bank_accounts, only: [ :index, :new, :create, :edit, :update, :destroy ]
+    resources :transfer_patterns, only: [ :index, :new, :create, :edit, :update, :destroy ]
     resources :categories, only: [ :index, :new, :create, :edit, :update, :destroy ] do
       collection do
         get :list

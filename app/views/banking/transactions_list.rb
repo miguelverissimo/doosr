@@ -12,7 +12,7 @@ module Views
         "value" => "Value"
       }.freeze
 
-      def initialize(user:, transactions:, page: 1, start_date: nil, end_date: nil, sort_column: "date", sort_direction: "desc", category_id: nil, min_amount: nil, max_amount: nil, search: nil, categories: [], **attrs)
+      def initialize(user:, transactions:, page: 1, start_date: nil, end_date: nil, sort_column: "date", sort_direction: "desc", category_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil, transfer_filter: "exclude", categories: [], **attrs)
         @user = user
         @transactions = transactions
         @page = page
@@ -24,6 +24,8 @@ module Views
         @min_amount = min_amount
         @max_amount = max_amount
         @search = search
+        @bank_account_id = bank_account_id
+        @transfer_filter = transfer_filter
         @categories = categories.presence || user.categories.top_level.with_subcategories.order(:name)
         super(**attrs)
       end
@@ -53,12 +55,12 @@ module Views
       def render_table
         Table do
           TableHeader do
-            TableRow do
-              render_sortable_header("date", class: "w-32")
-              render_sortable_header("description")
-              render_sortable_header("category", class: "w-40")
-              render_sortable_header("value", class: "text-right w-32")
-              TableHead(class: "w-16") { "" }
+            TableRow(class: "text-xs") do
+              TableHead(class: "w-6 px-1") { "" }
+              render_sortable_header("date", class: "w-20 px-2")
+              render_sortable_header("description", class: "px-2")
+              render_sortable_header("category", class: "px-2")
+              render_sortable_header("value", class: "text-right px-2")
             end
           end
           TableBody(id: "transactions_table_body") do
@@ -107,6 +109,8 @@ module Views
         params[:min_amount] = @min_amount if @min_amount.present?
         params[:max_amount] = @max_amount if @max_amount.present?
         params[:search] = @search if @search.present?
+        params[:bank_account_id] = @bank_account_id if @bank_account_id.present?
+        params[:transfer_filter] = @transfer_filter if @transfer_filter.present?
         view_context.banking_index_path(params)
       end
 
@@ -227,6 +231,8 @@ module Views
         params[:min_amount] = @min_amount if @min_amount.present?
         params[:max_amount] = @max_amount if @max_amount.present?
         params[:search] = @search if @search.present?
+        params[:bank_account_id] = @bank_account_id if @bank_account_id.present?
+        params[:transfer_filter] = @transfer_filter if @transfer_filter.present?
         view_context.banking_index_path(params)
       end
     end

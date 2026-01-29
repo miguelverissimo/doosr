@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,6 +79,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
     t.index ["user_id"], name: "index_addresses_on_user_id"
   end
 
+  create_table "bank_accounts", force: :cascade do |t|
+    t.string "account_type", default: "checking"
+    t.boolean "active", default: true, null: false
+    t.string "bg_color", default: "#3B82F6"
+    t.datetime "created_at", null: false
+    t.string "fg_color", default: "#FFFFFF"
+    t.string "letter", limit: 2
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_bank_accounts_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_bank_accounts_on_user_id"
+  end
+
   create_table "bank_infos", force: :cascade do |t|
     t.string "account_number"
     t.datetime "created_at", null: false
@@ -93,19 +107,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
   end
 
   create_table "bank_transactions", force: :cascade do |t|
+    t.bigint "bank_account_id"
     t.bigint "category_pattern_id"
     t.datetime "created_at", null: false
     t.date "date", null: false
     t.string "description", null: false
+    t.boolean "is_transfer", default: false, null: false
+    t.bigint "linked_transfer_id"
     t.bigint "recurring_group_id"
     t.string "row_hash", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.decimal "value", precision: 12, scale: 2, null: false
+    t.index ["bank_account_id", "row_hash"], name: "idx_bank_transactions_on_account_row_hash", unique: true, where: "(bank_account_id IS NOT NULL)"
+    t.index ["bank_account_id"], name: "index_bank_transactions_on_bank_account_id"
     t.index ["category_pattern_id"], name: "index_bank_transactions_on_category_pattern_id"
     t.index ["date"], name: "index_bank_transactions_on_date"
+    t.index ["linked_transfer_id"], name: "index_bank_transactions_on_linked_transfer_id"
     t.index ["recurring_group_id"], name: "index_bank_transactions_on_recurring_group_id"
-    t.index ["user_id", "row_hash"], name: "index_bank_transactions_on_user_id_and_row_hash", unique: true
+    t.index ["user_id", "row_hash"], name: "idx_bank_transactions_on_user_row_hash_legacy", unique: true, where: "(bank_account_id IS NULL)"
     t.index ["user_id"], name: "index_bank_transactions_on_user_id"
   end
 
@@ -750,6 +770,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
     t.index ["user_id"], name: "index_transaction_categorizations_on_user_id"
   end
 
+  create_table "transfer_patterns", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.string "pattern", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "pattern"], name: "index_transfer_patterns_on_user_id_and_pattern", unique: true
+    t.index ["user_id"], name: "index_transfer_patterns_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "access_confirmed", default: false, null: false
     t.datetime "created_at", null: false
@@ -779,7 +809,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addresses", "users"
+  add_foreign_key "bank_accounts", "users"
   add_foreign_key "bank_infos", "users"
+  add_foreign_key "bank_transactions", "bank_accounts"
+  add_foreign_key "bank_transactions", "bank_transactions", column: "linked_transfer_id"
   add_foreign_key "bank_transactions", "category_patterns"
   add_foreign_key "bank_transactions", "recurring_groups"
   add_foreign_key "bank_transactions", "users"
@@ -862,4 +895,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_065727) do
   add_foreign_key "transaction_categorizations", "bank_transactions"
   add_foreign_key "transaction_categorizations", "categories"
   add_foreign_key "transaction_categorizations", "users"
+  add_foreign_key "transfer_patterns", "users"
 end

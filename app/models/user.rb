@@ -25,8 +25,10 @@ class User < ApplicationRecord
 
   # Banking
   has_many :bank_transactions, dependent: :destroy
+  has_many :bank_accounts, dependent: :destroy
   has_many :categories, dependent: :destroy
   has_many :category_patterns, dependent: :destroy
+  has_many :transfer_patterns, dependent: :destroy
   has_many :recurring_groups, dependent: :destroy
   has_many :budget_goals, dependent: :destroy
   has_many :planned_expenses, dependent: :destroy

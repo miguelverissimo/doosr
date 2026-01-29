@@ -35,7 +35,6 @@ module Views
           categorizations.each do |tc|
             render_categorization_badge(tc)
           end
-          render_edit_button
         else
           render_uncategorized_badge
         end
@@ -46,8 +45,9 @@ module Views
         has_amount = tc.amount.present?
 
         span(
-          class: "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset",
-          style: "background-color: #{category.effective_color}20; color: #{category.effective_color}; ring-color: #{category.effective_color}40;"
+          class: "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset cursor-pointer hover:opacity-80 transition-opacity",
+          style: "background-color: #{category.effective_color}20; color: #{category.effective_color}; ring-color: #{category.effective_color}40;",
+          data: { action: "click->category-selector#openEditDialog" }
         ) do
           plain category.name
           if has_amount
@@ -61,19 +61,6 @@ module Views
           class: "text-muted-foreground text-xs cursor-pointer hover:opacity-80 transition-opacity",
           data: { category_selector_target: "badge" }
         ) { "Uncategorized" }
-      end
-
-      def render_edit_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center h-6 w-6 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-          title: "Edit categories",
-          data: {
-            action: "click->category-selector#openEditDialog"
-          }
-        ) do
-          render ::Components::Icon::Edit.new(size: "12")
-        end
       end
 
       def render_category_dropdown

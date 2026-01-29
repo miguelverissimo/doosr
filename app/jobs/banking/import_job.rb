@@ -4,13 +4,14 @@ module Banking
   class ImportJob < ApplicationJob
     queue_as :default
 
-    def perform(user_id, csv_content)
+    def perform(user_id, csv_content, bank_account_id: nil)
       user = User.find(user_id)
+      bank_account = bank_account_id.present? ? user.bank_accounts.find_by(id: bank_account_id) : nil
 
-      puts "[ImportJob] Starting import for user #{user_id}, CSV size: #{csv_content.bytesize} bytes"
-      Rails.logger.info "Banking::ImportJob: Starting import for user #{user_id}"
+      puts "[ImportJob] Starting import for user #{user_id}, CSV size: #{csv_content.bytesize} bytes, account: #{bank_account&.name || 'none'}"
+      Rails.logger.info "Banking::ImportJob: Starting import for user #{user_id}, account: #{bank_account&.name || 'none'}"
 
-      result = Banking::ImportService.new(user, csv_content).call
+      result = Banking::ImportService.new(user, csv_content, bank_account: bank_account).call
 
       if result.success
         puts "[ImportJob] Completed - Total: #{result.total}, Imported: #{result.imported}, Skipped: #{result.skipped}"

@@ -3,6 +3,10 @@
 module Views
   module Banking
     class CsvImportDialog < ::Views::Base
+      def initialize(bank_accounts: [])
+        @bank_accounts = bank_accounts
+      end
+
       def view_template
         div(id: "csv_import_dialog") do
           render RubyUI::Dialog.new(open: true) do
@@ -39,6 +43,7 @@ module Views
 
           div(id: "csv_import_form_errors", class: "text-sm text-destructive")
 
+          render_bank_account_field
           render_file_field
           render_format_hint
 
@@ -52,6 +57,26 @@ module Views
           name: "authenticity_token",
           value: view_context.form_authenticity_token
         )
+      end
+
+      def render_bank_account_field
+        render RubyUI::FormField.new do
+          render RubyUI::FormFieldLabel.new(for: "bank_account_id") { "Bank Account (optional)" }
+          select(
+            id: "bank_account_id",
+            name: "bank_account_id",
+            class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          ) do
+            option(value: "") { "No account (unassigned)" }
+            @bank_accounts.each do |account|
+              option(value: account.id) { account.name }
+            end
+          end
+          render RubyUI::FormFieldError.new
+          p(class: "text-xs text-muted-foreground mt-1") do
+            plain "Associate imported transactions with a specific bank account."
+          end
+        end
       end
 
       def render_file_field

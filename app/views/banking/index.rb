@@ -3,7 +3,7 @@
 module Views
   module Banking
     class Index < ::Views::Base
-      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil)
+      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil, transfer_filter: "exclude")
         @user = user
         @start_date = start_date
         @end_date = end_date
@@ -25,6 +25,8 @@ module Views
         @min_amount = min_amount
         @max_amount = max_amount
         @search = search
+        @bank_account_id = bank_account_id
+        @transfer_filter = transfer_filter
       end
 
       def view_template
@@ -132,21 +134,34 @@ module Views
           data: { controller: "transactions-pagination" }
         ) do
           div(class: "p-6") do
-            div(class: "flex items-center justify-between mb-4") do
-              div(class: "flex items-center gap-2") do
-                h3(class: "text-lg font-semibold") { "Transactions" }
-                div(class: "text-sm text-muted-foreground") do
-                  plain "#{@transactions.total_count} total"
-                end
+            div(class: "flex items-center gap-2") do
+              h3(class: "text-lg font-semibold") { "Transactions" }
+              div(class: "text-sm text-muted-foreground") do
+                plain "#{@transactions.total_count} total"
               end
-              div(class: "flex items-center gap-2") do
+            end
+
+            div(class: "mb-2") do
+              span(class: "text-sm font-medium text-muted-foreground") { "Actions" }
+            end
+
+            div(class: "mb-4 space-y-2") do
+              div(class: "flex flex-wrap items-center gap-2") do
                 render_forecast_button
-                render_recurring_button
-                render_manage_patterns_button
-                render_manage_categories_button
                 render_import_csv_button
                 render_add_transaction_button
+                render_recurring_button
               end
+              div(class: "flex flex-wrap items-center gap-2") do
+                render_manage_accounts_button
+                render_transfer_patterns_button
+                render_manage_patterns_button
+                render_manage_categories_button
+              end
+            end
+
+            div(class: "mb-2") do
+              span(class: "text-sm font-medium text-muted-foreground") { "Quick Filters" }
             end
 
             render ::Views::Banking::FilterPanel.new(
@@ -158,7 +173,9 @@ module Views
               max_amount: @max_amount,
               search: @search,
               sort_column: @sort_column,
-              sort_direction: @sort_direction
+              sort_direction: @sort_direction,
+              bank_account_id: @bank_account_id,
+              transfer_filter: @transfer_filter
             )
 
             render_loading_spinner
@@ -206,9 +223,10 @@ module Views
       end
 
       def render_forecast_button
-        a(
+        render ::Components::ColoredLink.new(
           href: banking_forecasts_path,
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+          variant: :primary,
+          size: :sm,
         ) do
           render ::Components::Icon::TrendingUp.new(size: "16", class: "mr-2")
           plain "Forecast"
@@ -216,9 +234,9 @@ module Views
       end
 
       def render_recurring_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+        render ::Components::ColoredButton.new(
+          variant: :outline,
+          size: :sm,
           data: {
             controller: "enable-dialog",
             enable_dialog_url_value: banking_recurring_groups_path,
@@ -230,10 +248,40 @@ module Views
         end
       end
 
+      def render_manage_accounts_button
+        render ::Components::ColoredButton.new(
+          variant: :outline,
+          size: :sm,
+          data: {
+            controller: "enable-dialog",
+            enable_dialog_url_value: banking_bank_accounts_path,
+            action: "click->enable-dialog#openDialog"
+          }
+        ) do
+          render ::Components::Icon::Bank.new(size: "16", class: "mr-2")
+          plain "Accounts"
+        end
+      end
+
+      def render_transfer_patterns_button
+        render ::Components::ColoredButton.new(
+          variant: :outline,
+          size: :sm,
+          data: {
+            controller: "enable-dialog",
+            enable_dialog_url_value: banking_transfer_patterns_path,
+            action: "click->enable-dialog#openDialog"
+          }
+        ) do
+          render ::Components::Icon::ArrowLeftRight.new(size: "16", class: "mr-2")
+          plain "Transfers"
+        end
+      end
+
       def render_manage_patterns_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+        render ::Components::ColoredButton.new(
+          variant: :outline,
+          size: :sm,
           data: {
             controller: "enable-dialog",
             enable_dialog_url_value: banking_category_patterns_path,
@@ -241,14 +289,14 @@ module Views
           }
         ) do
           render ::Components::Icon::Wand.new(size: "16", class: "mr-2")
-          plain "Manage Patterns"
+          plain "Patterns"
         end
       end
 
       def render_manage_categories_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+        render ::Components::ColoredButton.new(
+          variant: :outline,
+          size: :sm,
           data: {
             controller: "enable-dialog",
             enable_dialog_url_value: banking_categories_path,
@@ -256,14 +304,14 @@ module Views
           }
         ) do
           render ::Components::Icon::Tags.new(size: "16", class: "mr-2")
-          plain "Manage Categories"
+          plain "Categories"
         end
       end
 
       def render_import_csv_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+        render ::Components::ColoredButton.new(
+          variant: :sky,
+          size: :sm,
           data: {
             controller: "enable-dialog",
             enable_dialog_url_value: new_csv_import_banking_index_path,
@@ -276,9 +324,9 @@ module Views
       end
 
       def render_add_transaction_button
-        button(
-          type: "button",
-          class: "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2",
+        render ::Components::ColoredButton.new(
+          variant: :primary,
+          size: :sm,
           data: {
             controller: "enable-dialog",
             enable_dialog_url_value: new_transaction_banking_index_path,

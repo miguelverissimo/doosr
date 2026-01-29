@@ -28,11 +28,13 @@ class BankingController < ApplicationController
   end
 
   def new_csv_import
+    @bank_accounts = current_user.bank_accounts.active.ordered
+
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.append(
           "body",
-          render_to_string(::Views::Banking::CsvImportDialog.new, layout: false)
+          render_to_string(::Views::Banking::CsvImportDialog.new(bank_accounts: @bank_accounts), layout: false)
         )
       end
     end
@@ -54,12 +56,30 @@ class BankingController < ApplicationController
     end
 
     csv_content = csv_file.read
+    bank_account_id = params[:bank_account_id].presence
 
-    Banking::ImportJob.perform_later(current_user.id, csv_content)
+    Banking::ImportJob.perform_later(current_user.id, csv_content, bank_account_id: bank_account_id)
 
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: turbo_stream.remove("csv_import_dialog")
+      end
+    end
+  end
+
+  def toggle_transfer
+    @transaction = current_user.bank_transactions.find(params[:id])
+    @transaction.update!(is_transfer: !@transaction.is_transfer)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "transaction_#{@transaction.id}",
+          render_to_string(::Views::Banking::TransactionRow.new(
+            transaction: @transaction.reload,
+            categories: current_user.categories.top_level.with_subcategories.order(:name)
+          ), layout: false)
+        )
       end
     end
   end
@@ -276,8 +296,10 @@ class BankingController < ApplicationController
     @min_amount = params[:min_amount]
     @max_amount = params[:max_amount]
     @search = params[:search]
+    @bank_account_id = params[:bank_account_id]
+    @transfer_filter = params[:transfer_filter] || "exclude"
 
-    base_transactions = current_user.bank_transactions.includes(:category_pattern, transaction_categorizations: :category)
+    base_transactions = current_user.bank_transactions.includes(:category_pattern, :bank_account, transaction_categorizations: :category)
 
     if @start_date && @end_date
       base_transactions = base_transactions.where(date: @start_date..@end_date)
@@ -289,8 +311,10 @@ class BankingController < ApplicationController
 
     base_transactions = apply_filters(base_transactions)
 
-    @total_income = base_transactions.where("value > 0").sum(:value)
-    @total_expenses = base_transactions.where("value < 0").sum(:value).abs
+    # Calculate totals excluding transfers for accurate income/expense reporting
+    non_transfer_transactions = base_transactions.non_transfers
+    @total_income = non_transfer_transactions.where("value > 0").sum(:value)
+    @total_expenses = non_transfer_transactions.where("value < 0").sum(:value).abs
     @net_balance = @total_income - @total_expenses
 
     previous_period_stats = compute_previous_period_stats
@@ -320,7 +344,9 @@ class BankingController < ApplicationController
             category_id: @category_id,
             min_amount: @min_amount,
             max_amount: @max_amount,
-            search: @search
+            search: @search,
+            bank_account_id: @bank_account_id,
+            transfer_filter: @transfer_filter
           ), layout: false)
         )
       end
@@ -346,7 +372,9 @@ class BankingController < ApplicationController
           breakdown_parent_id: @breakdown_parent_id,
           min_amount: @min_amount,
           max_amount: @max_amount,
-          search: @search
+          search: @search,
+          bank_account_id: @bank_account_id,
+          transfer_filter: @transfer_filter
         )
       end
     end
@@ -358,6 +386,8 @@ class BankingController < ApplicationController
     transactions = apply_category_filter(transactions)
     transactions = apply_amount_filters(transactions)
     transactions = apply_search_filter(transactions)
+    transactions = apply_bank_account_filter(transactions)
+    transactions = apply_transfer_filter(transactions)
     transactions
   end
 
@@ -404,6 +434,27 @@ class BankingController < ApplicationController
     return transactions if @search.blank?
 
     transactions.where("LOWER(description) LIKE ?", "%#{@search.downcase}%")
+  end
+
+  def apply_bank_account_filter(transactions)
+    return transactions if @bank_account_id.blank?
+
+    if @bank_account_id == "none"
+      transactions.where(bank_account_id: nil)
+    else
+      transactions.where(bank_account_id: @bank_account_id)
+    end
+  end
+
+  def apply_transfer_filter(transactions)
+    case @transfer_filter
+    when "exclude"
+      transactions.non_transfers
+    when "only"
+      transactions.transfers
+    else
+      transactions
+    end
   end
 
   def apply_sorting(transactions)
