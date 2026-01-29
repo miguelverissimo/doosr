@@ -39,12 +39,20 @@ class NotificationsController < ApplicationController
   def show
     @notification.mark_read!
 
-    day = find_root_day(@notification.item)
+    link_path = @notification.metadata&.dig("link_path")
 
-    if day
-      redirect_to day_path(date: day.date, highlight: @notification.item_id), allow_other_host: false
+    if link_path.present?
+      redirect_to link_path, allow_other_host: false
+    elsif @notification.item
+      day = find_root_day(@notification.item)
+
+      if day
+        redirect_to day_path(date: day.date, highlight: @notification.item_id), allow_other_host: false
+      else
+        redirect_to authenticated_root_path, alert: "Could not find item location"
+      end
     else
-      redirect_to authenticated_root_path, alert: "Could not find item location"
+      redirect_to authenticated_root_path
     end
   end
 

@@ -68,7 +68,7 @@ class Notifications::WebPushDeliveryServiceTest < ActiveSupport::TestCase
 
   test "builds click action URL pointing to the day containing the item" do
     service = Notifications::WebPushDeliveryService.new(@notification)
-    path = service.send(:find_item_day_path)
+    path = service.send(:find_click_path)
 
     assert_equal "/day?date=#{@day.date.iso8601}", path
   end
@@ -90,7 +90,7 @@ class Notifications::WebPushDeliveryServiceTest < ActiveSupport::TestCase
     @day.descendant.save!
 
     service = Notifications::WebPushDeliveryService.new(@notification)
-    path = service.send(:find_item_day_path)
+    path = service.send(:find_click_path)
 
     assert_equal "/day?date=#{@day.date.iso8601}", path
   end
@@ -100,7 +100,7 @@ class Notifications::WebPushDeliveryServiceTest < ActiveSupport::TestCase
     @day.descendant.save!
 
     service = Notifications::WebPushDeliveryService.new(@notification)
-    path = service.send(:find_item_day_path)
+    path = service.send(:find_click_path)
 
     assert_equal "/", path
   end

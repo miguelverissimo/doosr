@@ -21,7 +21,7 @@ module Banking
       process_rows(rows)
 
       Result.new(
-        success: @errors.empty?,
+        success: @imported > 0 || (@errors.empty? && rows.size.zero?),
         total: rows.size,
         imported: @imported,
         skipped: @skipped,
@@ -48,7 +48,13 @@ module Banking
     private
 
     def parse_csv
-      CSV.parse(@csv_content, headers: true, liberal_parsing: true)
+      cleaned = strip_bom(@csv_content)
+      CSV.parse(cleaned, headers: true, liberal_parsing: true, header_converters: ->(h) { h&.strip })
+    end
+
+    def strip_bom(content)
+      bom = "\xEF\xBB\xBF".dup.force_encoding("UTF-8")
+      content.dup.force_encoding("UTF-8").delete_prefix(bom)
     end
 
     def process_rows(rows)
@@ -62,8 +68,13 @@ module Banking
       description = row["Description"]&.strip
       value = parse_value(row["Value"])
 
-      if date.nil? || description.blank? || value.nil?
-        @errors << "Line #{line_number}: Missing or invalid required fields"
+      missing = []
+      missing << "date" if date.nil?
+      missing << "description" if description.blank?
+      missing << "value" if value.nil?
+
+      if missing.any?
+        @errors << "Line #{line_number}: Invalid #{missing.join(', ')}"
         return
       end
 
@@ -107,12 +118,19 @@ module Banking
     def parse_date(date_str)
       return nil if date_str.blank?
 
-      # Handle DD-MM-YYYY format
-      if date_str.match?(/\A\d{2}-\d{2}-\d{4}\z/)
-        day, month, year = date_str.split("-").map(&:to_i)
+      stripped = date_str.strip
+
+      # DD-MM-YYYY format (e.g., "29-01-2026")
+      if stripped.match?(/\A\d{2}-\d{2}-\d{4}\z/)
+        day, month, year = stripped.split("-").map(&:to_i)
+        Date.new(year, month, day)
+      # M/D/YY or M/D/YY H:MM format (e.g., "1/6/26 13:34")
+      elsif (match = stripped.match(/\A(\d{1,2})\/(\d{1,2})\/(\d{2})(?:\s+\d{1,2}:\d{2})?\z/))
+        month, day, short_year = match[1].to_i, match[2].to_i, match[3].to_i
+        year = short_year < 100 ? 2000 + short_year : short_year
         Date.new(year, month, day)
       else
-        Date.parse(date_str)
+        Date.parse(stripped)
       end
     rescue Date::Error, ArgumentError
       nil

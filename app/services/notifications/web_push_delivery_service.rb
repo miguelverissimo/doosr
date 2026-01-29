@@ -79,10 +79,10 @@ module Notifications
 
     def build_payload
       base_url = "https://#{ENV.fetch('APP_HOST', 'localhost:3000')}"
-      click_path = find_item_day_path
+      click_path = find_click_path
 
       {
-        title: notification.title || notification.item.title,
+        title: notification.title || notification.item&.title || "Notification",
         options: {
           body: notification.body || "Reminder for your task",
           icon: "#{base_url}/web-app-manifest-192x192.png",
@@ -99,7 +99,12 @@ module Notifications
       }
     end
 
-    def find_item_day_path
+    def find_click_path
+      link_path = notification.metadata&.dig("link_path")
+      return link_path if link_path.present?
+
+      return "/" unless notification.item
+
       item = notification.item
       day = find_root_day(item)
 

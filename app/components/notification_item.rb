@@ -17,6 +17,7 @@ class ::Components::NotificationItem < ::Components::Base
       data: { turbo_frame: "_top" }
     ) do
       render_title
+      render_body
       render_reminder_time
       render_relative_time
     end
@@ -35,12 +36,22 @@ class ::Components::NotificationItem < ::Components::Base
       "text-sm",
       unread? ? "font-semibold" : "font-normal"
     ]) do
-      plain notification.item&.title || "Reminder"
+      plain notification.title.presence || notification.item&.title || "Notification"
+    end
+  end
+
+  def render_body
+    return if notification.body.blank?
+    return if notification.item.present?
+
+    div(class: "text-xs text-muted-foreground mt-0.5") do
+      plain notification.body
     end
   end
 
   def render_reminder_time
     return unless notification.remind_at
+    return unless notification.item.present?
 
     div(class: "text-xs text-muted-foreground mt-0.5") do
       plain format_reminder_time(notification.remind_at)

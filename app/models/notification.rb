@@ -3,7 +3,7 @@
 class Notification < ApplicationRecord
   # Associations
   belongs_to :user
-  belongs_to :item
+  belongs_to :item, optional: true
 
   # Valid statuses and channels
   VALID_STATUSES = %w[pending sent read dismissed].freeze
@@ -11,7 +11,6 @@ class Notification < ApplicationRecord
 
   # Validations
   validates :user_id, presence: true
-  validates :item_id, presence: true
   validates :remind_at, presence: true
   validates :status, inclusion: { in: VALID_STATUSES }
   validate :remind_at_must_be_future, on: :create
@@ -50,6 +49,7 @@ class Notification < ApplicationRecord
 
   def remind_at_must_be_future
     return if remind_at.blank?
+    return if status == "sent"
 
     if remind_at <= Time.current
       errors.add(:remind_at, "must be in the future")
