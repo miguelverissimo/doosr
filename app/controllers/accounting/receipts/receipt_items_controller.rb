@@ -1,7 +1,6 @@
 module Accounting
   module Receipts
-    class ReceiptItemsController < ApplicationController
-      before_action :authenticate_user!
+    class ReceiptItemsController < Accounting::BaseController
       before_action :set_receipt_item, only: [ :update, :destroy ]
 
       def index

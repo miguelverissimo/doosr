@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class TransferPatternsController < ApplicationController
-    before_action :authenticate_user!
+  class TransferPatternsController < BaseController
     before_action :set_transfer_pattern, only: [ :edit, :update, :destroy ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

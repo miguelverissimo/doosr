@@ -1,5 +1,6 @@
 class DaysController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_date, only: [ :show, :create, :import ]
   before_action :set_day, only: [ :close, :reopen, :add_permanent_sections ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, selected_date: @date, day: @day, latest_importable_day: @latest_importable_day) }

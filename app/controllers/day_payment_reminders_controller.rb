@@ -2,6 +2,7 @@
 
 class DayPaymentRemindersController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_day_payment_reminder, only: [ :actions_sheet, :move, :destroy, :mark_paid ]
 
   def actions_sheet

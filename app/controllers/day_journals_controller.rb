@@ -2,6 +2,7 @@
 
 class DayJournalsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def create

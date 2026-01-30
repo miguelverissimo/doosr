@@ -1,7 +1,6 @@
 module Accounting
   module Settings
-    class LogosController < ApplicationController
-      before_action :authenticate_user!
+    class LogosController < Accounting::BaseController
       before_action :set_accounting_logo, only: [ :update, :destroy ]
 
       def index

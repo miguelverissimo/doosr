@@ -2,6 +2,7 @@
 
 class JournalRecoveryController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   before_action :require_journal_protection, only: [ :new, :create ]
 
   def new

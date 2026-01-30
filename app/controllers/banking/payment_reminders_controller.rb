@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class PaymentRemindersController < ApplicationController
-    before_action :authenticate_user!
+  class PaymentRemindersController < BaseController
     before_action :set_payment_reminder, only: [ :edit, :update, :destroy, :clone ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

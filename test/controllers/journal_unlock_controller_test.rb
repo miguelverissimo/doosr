@@ -8,7 +8,8 @@ class JournalUnlockControllerTest < ActionDispatch::IntegrationTest
       email: "test@example.com",
       password: "password123",
       password_confirmation: "password123",
-      access_confirmed: true
+      access_confirmed: true,
+      roles: %w[day lists notes checklists journals]
     )
     @journal_password = "journal_secure_pass"
     @salt = Journals::EncryptionService.generate_salt

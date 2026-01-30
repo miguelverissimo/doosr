@@ -2,6 +2,7 @@
 
 class ItemsController < ApplicationController
   before_action :authenticate_user!, unless: :public_list_action?
+  before_action -> { authorize! :access, :day }, unless: :public_list_action?
   before_action :set_acting_user
 
   def create

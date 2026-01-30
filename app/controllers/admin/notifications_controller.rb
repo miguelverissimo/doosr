@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Admin
-  class NotificationsController < ApplicationController
-    before_action :authenticate_user!
+  class NotificationsController < BaseController
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
     def index

@@ -248,7 +248,8 @@ class AccountingViewsTest < ApplicationSystemTestCase
       email: "empty@example.com",
       password: "password123",
       name: "Empty User",
-      access_confirmed: true
+      access_confirmed: true,
+      roles: %w[accounting]
     )
 
     sign_in(user)

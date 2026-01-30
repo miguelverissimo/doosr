@@ -2,6 +2,7 @@
 
 class JournalFragmentsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   before_action :set_fragment, only: [ :edit, :update, :destroy, :move ]
   before_action :set_encryption_key
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }

@@ -2,6 +2,7 @@
 
 class JournalPromptTemplatesController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   before_action :set_template, only: [ :edit, :update, :destroy ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 

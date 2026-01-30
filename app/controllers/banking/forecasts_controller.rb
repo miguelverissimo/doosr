@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class ForecastsController < ApplicationController
-    before_action :authenticate_user!
+  class ForecastsController < BaseController
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
     def index

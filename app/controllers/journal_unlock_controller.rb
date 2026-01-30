@@ -2,6 +2,7 @@
 
 class JournalUnlockController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
 
   def new
     respond_to do |format|

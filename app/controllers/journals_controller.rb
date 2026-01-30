@@ -2,6 +2,7 @@
 
 class JournalsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   before_action :set_journal, only: [ :show, :destroy ]
   before_action :set_journal_if_present, only: [ :lock ]
   before_action :check_journal_unlock, only: [ :show ]

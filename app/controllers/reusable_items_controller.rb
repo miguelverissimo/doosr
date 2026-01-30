@@ -4,6 +4,7 @@
 # This controller is ONLY used for lists and handles duplicate detection
 class ReusableItemsController < ApplicationController
   before_action :authenticate_user!, unless: :public_list_action?
+  before_action -> { authorize! :access, :lists }, unless: :public_list_action?
   before_action :set_acting_user
   before_action :set_list
 

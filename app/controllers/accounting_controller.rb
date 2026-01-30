@@ -1,5 +1,6 @@
 class AccountingController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :accounting }
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index

@@ -63,6 +63,9 @@ gem "omniauth-rails_csrf_protection"
 gem "omniauth-google-oauth2"
 gem "omniauth-github"
 
+# Authorization
+gem "cancancan"
+
 # Web Push Notifications
 gem "webpush", "~> 1.1"
 

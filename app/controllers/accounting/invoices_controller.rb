@@ -1,6 +1,5 @@
 module Accounting
-  class InvoicesController < ApplicationController
-    before_action :authenticate_user!
+  class InvoicesController < BaseController
     before_action :set_invoice, only: [ :destroy, :preview, :pdf ]
 
     def index

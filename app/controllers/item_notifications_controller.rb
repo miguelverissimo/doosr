@@ -2,6 +2,7 @@
 
 class ItemNotificationsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_item
 
   def create

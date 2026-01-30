@@ -1,7 +1,6 @@
 module Accounting
   module Settings
-    class TaxBracketsController < ApplicationController
-      before_action :authenticate_user!
+    class TaxBracketsController < Accounting::BaseController
       before_action :set_tax_bracket, only: [ :update, :destroy ]
 
       def index

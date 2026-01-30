@@ -1,7 +1,6 @@
 module Accounting
   module Settings
-    class AddressesController < ApplicationController
-      before_action :authenticate_user!
+    class AddressesController < Accounting::BaseController
       before_action :set_address, only: [ :update, :destroy, :activate ]
 
       def index

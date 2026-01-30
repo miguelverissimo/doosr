@@ -2,6 +2,7 @@
 
 class JournalPromptsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
   before_action :set_prompt, only: [ :destroy, :move ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 

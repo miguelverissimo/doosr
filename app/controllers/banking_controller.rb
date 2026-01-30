@@ -2,6 +2,7 @@
 
 class BankingController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :banking }
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 
   SORTABLE_COLUMNS = %w[date description category value].freeze

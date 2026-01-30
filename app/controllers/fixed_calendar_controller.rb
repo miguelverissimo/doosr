@@ -2,6 +2,7 @@
 
 class FixedCalendarController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :fixed_calendar }
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index

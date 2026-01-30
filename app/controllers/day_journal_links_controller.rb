@@ -2,6 +2,7 @@
 
 class DayJournalLinksController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_journal_and_day, only: [ :destroy, :actions_sheet, :move, :debug ]
 
   # POST /day_journal_links

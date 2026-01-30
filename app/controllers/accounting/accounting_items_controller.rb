@@ -1,6 +1,5 @@
 module Accounting
-  class AccountingItemsController < ApplicationController
-    before_action :authenticate_user!
+  class AccountingItemsController < BaseController
     before_action :set_accounting_item, only: [ :update, :destroy ]
 
     def index

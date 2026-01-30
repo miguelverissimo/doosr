@@ -1,6 +1,5 @@
 module Accounting
-  class CustomersController < ApplicationController
-    before_action :authenticate_user!
+  class CustomersController < BaseController
     before_action :set_customer, only: [ :update, :destroy ]
 
     def index

@@ -1,6 +1,5 @@
 module Accounting
-  class InvoiceTemplatesController < ApplicationController
-    before_action :authenticate_user!
+  class InvoiceTemplatesController < BaseController
     before_action :set_invoice_template, only: [ :update, :destroy ]
 
     def index

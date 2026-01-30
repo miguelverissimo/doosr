@@ -2,6 +2,7 @@
 
 class DayListLinksController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_list_and_day, only: [ :destroy, :actions_sheet, :move, :reparent, :debug ]
 
   # POST /day_list_links

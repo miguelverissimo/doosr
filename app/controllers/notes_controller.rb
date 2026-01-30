@@ -2,6 +2,7 @@
 
 class NotesController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :notes }
   before_action :set_note, only: [ :show, :edit, :update, :destroy, :actions_sheet, :move, :reparent, :debug ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 

@@ -1,5 +1,6 @@
 class EphemeriesController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
 
   def index
     @date = parse_date

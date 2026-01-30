@@ -1,7 +1,6 @@
 module Accounting
   module Settings
-    class BankInfosController < ApplicationController
-      before_action :authenticate_user!
+    class BankInfosController < Accounting::BaseController
       before_action :set_bank_info, only: [ :update, :destroy ]
 
       def index

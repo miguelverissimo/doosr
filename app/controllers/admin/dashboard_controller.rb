@@ -1,5 +1,4 @@
-class Admin::DashboardController < ApplicationController
-  before_action :authenticate_user!
+class Admin::DashboardController < Admin::BaseController
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 
   def index

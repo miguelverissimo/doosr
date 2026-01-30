@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class BankAccountsController < ApplicationController
-    before_action :authenticate_user!
+  class BankAccountsController < BaseController
     before_action :set_bank_account, only: [ :edit, :update, :destroy ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

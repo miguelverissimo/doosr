@@ -51,7 +51,8 @@ class User < ApplicationRecord
   has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
 
   # Available roles for authorization
-  AVAILABLE_ROLES = %w[admin fixed_calendar accounting].freeze
+  AVAILABLE_ROLES = %w[day well lists notes journals checklists fixed_calendar accounting banking admin].freeze
+  DEFAULT_ROLES = %w[day lists notes checklists].freeze
 
   # Validations
   validate :roles_must_be_valid
@@ -113,6 +114,7 @@ class User < ApplicationRecord
 
   # Ensure settings has default values
   after_initialize :ensure_settings_defaults
+  after_initialize :ensure_default_roles
 
   def self.from_omniauth(auth)
     where(provider: auth.provider, uid: auth.uid).first_or_initialize.tap do |user|
@@ -158,6 +160,13 @@ class User < ApplicationRecord
     SETTINGS_DEFAULTS.each do |key, value|
       settings[key] ||= value
     end
+  end
+
+  def ensure_default_roles
+    return unless new_record?
+    return if roles.present?
+
+    self.roles = DEFAULT_ROLES.dup
   end
 
   def roles_must_be_valid

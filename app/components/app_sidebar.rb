@@ -66,105 +66,123 @@ class ::Components::AppSidebar < ::Components::Base
         end
 
         SidebarMenu do
-          SidebarMenuItem do
-            SidebarMenuButton(as: :a, href: "#") do
-              render ::Components::Icon::Droplet.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "The Well" }
+          if view_context.can?(:access, :well)
+            SidebarMenuItem do
+              SidebarMenuButton(as: :a, href: "#") do
+                render ::Components::Icon::Droplet.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "The Well" }
+              end
             end
           end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.lists_path,
-              data: { action: "click->nav-loader#show" }
-            ) do
-              render ::Components::Icon::List.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
+          if view_context.can?(:access, :lists)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.lists_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::List.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Lists" }
+              end
             end
           end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.notes_path,
-              data: { action: "click->nav-loader#show" }
-            ) do
-              render ::Components::Icon::StickyNote.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Notes" }
+          if view_context.can?(:access, :notes)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.notes_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::StickyNote.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Notes" }
+              end
             end
           end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.journals_path,
-              data: { action: "click->nav-loader#show" }
-            ) do
-              render ::Components::Icon::Journal.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Journals" }
+          if view_context.can?(:access, :journals)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.journals_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::Journal.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Journals" }
+              end
             end
           end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.checklists_path,
-              data: { action: "click->nav-loader#show" }
-            ) do
-              render ::Components::Icon::Checklist.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
+          if view_context.can?(:access, :checklists)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.checklists_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::Checklist.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Checklists" }
+              end
             end
           end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.fixed_calendar_path,
-              data: { action: "click->nav-loader#show" }
-            ) do
-              render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Fixed Calendar" }
-            end
-          end
-        end
-
-        SidebarMenu do
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.accounting_index_path,
-              data: {
-                action: "click->nav-loader#show",
-                turbo_prefetch: false
-              }
-            ) do
-              render ::Components::Icon::Accounting.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
-            end
-          end
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.banking_index_path,
-              data: {
-                action: "click->nav-loader#show",
-                turbo_prefetch: false
-              }
-            ) do
-              render ::Components::Icon::Banking.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Banking" }
+          if view_context.can?(:access, :fixed_calendar)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.fixed_calendar_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Fixed Calendar" }
+              end
             end
           end
         end
 
         SidebarMenu do
-          SidebarMenuItem do
-            SidebarMenuButton(
-              as: :a,
-              href: view_context.admin_root_path,
-              data: {
-                action: "click->nav-loader#show",
-                turbo_prefetch: false
-              }
-            ) do
-              render ::Components::Icon::Settings.new(size: "16", class: "shrink-0")
-              span(class: "group-data-[collapsible=icon]:hidden") { "Admin" }
+          if view_context.can?(:access, :accounting)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.accounting_index_path,
+                data: {
+                  action: "click->nav-loader#show",
+                  turbo_prefetch: false
+                }
+              ) do
+                render ::Components::Icon::Accounting.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Accounting" }
+              end
+            end
+          end
+          if view_context.can?(:access, :banking)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.banking_index_path,
+                data: {
+                  action: "click->nav-loader#show",
+                  turbo_prefetch: false
+                }
+              ) do
+                render ::Components::Icon::Banking.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Banking" }
+              end
+            end
+          end
+        end
+
+        if view_context.can?(:access, :admin)
+          SidebarMenu do
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.admin_root_path,
+                data: {
+                  action: "click->nav-loader#show",
+                  turbo_prefetch: false
+                }
+              ) do
+                render ::Components::Icon::Settings.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Admin" }
+              end
             end
           end
         end

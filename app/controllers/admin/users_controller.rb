@@ -1,5 +1,4 @@
-class Admin::UsersController < ApplicationController
-  before_action :authenticate_user!
+class Admin::UsersController < Admin::BaseController
   before_action :set_user, only: [ :toggle_access, :update_roles ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) }
 

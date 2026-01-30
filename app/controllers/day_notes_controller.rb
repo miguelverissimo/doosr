@@ -2,6 +2,7 @@
 
 class DayNotesController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
 
   def new
     @day = current_user.days.find(params[:day_id])

@@ -194,7 +194,7 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     @user1.reload
-    assert_equal [], @user1.roles
+    assert_equal User::DEFAULT_ROLES, @user1.roles
   end
 
   private

@@ -7,6 +7,10 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  rescue_from CanCan::AccessDenied do |exception|
+    raise ActionController::RoutingError, "Not Found"
+  end
+
   helper_method :journals_unlocked?
 
   def journals_unlocked?

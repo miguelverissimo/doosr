@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class CategoriesController < ApplicationController
-    before_action :authenticate_user!
+  class CategoriesController < BaseController
     before_action :set_category, only: [ :edit, :update, :destroy ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

@@ -13,8 +13,8 @@ class UserTest < ActiveSupport::TestCase
     assert @user.valid?
   end
 
-  test "should have empty roles by default" do
-    assert_equal [], @user.roles
+  test "should have default roles for new users" do
+    assert_equal User::DEFAULT_ROLES, @user.roles
   end
 
   test "should have access_confirmed false by default" do

@@ -2,6 +2,7 @@
 
 class ItemNotesController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
 
   def create
     @item = current_user.items.find(params[:item_id])

@@ -2,6 +2,7 @@
 
 class JournalProtectionController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :journals }
 
   def show
     respond_to do |format|

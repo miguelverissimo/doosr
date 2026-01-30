@@ -2,6 +2,7 @@
 
 class DayMigrationsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :day }
   before_action :set_date
   before_action :set_latest_importable_day
 

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class BudgetGoalsController < ApplicationController
-    before_action :authenticate_user!
+  class BudgetGoalsController < BaseController
     before_action :set_budget_goal, only: [ :edit, :update, :destroy ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

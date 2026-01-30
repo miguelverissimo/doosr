@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 module Banking
-  class PlannedExpensesController < ApplicationController
-    before_action :authenticate_user!
+  class PlannedExpensesController < BaseController
     before_action :set_planned_expense, only: [ :edit, :update, :destroy, :mark_completed ]
     layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path) if request.format.html? }
 

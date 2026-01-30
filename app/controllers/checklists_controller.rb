@@ -1,5 +1,6 @@
 class ChecklistsController < ApplicationController
   before_action :authenticate_user!
+  before_action { authorize! :access, :checklists }
   before_action :set_checklist, only: [ :show, :update, :destroy, :complete_item, :reset ]
   layout -> { ::Views::Layouts::AppLayout.new(pathname: request.path, checklist: @checklist) }
 
