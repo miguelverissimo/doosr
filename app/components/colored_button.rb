@@ -305,4 +305,3 @@ class ::Components::ColoredButton < ::Components::Base
     end
   end
 end
-

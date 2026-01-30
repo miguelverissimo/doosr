@@ -14,6 +14,22 @@ class ::Views::Layouts::AppLayout < ::Views::Base
 
   private
 
+  def body_data_attributes
+    controllers = "pwa nav-loader"
+    attrs = { controller: controllers }
+
+    if view_context.user_signed_in?
+      vapid_key = ENV.fetch("VAPID_PUBLIC_KEY", "")
+      if vapid_key.present?
+        attrs[:controller] = "#{controllers} notification-auto-prompt"
+        attrs[:notification_auto_prompt_vapid_public_key_value] = vapid_key
+        attrs[:notification_auto_prompt_subscribe_url_value] = view_context.push_subscriptions_path
+      end
+    end
+
+    attrs
+  end
+
   def render_flash_toasts
     Rails.logger.debug "=== FLASH DEBUG START ==="
     Rails.logger.debug "Flash notice: #{view_context.flash[:notice].inspect}"
@@ -129,7 +145,7 @@ class ::Views::Layouts::AppLayout < ::Views::Base
         raw(view_context.javascript_importmap_tags)
       end
 
-      body(data: { controller: "pwa nav-loader" }) do
+      body(data: body_data_attributes) do
         render ::Components::Toast.new
 
         # Global navigation loading spinner
