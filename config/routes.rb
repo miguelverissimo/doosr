@@ -210,6 +210,20 @@ Rails.application.routes.draw do
   # Push Notifications
   resources :push_subscriptions, only: [ :create, :destroy ]
 
+  # API Token Management
+  resources :api_tokens, only: [ :index, :create, :destroy ]
+
+  # API
+  namespace :api do
+    namespace :v1 do
+      get "days", to: "days#show", as: :days
+      post "days", to: "days#create"
+      post "days/import", to: "days#import", as: :days_import
+      patch "days/:id/close", to: "days#close", as: :close_day
+      patch "days/:id/reopen", to: "days#reopen", as: :reopen_day
+    end
+  end
+
   # Admin
   namespace :admin do
     root to: "dashboard#index"

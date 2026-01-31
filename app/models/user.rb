@@ -22,6 +22,7 @@ class User < ApplicationRecord
   has_many :journal_fragments, dependent: :destroy
   has_many :journal_prompts, dependent: :destroy
   has_many :journal_prompt_templates, dependent: :destroy
+  has_many :api_tokens, dependent: :destroy
 
   # Banking
   has_many :bank_transactions, dependent: :destroy
@@ -51,7 +52,7 @@ class User < ApplicationRecord
   has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
 
   # Available roles for authorization
-  AVAILABLE_ROLES = %w[day well lists notes journals checklists fixed_calendar accounting banking admin].freeze
+  AVAILABLE_ROLES = %w[day well lists notes journals checklists fixed_calendar accounting banking admin api].freeze
   DEFAULT_ROLES = %w[day lists notes checklists].freeze
 
   # Validations

@@ -32,6 +32,7 @@ class ::Components::AppSidebar < ::Components::Base
         is_banking_page = @pathname.start_with?("/banking")
         is_checklists_page = @pathname.start_with?("/checklists")
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
+        is_api_page = @pathname.start_with?("/api_tokens")
         is_admin_page = @pathname.start_with?("/admin")
 
         is_app_page_not_day_view = \
@@ -43,6 +44,7 @@ class ::Components::AppSidebar < ::Components::Base
           is_banking_page || \
           is_checklists_page || \
           is_fixed_calendar_page || \
+          is_api_page || \
           is_admin_page
 
         if is_day_view
@@ -169,8 +171,24 @@ class ::Components::AppSidebar < ::Components::Base
           end
         end
 
-        if view_context.can?(:access, :admin)
-          SidebarMenu do
+        SidebarMenu do
+          if view_context.can?(:access, :api)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.api_tokens_path,
+                data: {
+                  action: "click->nav-loader#show",
+                  turbo_prefetch: false
+                }
+              ) do
+                render ::Components::Icon::Key.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "API Access" }
+              end
+            end
+          end
+
+          if view_context.can?(:access, :admin)
             SidebarMenuItem do
               SidebarMenuButton(
                 as: :a,

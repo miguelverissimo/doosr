@@ -60,8 +60,13 @@ class DaysController < ApplicationController
       return
     end
 
-    @day.close!
-    redirect_to day_path(date: @day.date), notice: "Day closed successfully"
+    result = Days::CloseService.new(day: @day).call
+
+    if result[:success]
+      redirect_to day_path(date: @day.date), notice: "Day closed successfully"
+    else
+      redirect_to day_path(date: @day.date), alert: result[:error]
+    end
   end
 
   def reopen
@@ -70,8 +75,13 @@ class DaysController < ApplicationController
       return
     end
 
-    @day.reopen!
-    redirect_to day_path(date: @day.date), notice: "Day reopened successfully"
+    result = Days::ReopenService.new(day: @day).call
+
+    if result[:success]
+      redirect_to day_path(date: @day.date), notice: "Day reopened successfully"
+    else
+      redirect_to day_path(date: @day.date), alert: result[:error]
+    end
   end
 
   def add_permanent_sections
