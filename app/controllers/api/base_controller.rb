@@ -1,7 +1,23 @@
 module Api
   class BaseController < ActionController::API
+    include Apipie::DSL
+
     before_action :authenticate_api_token!
     before_action :authorize_api_access!
+
+    resource_description do
+      api_version "v1"
+      formats [ "json" ]
+      error code: 401, desc: "Authentication required — missing or invalid Bearer token"
+      error code: 403, desc: "Access denied — feature not enabled for this account"
+      error code: 404, desc: "Resource not found"
+      error code: 422, desc: "Unprocessable entity — validation errors"
+    end
+
+    def_param_group :pagination do
+      param :page, :number, desc: "Page number (default: 1)", required: false
+      param :per_page, :number, desc: "Items per page (default: 25)", required: false
+    end
 
     attr_reader :current_user
 

@@ -42,6 +42,9 @@
 # random files
 /docs/invoice_12_dec_2025.*
 
+# Generated API docs
+/doc/apidoc*
+
 # Node.js
 /node_modules
 /.cache

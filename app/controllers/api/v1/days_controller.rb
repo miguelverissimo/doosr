@@ -3,6 +3,15 @@ module Api
     class DaysController < Api::BaseController
       before_action :authorize_day_access!
 
+      resource_description do
+        short "Days"
+        description "Manage daily task views"
+        formats [ "json" ]
+      end
+
+      api :GET, "/days", "Show a day"
+      description "Returns the day for a given date (defaults to today) with its items."
+      param :date, String, desc: "Date in YYYY-MM-DD format (default: today)", required: false
       def show
         date = parse_date
         day = current_user.days.includes(:descendant).find_by(date: date)
@@ -20,6 +29,9 @@ module Api
         }, status: :ok
       end
 
+      api :POST, "/days", "Create or open a day"
+      description "Opens a day for the given date, creating it if it doesn't exist."
+      param :date, String, desc: "Date in YYYY-MM-DD format (default: today)", required: false
       def create
         date = parse_date
         result = Days::DayOpeningService.new(user: current_user, date: date).call
@@ -38,6 +50,9 @@ module Api
         end
       end
 
+      api :PATCH, "/days/:id/close", "Close a day"
+      description "Closes an open day, preventing further modifications."
+      param :id, :number, desc: "Day ID", required: true
       def close
         day = current_user.days.find(params[:id])
 
@@ -60,6 +75,9 @@ module Api
         render_not_found
       end
 
+      api :PATCH, "/days/:id/reopen", "Reopen a day"
+      description "Reopens a previously closed day."
+      param :id, :number, desc: "Day ID", required: true
       def reopen
         day = current_user.days.find(params[:id])
 
@@ -82,6 +100,9 @@ module Api
         render_not_found
       end
 
+      api :POST, "/days/import", "Import items from previous day"
+      description "Imports uncompleted items from the most recent importable day into the target date."
+      param :date, String, desc: "Target date in YYYY-MM-DD format (default: today)", required: false
       def import
         date = parse_date
         current_day = current_user.days.find_by(date: date)

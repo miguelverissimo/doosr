@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
+  # API documentation
+  apipie
+
   # Action Cable for real-time WebSocket connections
   mount ActionCable.server, at: "/cable"
 
@@ -216,11 +219,69 @@ Rails.application.routes.draw do
   # API
   namespace :api do
     namespace :v1 do
+      # Days
       get "days", to: "days#show", as: :days
       post "days", to: "days#create"
       post "days/import", to: "days#import", as: :days_import
       patch "days/:id/close", to: "days#close", as: :close_day
       patch "days/:id/reopen", to: "days#reopen", as: :reopen_day
+
+      # Items (day items)
+      resources :items, only: [ :create, :update, :destroy ] do
+        member do
+          patch :toggle_state
+          patch :move
+          patch :defer
+          patch :undefer
+          patch :reparent
+          patch :drop_section
+          patch :update_recurrence
+        end
+      end
+
+      # Lists
+      resources :lists do
+        # List items (reusable items)
+        resources :items, controller: "list_items", only: [ :create, :update, :destroy ] do
+          member do
+            patch :toggle_state
+            patch :move
+            patch :reparent
+          end
+        end
+      end
+
+      # Notes
+      resources :notes
+
+      # Checklists
+      resources :checklists do
+        member do
+          patch :complete_item
+          post :reset
+        end
+      end
+
+      # Banking
+      namespace :banking do
+        resources :transactions, only: [ :index, :show, :create, :update, :destroy ] do
+          member do
+            patch :toggle_transfer
+          end
+          collection do
+            delete :bulk_destroy
+          end
+        end
+      end
+
+      # Accounting
+      namespace :accounting do
+        resources :invoices, only: [ :index, :show, :update, :destroy ]
+        resources :customers, only: [ :index, :show ]
+      end
+
+      # Journals
+      resources :journals, only: [ :index, :show, :create, :destroy ]
     end
   end
 
