@@ -172,10 +172,7 @@ module Banking
     end
 
     def generate_row_hash(date, description, value)
-      # Normalize the value to consistent format for hashing
-      normalized_value = value.to_s("F")
-      data = "#{date.iso8601}|#{description.downcase}|#{normalized_value}"
-      Digest::SHA256.hexdigest(data)
+      ::Banking::TransactionRowHashService.generate(date: date, description: description, value: value)
     end
 
     def find_matching_pattern(description)

@@ -92,23 +92,6 @@ class Api::V1::ItemsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  # === DESTROY ===
-
-  test "destroy item" do
-    assert_difference "Item.count", -1 do
-      delete api_v1_item_path(@item), headers: @auth_header
-    end
-
-    assert_response :ok
-    json = JSON.parse(response.body)
-    assert_nil json["data"]
-  end
-
-  test "destroy returns not found for invalid id" do
-    delete api_v1_item_path(id: 999999), headers: @auth_header
-    assert_response :not_found
-  end
-
   # === TOGGLE STATE ===
 
   test "toggle state to done" do

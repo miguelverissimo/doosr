@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Checklists"
         description "Manage checklists with completable items"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 

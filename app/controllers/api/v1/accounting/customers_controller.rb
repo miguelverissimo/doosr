@@ -5,8 +5,9 @@ module Api
         before_action :authorize_accounting_access!
 
         resource_description do
-          short "Accounting Customers"
+          short "Customers"
           description "Manage accounting customers"
+          meta group: "Accounting"
           formats [ "json" ]
         end
 

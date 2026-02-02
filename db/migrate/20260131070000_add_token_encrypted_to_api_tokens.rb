@@ -3,4 +3,3 @@ class AddTokenEncryptedToApiTokens < ActiveRecord::Migration[8.1]
     add_column :api_tokens, :token_encrypted, :text
   end
 end
-

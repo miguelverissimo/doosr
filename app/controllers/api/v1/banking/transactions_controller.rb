@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   module V1
     module Banking
@@ -5,8 +7,9 @@ module Api
         before_action :authorize_banking_access!
 
         resource_description do
-          short "Banking Transactions"
+          short "Transactions"
           description "Manage bank transactions"
+          meta group: "Banking"
           formats [ "json" ]
         end
 
@@ -18,47 +21,25 @@ module Api
         param :category_id, String, desc: "Filter by category ID, or 'uncategorized'", required: false
         param :search, String, desc: "Search by description", required: false
         param :bank_account_id, String, desc: "Filter by bank account ID, or 'none'", required: false
-        param :transfer_filter, String, desc: "Filter transfers: 'exclude' or 'only'", required: false
+        param :transfer_filter, String, desc: "Filter transfers: 'exclude', 'only', or 'include'", required: false
         param :min_amount, String, desc: "Minimum absolute amount", required: false
         param :max_amount, String, desc: "Maximum absolute amount", required: false
+        param :sort, String, desc: "Sort column (date, description, category, value)", required: false
+        param :direction, String, desc: "Sort direction (asc, desc)", required: false
         def index
-          start_date = parse_date_param(params[:start_date], (Date.current - 3.months).beginning_of_month)
-          end_date = parse_date_param(params[:end_date], Date.current.end_of_month)
-          page = (params[:page] || 1).to_i
-          per_page = (params[:per_page] || 100).to_i
-
-          transactions = current_user.bank_transactions
-            .includes(:bank_account, transaction_categorizations: :category)
-
-          if start_date && end_date
-            transactions = transactions.where(date: start_date..end_date)
-          elsif start_date
-            transactions = transactions.where("date >= ?", start_date)
-          elsif end_date
-            transactions = transactions.where("date <= ?", end_date)
-          end
-
-          transactions = apply_filters(transactions)
-
-          # Calculate totals (excluding transfers)
-          non_transfer = transactions.non_transfers
-          total_income = non_transfer.where("value > 0").sum(:value).to_f
-          total_expenses = non_transfer.where("value < 0").sum(:value).abs.to_f
-
-          total_count = transactions.count
-          sorted = transactions.order(date: :desc, id: :desc)
-          paginated = sorted.offset((page - 1) * per_page).limit(per_page)
+          query_service = ::Banking::TransactionQueryService.new(current_user, query_params)
+          result = query_service.query
 
           render json: {
-            data: paginated.map { |t| serialize_transaction(t) },
+            data: result.transactions.map { |t| serialize_transaction(t) },
             meta: {
-              page: page,
-              per_page: per_page,
-              total_count: total_count,
-              total_pages: (total_count.to_f / per_page).ceil,
-              total_income: total_income.round(2),
-              total_expenses: total_expenses.round(2),
-              net_balance: (total_income - total_expenses).round(2)
+              page: query_service.page.to_i,
+              per_page: query_service.per_page.to_i,
+              total_count: result.total_count,
+              total_pages: (result.total_count.to_f / query_service.per_page.to_i).ceil,
+              total_income: result.total_income.to_f.round(2),
+              total_expenses: result.total_expenses.to_f.round(2),
+              net_balance: result.net_balance.to_f.round(2)
             }
           }, status: :ok
         end
@@ -88,7 +69,7 @@ module Api
         param :category_id, :number, desc: "Category ID to assign", required: false
         def create
           transaction = current_user.bank_transactions.build(transaction_params)
-          transaction.row_hash = generate_row_hash(transaction)
+          transaction.row_hash = ::Banking::TransactionRowHashService.generate_from_transaction(transaction)
 
           if transaction.save
             if params[:category_id].present?
@@ -122,7 +103,7 @@ module Api
           transaction = current_user.bank_transactions.find(params[:id])
 
           if transaction.update(transaction_params)
-            transaction.update_column(:row_hash, generate_row_hash(transaction))
+            transaction.update_column(:row_hash, ::Banking::TransactionRowHashService.generate_from_transaction(transaction))
 
             if params.key?(:category_id)
               if params[:category_id].present?
@@ -174,6 +155,49 @@ module Api
           render_not_found
         end
 
+        api :PATCH, "/banking/transactions/:id/update_category", "Update transaction category"
+        description "Sets or clears the primary category for a transaction."
+        param :id, :number, desc: "Transaction ID", required: true
+        param :category_id, :number, desc: "Category ID (omit or null to clear)", required: false
+        def update_category
+          transaction = current_user.bank_transactions.find(params[:id])
+
+          if params[:category_id].present?
+            transaction.set_categories([ params[:category_id] ])
+          else
+            transaction.transaction_categorizations.destroy_all
+          end
+
+          render json: {
+            data: serialize_transaction(transaction.reload),
+            meta: {}
+          }, status: :ok
+        rescue ActiveRecord::RecordNotFound
+          render_not_found
+        end
+
+        api :PATCH, "/banking/transactions/:id/update_categories", "Update transaction categories with splits"
+        description "Sets multiple categories with optional split amounts."
+        param :id, :number, desc: "Transaction ID", required: true
+        param :category_ids, Array, of: :number, desc: "Array of category IDs", required: true
+        param :amounts, Hash, desc: "Hash of category_id => amount for split categorization", required: false
+        def update_categories
+          transaction = current_user.bank_transactions.find(params[:id])
+          category_ids = Array(params[:category_ids]).reject(&:blank?)
+          amounts = params[:amounts] || {}
+
+          transaction.set_categories(category_ids, amounts)
+
+          render json: {
+            data: serialize_transaction(transaction.reload),
+            meta: {}
+          }, status: :ok
+        rescue ActiveRecord::RecordNotFound
+          render_not_found
+        rescue StandardError => e
+          render_error(e.message, status: :unprocessable_entity)
+        end
+
         api :DELETE, "/banking/transactions/bulk_destroy", "Bulk delete transactions"
         description "Deletes multiple transactions by ID."
         param :ids, Array, of: :number, desc: "Array of transaction IDs to delete", required: true
@@ -189,6 +213,65 @@ module Api
           }, status: :ok
         end
 
+        api :POST, "/banking/transactions/import_csv", "Import transactions from CSV"
+        description "Imports transactions from a CSV file. Processing happens asynchronously."
+        param :csv_file, File, desc: "CSV file to import", required: true
+        param :bank_account_id, :number, desc: "Bank account ID to associate imports with", required: false
+        def import_csv
+          csv_file = params[:csv_file]
+
+          if csv_file.blank?
+            render_error("Please provide a CSV file", status: :unprocessable_entity)
+            return
+          end
+
+          csv_content = csv_file.read
+          bank_account_id = params[:bank_account_id].presence
+
+          ::Banking::ImportJob.perform_later(current_user.id, csv_content, bank_account_id: bank_account_id)
+
+          render json: {
+            data: nil,
+            meta: { message: "CSV import started. Processing will happen in the background." }
+          }, status: :accepted
+        end
+
+        api :GET, "/banking/transactions/analytics", "Get transaction analytics"
+        description "Returns category breakdown, time series data, and period-over-period stats."
+        param :start_date, String, desc: "Start date (YYYY-MM-DD) or 'all'", required: false
+        param :end_date, String, desc: "End date (YYYY-MM-DD) or 'all'", required: false
+        param :category_id, String, desc: "Filter by category ID", required: false
+        param :breakdown_parent_id, String, desc: "Show subcategory breakdown for this parent", required: false
+        param :bank_account_id, String, desc: "Filter by bank account ID", required: false
+        param :transfer_filter, String, desc: "Filter transfers: 'exclude', 'only', or 'include'", required: false
+        param :min_amount, String, desc: "Minimum absolute amount", required: false
+        param :max_amount, String, desc: "Maximum absolute amount", required: false
+        param :search, String, desc: "Search by description", required: false
+        def analytics
+          query_service = ::Banking::TransactionQueryService.new(current_user, query_params)
+          result = query_service.call
+
+          render json: {
+            data: {
+              total_income: result.total_income.to_f.round(2),
+              total_expenses: result.total_expenses.to_f.round(2),
+              net_balance: result.net_balance.to_f.round(2),
+              income_change: result.income_change,
+              expenses_change: result.expenses_change,
+              balance_change: result.balance_change,
+              category_breakdown: result.category_breakdown,
+              time_series: {
+                data: result.time_series_data,
+                granularity: result.time_series_granularity
+              }
+            },
+            meta: {
+              start_date: query_service.start_date&.to_s,
+              end_date: query_service.end_date&.to_s
+            }
+          }, status: :ok
+        end
+
         private
 
         def authorize_banking_access!
@@ -199,63 +282,10 @@ module Api
           params.require(:bank_transaction).permit(:date, :description, :value, :bank_account_id)
         end
 
-        def generate_row_hash(transaction)
-          normalized_value = transaction.value&.to_s("F") || "0"
-          date_str = transaction.date&.iso8601 || ""
-          desc_str = transaction.description&.downcase || ""
-          data = "#{date_str}|#{desc_str}|#{normalized_value}"
-          Digest::SHA256.hexdigest(data)
-        end
-
-        def apply_filters(transactions)
-          if params[:category_id].present?
-            if params[:category_id] == "uncategorized"
-              transactions = transactions.without_categorizations
-            else
-              category = current_user.categories.find_by(id: params[:category_id])
-              if category
-                category_ids = category.self_and_subcategory_ids
-                transactions = transactions.with_any_categorization(category_ids)
-              end
-            end
-          end
-
-          if params[:search].present?
-            transactions = transactions.where("LOWER(description) LIKE ?", "%#{params[:search].downcase}%")
-          end
-
-          if params[:bank_account_id].present?
-            if params[:bank_account_id] == "none"
-              transactions = transactions.where(bank_account_id: nil)
-            else
-              transactions = transactions.where(bank_account_id: params[:bank_account_id])
-            end
-          end
-
-          case params[:transfer_filter]
-          when "exclude"
-            transactions = transactions.non_transfers
-          when "only"
-            transactions = transactions.transfers
-          end
-
-          if params[:min_amount].present?
-            transactions = transactions.where("ABS(value) >= ?", BigDecimal(params[:min_amount]))
-          end
-
-          if params[:max_amount].present?
-            transactions = transactions.where("ABS(value) <= ?", BigDecimal(params[:max_amount]))
-          end
-
-          transactions
-        end
-
-        def parse_date_param(param, default)
-          return nil if param == "all"
-          return default if param.blank?
-          param.to_date
-        rescue ArgumentError
-          default
+        def query_params
+          params.permit(:start_date, :end_date, :page, :per_page, :sort, :direction,
+                        :category_id, :breakdown_parent_id, :min_amount, :max_amount,
+                        :search, :bank_account_id, :transfer_filter).to_h.symbolize_keys
         end
 
         def serialize_transaction(transaction)

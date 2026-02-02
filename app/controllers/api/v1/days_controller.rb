@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Days"
         description "Manage daily task views"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 

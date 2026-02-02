@@ -33,7 +33,7 @@ module Components
         token_value = @api_token.token
 
         if token_value.present?
-          div(class: "flex items-center gap-2", data: {controller: "api-token-row"}) do
+          div(class: "flex items-center gap-2", data: { controller: "api-token-row" }) do
             render RubyUI::Clipboard.new(
               class: "flex-1 min-w-0 [&>div:first-child]:flex [&>div:first-child]:items-center [&>div:first-child]:gap-2"
             ) do
@@ -43,7 +43,7 @@ module Components
                   value: token_value,
                   readonly: true,
                   class: "font-mono text-xs w-full",
-                  data: {api_token_row_target: "tokenInput"}
+                  data: { api_token_row_target: "tokenInput" }
                 )
               end
 
@@ -64,7 +64,7 @@ module Components
               }
             ) do
               render ::Components::Icon::Eye.new(size: "16")
-              span(class: "ml-2", data: {api_token_row_target: "revealLabel"}) { "Reveal" }
+              span(class: "ml-2", data: { api_token_row_target: "revealLabel" }) { "Reveal" }
             end
           end
         else

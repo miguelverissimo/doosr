@@ -7,6 +7,7 @@ module Api
       resource_description do
         short "List Items"
         description "Manage items within a list"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 

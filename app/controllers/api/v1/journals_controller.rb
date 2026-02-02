@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Journals"
         description "Manage daily journal entries"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 

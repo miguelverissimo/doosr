@@ -227,7 +227,7 @@ Rails.application.routes.draw do
       patch "days/:id/reopen", to: "days#reopen", as: :reopen_day
 
       # Items (day items)
-      resources :items, only: [ :create, :update, :destroy ] do
+      resources :items, only: [ :create, :update ] do
         member do
           patch :toggle_state
           patch :move
@@ -237,6 +237,7 @@ Rails.application.routes.draw do
           patch :drop_section
           patch :update_recurrence
         end
+        resources :notifications, controller: "item_notifications", only: [ :index, :create, :destroy ]
       end
 
       # Lists
@@ -267,9 +268,42 @@ Rails.application.routes.draw do
         resources :transactions, only: [ :index, :show, :create, :update, :destroy ] do
           member do
             patch :toggle_transfer
+            patch :update_category
+            patch :update_categories
           end
           collection do
             delete :bulk_destroy
+            post :import_csv
+            get :analytics
+          end
+        end
+        resources :bank_accounts, only: [ :index, :show, :create, :update, :destroy ]
+        resources :categories, only: [ :index, :show, :create, :update, :destroy ]
+        resources :category_patterns, only: [ :index, :show, :create, :update, :destroy ]
+        resources :transfer_patterns, only: [ :index, :show, :create, :update, :destroy ]
+        resources :budget_goals, only: [ :index, :show, :create, :update, :destroy ]
+        resources :planned_expenses, only: [ :index, :show, :create, :update, :destroy ] do
+          member do
+            patch :mark_completed
+          end
+          collection do
+            post :populate_from_recurring
+          end
+        end
+        resources :recurring_groups, only: [ :index, :show ] do
+          collection do
+            post :detect
+          end
+        end
+        resources :payment_reminders, only: [ :index, :show, :create, :update, :destroy ] do
+          member do
+            post :clone
+          end
+        end
+        resources :forecasts, only: [ :index ] do
+          collection do
+            get :calendar
+            get :projections
           end
         end
       end

@@ -114,12 +114,7 @@ module Banking
     end
 
     def destroy
-      # Unmark transactions that matched this pattern
-      current_user.bank_transactions
-        .where(is_transfer: true)
-        .where("LOWER(description) LIKE ?", "%#{@transfer_pattern.pattern.downcase}%")
-        .update_all(is_transfer: false)
-
+      ::Banking::TransferPatternMatcherService.new(current_user).unmark_matching(@transfer_pattern)
       @transfer_pattern.destroy!
       @transfer_patterns = load_transfer_patterns_with_counts
 
@@ -140,17 +135,7 @@ module Banking
     end
 
     def load_transfer_patterns_with_counts
-      # Count matching transactions for each pattern
-      patterns = current_user.transfer_patterns.by_length_desc
-
-      patterns.map do |pattern|
-        count = current_user.bank_transactions
-          .where(is_transfer: true)
-          .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-          .count
-        pattern.define_singleton_method(:matched_transactions_count) { count }
-        pattern
-      end
+      ::Banking::TransferPatternQueryService.new(current_user).call
     end
 
     def transfer_pattern_params
@@ -160,25 +145,11 @@ module Banking
     def apply_to_existing_if_requested
       return 0 unless params[:apply_to_existing] == "1"
 
-      count = current_user.bank_transactions
-        .where(is_transfer: false)
-        .where("LOWER(description) LIKE ?", "%#{@transfer_pattern.pattern.downcase}%")
-        .update_all(is_transfer: true)
-
-      count
+      ::Banking::TransferPatternMatcherService.new(current_user).apply_to_existing(@transfer_pattern)
     end
 
     def rematch_transactions_for_pattern(pattern)
-      # 1. For transactions currently marked as transfers that matched the OLD pattern,
-      # check if they still match and unmark if not
-      # 2. For transactions not marked as transfers, check if they match the new pattern
-
-      # Since we can't easily track which transactions were marked by which pattern,
-      # we'll do a simple approach: mark all matching transactions as transfers
-      current_user.bank_transactions
-        .where(is_transfer: false)
-        .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-        .update_all(is_transfer: true)
+      ::Banking::TransferPatternMatcherService.new(current_user).rematch(pattern)
     end
   end
 end

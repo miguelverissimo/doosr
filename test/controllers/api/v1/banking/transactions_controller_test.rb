@@ -215,6 +215,97 @@ class Api::V1::Banking::TransactionsControllerTest < ActionDispatch::Integration
     assert_equal 2, json["meta"]["destroyed_count"]
   end
 
+  # === UPDATE CATEGORY ===
+
+  test "update_category sets category" do
+    category = @user.categories.create!(name: "Food", color: "#FF0000")
+
+    patch update_category_api_v1_banking_transaction_path(@transaction),
+      params: { category_id: category.id },
+      headers: @auth_header
+
+    assert_response :ok
+    json = JSON.parse(response.body)
+    assert json["data"]["categories"].any? { |c| c["id"] == category.id }
+  end
+
+  test "update_category clears category when nil" do
+    category = @user.categories.create!(name: "Food", color: "#FF0000")
+    @transaction.set_categories([ category.id ])
+
+    patch update_category_api_v1_banking_transaction_path(@transaction),
+      params: { category_id: nil },
+      headers: @auth_header
+
+    assert_response :ok
+    json = JSON.parse(response.body)
+    assert_empty json["data"]["categories"]
+  end
+
+  # === UPDATE CATEGORIES ===
+
+  test "update_categories sets multiple categories" do
+    cat1 = @user.categories.create!(name: "Food", color: "#FF0000")
+    cat2 = @user.categories.create!(name: "Transport", color: "#00FF00")
+
+    patch update_categories_api_v1_banking_transaction_path(@transaction),
+      params: { category_ids: [ cat1.id, cat2.id ] },
+      headers: @auth_header
+
+    assert_response :ok
+    json = JSON.parse(response.body)
+    cat_ids = json["data"]["categories"].map { |c| c["id"] }
+    assert_includes cat_ids, cat1.id
+    assert_includes cat_ids, cat2.id
+  end
+
+  # === IMPORT CSV ===
+
+  test "import_csv returns 202 and enqueues job" do
+    csv_content = "date,description,value\n2025-01-01,Test,100.00"
+    csv_file = Rack::Test::UploadedFile.new(
+      StringIO.new(csv_content), "text/csv", original_filename: "test.csv"
+    )
+
+    assert_enqueued_with(job: Banking::ImportJob) do
+      post import_csv_api_v1_banking_transactions_path,
+        params: { csv_file: csv_file },
+        headers: @auth_header
+    end
+
+    assert_response :accepted
+    json = JSON.parse(response.body)
+    assert json["meta"]["message"].present?
+  end
+
+  test "import_csv returns error without file" do
+    post import_csv_api_v1_banking_transactions_path,
+      headers: @auth_header
+
+    assert_response :unprocessable_entity
+  end
+
+  # === ANALYTICS ===
+
+  test "analytics returns breakdown and time series" do
+    get analytics_api_v1_banking_transactions_path(
+      start_date: (Date.current - 3.months).to_s,
+      end_date: Date.current.to_s
+    ), headers: @auth_header
+
+    assert_response :ok
+    json = JSON.parse(response.body)
+    assert json["data"].key?("total_income")
+    assert json["data"].key?("total_expenses")
+    assert json["data"].key?("net_balance")
+    assert json["data"].key?("category_breakdown")
+    assert json["data"].key?("time_series")
+    assert json["data"]["time_series"].key?("data")
+    assert json["data"]["time_series"].key?("granularity")
+    assert json["meta"].key?("start_date")
+    assert json["meta"].key?("end_date")
+  end
+
   # === AUTHORIZATION ===
 
   test "returns 401 without auth token" do

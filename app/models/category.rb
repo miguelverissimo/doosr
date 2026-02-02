@@ -5,7 +5,6 @@ class Category < ApplicationRecord
   belongs_to :parent, class_name: "Category", optional: true
   has_many :subcategories, class_name: "Category", foreign_key: "parent_id", dependent: :nullify
 
-  has_many :bank_transactions, dependent: :nullify
   has_many :transaction_categorizations, dependent: :destroy
   has_many :categorized_transactions, through: :transaction_categorizations, source: :bank_transaction
   has_many :category_patterns, dependent: :destroy

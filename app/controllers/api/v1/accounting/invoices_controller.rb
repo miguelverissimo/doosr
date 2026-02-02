@@ -5,8 +5,9 @@ module Api
         before_action :authorize_accounting_access!
 
         resource_description do
-          short "Accounting Invoices"
+          short "Invoices"
           description "Manage accounting invoices"
+          meta group: "Accounting"
           formats [ "json" ]
         end
 

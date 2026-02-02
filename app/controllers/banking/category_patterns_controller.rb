@@ -183,41 +183,11 @@ module Banking
     def apply_to_existing_if_requested
       return 0 unless params[:apply_to_existing] == "1"
 
-      matching_transactions = current_user.bank_transactions
-        .without_categorizations
-        .where("LOWER(description) LIKE ?", "%#{@category_pattern.pattern.downcase}%")
-
-      count = 0
-      matching_transactions.find_each do |transaction|
-        transaction.update!(category_pattern_id: @category_pattern.id)
-        transaction.set_categories([ @category_pattern.category_id ])
-        count += 1
-      end
-      count
+      ::Banking::CategoryPatternMatcherService.new(current_user).apply_to_existing(@category_pattern)
     end
 
     def rematch_transactions_for_pattern(pattern)
-      # 1. Clear pattern from transactions that had it but no longer match
-      # 2. Update category for transactions that still match
-      pattern.bank_transactions.find_each do |transaction|
-        if pattern.matches?(transaction.description)
-          # Still matches - update category in case it changed
-          transaction.set_categories([ pattern.category_id ])
-        else
-          # No longer matches - clear the association
-          transaction.transaction_categorizations.destroy_all
-          transaction.update_columns(category_pattern_id: nil)
-        end
-      end
-
-      # 3. Apply to uncategorized transactions that now match
-      current_user.bank_transactions
-        .without_categorizations
-        .where("LOWER(description) LIKE ?", "%#{pattern.pattern.downcase}%")
-        .find_each do |transaction|
-          transaction.update!(category_pattern_id: pattern.id)
-          transaction.set_categories([ pattern.category_id ])
-        end
+      ::Banking::CategoryPatternMatcherService.new(current_user).rematch(pattern)
     end
 
     def filter_params

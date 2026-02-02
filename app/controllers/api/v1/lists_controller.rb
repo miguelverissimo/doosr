@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Lists"
         description "Manage reusable item lists"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 

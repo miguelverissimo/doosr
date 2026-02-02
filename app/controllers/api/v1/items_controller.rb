@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Items"
         description "Manage day items (tasks, sections, etc.)"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 
@@ -53,22 +54,6 @@ module Api
             data: serialize_item(result[:item].reload),
             meta: {}
           }, status: :ok
-        else
-          render_error(result[:error], status: :unprocessable_entity)
-        end
-      rescue ActiveRecord::RecordNotFound
-        render_not_found
-      end
-
-      api :DELETE, "/items/:id", "Delete an item"
-      description "Permanently deletes an item."
-      param :id, :number, desc: "Item ID", required: true
-      def destroy
-        item = current_user.items.find(params[:id])
-        result = ::Items::DestroyService.new(item: item).call
-
-        if result[:success]
-          render json: { data: nil, meta: {} }, status: :ok
         else
           render_error(result[:error], status: :unprocessable_entity)
         end

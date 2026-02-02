@@ -6,6 +6,7 @@ module Api
       resource_description do
         short "Notes"
         description "Manage text notes"
+        meta group: "Tasks & Planning"
         formats [ "json" ]
       end
 
