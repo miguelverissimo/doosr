@@ -110,6 +110,16 @@ module Banking
         )
       end
 
+      # Add Transfers category if marked as transfer
+      if is_transfer
+        TransactionCategorization.create!(
+          bank_transaction: transaction,
+          category: transfers_category,
+          user: @user,
+          amount: nil
+        )
+      end
+
       @imported += 1
     rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
       @skipped += 1
@@ -190,6 +200,12 @@ module Banking
         @bank_account.bank_transactions.exists?(row_hash: row_hash)
       else
         @user.bank_transactions.where(bank_account_id: nil).exists?(row_hash: row_hash)
+      end
+    end
+
+    def transfers_category
+      @transfers_category ||= @user.categories.find_or_create_by!(name: "Transfers") do |category|
+        category.color = "#109648"
       end
     end
   end

@@ -37,7 +37,6 @@ module Banking
       @max_amount = params[:max_amount]
       @search = params[:search]
       @bank_account_id = params[:bank_account_id]
-      @transfer_filter = params[:transfer_filter] || "exclude"
     end
 
     def call
@@ -95,7 +94,7 @@ module Banking
     # Access parsed params for view rendering
     attr_reader :start_date, :end_date, :page, :per_page, :sort_column, :sort_direction,
                 :category_id, :breakdown_parent_id, :min_amount, :max_amount,
-                :search, :bank_account_id, :transfer_filter
+                :search, :bank_account_id
 
     private
 
@@ -123,8 +122,7 @@ module Banking
       transactions = apply_category_filter(transactions)
       transactions = apply_amount_filters(transactions)
       transactions = apply_search_filter(transactions)
-      transactions = apply_bank_account_filter(transactions)
-      apply_transfer_filter(transactions)
+      apply_bank_account_filter(transactions)
     end
 
     def apply_category_filter(transactions)
@@ -176,17 +174,6 @@ module Banking
         transactions.where(bank_account_id: nil)
       else
         transactions.where(bank_account_id: @bank_account_id)
-      end
-    end
-
-    def apply_transfer_filter(transactions)
-      case @transfer_filter
-      when "exclude"
-        transactions.non_transfers
-      when "only"
-        transactions.transfers
-      else
-        transactions
       end
     end
 

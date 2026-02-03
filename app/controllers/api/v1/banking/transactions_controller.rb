@@ -21,7 +21,6 @@ module Api
         param :category_id, String, desc: "Filter by category ID, or 'uncategorized'", required: false
         param :search, String, desc: "Search by description", required: false
         param :bank_account_id, String, desc: "Filter by bank account ID, or 'none'", required: false
-        param :transfer_filter, String, desc: "Filter transfers: 'exclude', 'only', or 'include'", required: false
         param :min_amount, String, desc: "Minimum absolute amount", required: false
         param :max_amount, String, desc: "Maximum absolute amount", required: false
         param :sort, String, desc: "Sort column (date, description, category, value)", required: false
@@ -145,7 +144,21 @@ module Api
         param :id, :number, desc: "Transaction ID", required: true
         def toggle_transfer
           transaction = current_user.bank_transactions.find(params[:id])
-          transaction.update!(is_transfer: !transaction.is_transfer)
+          new_transfer_state = !transaction.is_transfer
+          transaction.update!(is_transfer: new_transfer_state)
+
+          # Manage Transfers category
+          transfers_category = current_user.categories.find_or_create_by!(name: "Transfers") do |cat|
+            cat.color = "#109648"
+          end
+
+          if new_transfer_state
+            transaction.transaction_categorizations.find_or_create_by!(category: transfers_category) do |tc|
+              tc.user = current_user
+            end
+          else
+            transaction.transaction_categorizations.where(category: transfers_category).destroy_all
+          end
 
           render json: {
             data: serialize_transaction(transaction.reload),
@@ -243,7 +256,6 @@ module Api
         param :category_id, String, desc: "Filter by category ID", required: false
         param :breakdown_parent_id, String, desc: "Show subcategory breakdown for this parent", required: false
         param :bank_account_id, String, desc: "Filter by bank account ID", required: false
-        param :transfer_filter, String, desc: "Filter transfers: 'exclude', 'only', or 'include'", required: false
         param :min_amount, String, desc: "Minimum absolute amount", required: false
         param :max_amount, String, desc: "Maximum absolute amount", required: false
         param :search, String, desc: "Search by description", required: false
@@ -285,7 +297,7 @@ module Api
         def query_params
           params.permit(:start_date, :end_date, :page, :per_page, :sort, :direction,
                         :category_id, :breakdown_parent_id, :min_amount, :max_amount,
-                        :search, :bank_account_id, :transfer_filter).to_h.symbolize_keys
+                        :search, :bank_account_id).to_h.symbolize_keys
         end
 
         def serialize_transaction(transaction)

@@ -64,7 +64,21 @@ class BankingController < ApplicationController
 
   def toggle_transfer
     @transaction = current_user.bank_transactions.find(params[:id])
-    @transaction.update!(is_transfer: !@transaction.is_transfer)
+    new_transfer_state = !@transaction.is_transfer
+    @transaction.update!(is_transfer: new_transfer_state)
+
+    # Manage Transfers category
+    transfers_category = current_user.categories.find_or_create_by!(name: "Transfers") do |cat|
+      cat.color = "#109648"
+    end
+
+    if new_transfer_state
+      @transaction.transaction_categorizations.find_or_create_by!(category: transfers_category) do |tc|
+        tc.user = current_user
+      end
+    else
+      @transaction.transaction_categorizations.where(category: transfers_category).destroy_all
+    end
 
     respond_to do |format|
       format.turbo_stream do
@@ -300,8 +314,7 @@ class BankingController < ApplicationController
             min_amount: query_service.min_amount,
             max_amount: query_service.max_amount,
             search: query_service.search,
-            bank_account_id: query_service.bank_account_id,
-            transfer_filter: query_service.transfer_filter
+            bank_account_id: query_service.bank_account_id
           ), layout: false)
         )
       end
@@ -328,8 +341,7 @@ class BankingController < ApplicationController
           min_amount: query_service.min_amount,
           max_amount: query_service.max_amount,
           search: query_service.search,
-          bank_account_id: query_service.bank_account_id,
-          transfer_filter: query_service.transfer_filter
+          bank_account_id: query_service.bank_account_id
         )
       end
     end
@@ -344,6 +356,6 @@ class BankingController < ApplicationController
   def query_params
     params.permit(:start_date, :end_date, :page, :sort, :direction, :category_id,
                   :breakdown_parent_id, :min_amount, :max_amount, :search,
-                  :bank_account_id, :transfer_filter).to_h.symbolize_keys
+                  :bank_account_id).to_h.symbolize_keys
   end
 end

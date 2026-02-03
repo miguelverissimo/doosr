@@ -40,7 +40,7 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
   end
 
   test "call returns Result struct with correct fields" do
-    result = Banking::TransactionQueryService.new(@user, { start_date: "all", end_date: "all", transfer_filter: "include" }).call
+    result = Banking::TransactionQueryService.new(@user, { start_date: "all", end_date: "all" }).call
 
     assert_respond_to result, :transactions
     assert_respond_to result, :total_count
@@ -54,9 +54,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
   test "filters by date range" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: Date.current.to_s,
-      end_date: Date.current.to_s,
-      transfer_filter: "include"
-    }).query
+      end_date: Date.current.to_s
+          }).query
 
     ids = result.transactions.map(&:id)
     assert_includes ids, @txn1.id
@@ -68,9 +67,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
       end_date: "all",
-      category_id: @category.id.to_s,
-      transfer_filter: "include"
-    }).query
+      category_id: @category.id.to_s
+          }).query
 
     ids = result.transactions.map(&:id)
     assert_includes ids, @txn1.id
@@ -81,9 +79,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
       end_date: "all",
-      category_id: "uncategorized",
-      transfer_filter: "include"
-    }).query
+      category_id: "uncategorized"
+          }).query
 
     ids = result.transactions.map(&:id)
     assert_not_includes ids, @txn1.id
@@ -94,9 +91,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
       end_date: "all",
-      search: "grocery",
-      transfer_filter: "include"
-    }).query
+      search: "grocery"
+          }).query
 
     assert_equal 1, result.transactions.length
     assert_equal @txn1.id, result.transactions.first.id
@@ -106,9 +102,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
       end_date: "all",
-      bank_account_id: @account.id.to_s,
-      transfer_filter: "include"
-    }).query
+      bank_account_id: @account.id.to_s
+          }).query
 
     ids = result.transactions.map(&:id)
     assert_includes ids, @txn1.id
@@ -116,35 +111,26 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
     assert_not_includes ids, @txn3.id
   end
 
-  test "filters transfers with exclude" do
+  test "includes transfers in list but excludes from totals" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
-      end_date: "all",
-      transfer_filter: "exclude"
+      end_date: "all"
     }).query
 
     ids = result.transactions.map(&:id)
-    assert_not_includes ids, @txn3.id
-  end
-
-  test "filters transfers with only" do
-    result = Banking::TransactionQueryService.new(@user, {
-      start_date: "all",
-      end_date: "all",
-      transfer_filter: "only"
-    }).query
-
-    ids = result.transactions.map(&:id)
+    # Transfers should be visible in the list
     assert_includes ids, @txn3.id
-    assert_not_includes ids, @txn1.id
+
+    # But transfers should not count towards totals
+    # txn1 (-50) is only expense, txn3 (-500) is transfer and excluded
+    assert_equal BigDecimal("50"), result.total_expenses
   end
 
   test "filters by min and max amount" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
       end_date: "all",
-      min_amount: "100",
-      transfer_filter: "include"
+      min_amount: "100"
     }).query
 
     ids = result.transactions.map(&:id)
@@ -156,9 +142,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
   test "computes totals excluding transfers" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
-      end_date: "all",
-      transfer_filter: "include"
-    }).query
+      end_date: "all"
+          }).query
 
     assert_equal BigDecimal("3000.00"), result.total_income
     assert_equal BigDecimal("50.00"), result.total_expenses
@@ -168,9 +153,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
   test "query returns lightweight result without analytics" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
-      end_date: "all",
-      transfer_filter: "include"
-    }).query
+      end_date: "all"
+          }).query
 
     assert_nil result.category_breakdown
     assert_nil result.time_series_data
@@ -180,9 +164,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
   test "sorts by date desc by default" do
     result = Banking::TransactionQueryService.new(@user, {
       start_date: "all",
-      end_date: "all",
-      transfer_filter: "include"
-    }).query
+      end_date: "all"
+          }).query
 
     dates = result.transactions.map(&:date)
     assert dates.first >= dates.last
@@ -193,9 +176,8 @@ class Banking::TransactionQueryServiceTest < ActiveSupport::TestCase
       start_date: "all",
       end_date: "all",
       sort: "value",
-      direction: "asc",
-      transfer_filter: "include"
-    }).query
+      direction: "asc"
+          }).query
 
     values = result.transactions.map(&:value)
     assert values.first <= values.last

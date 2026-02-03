@@ -72,7 +72,7 @@ class Api::V1::Banking::TransactionsControllerTest < ActionDispatch::Integration
     assert_equal 1, json["data"].length
   end
 
-  test "index filters transfers" do
+  test "index includes transfers in list" do
     transfer = @user.bank_transactions.create!(
       date: Date.current,
       description: "Transfer to savings",
@@ -81,13 +81,14 @@ class Api::V1::Banking::TransactionsControllerTest < ActionDispatch::Integration
       row_hash: Digest::SHA256.hexdigest("#{Date.current.iso8601}|transfer to savings|-100.0")
     )
 
-    get api_v1_banking_transactions_path(start_date: "all", transfer_filter: "exclude"),
+    get api_v1_banking_transactions_path(start_date: "all"),
       headers: @auth_header
 
     assert_response :ok
     json = JSON.parse(response.body)
     ids = json["data"].map { |t| t["id"] }
-    assert_not_includes ids, transfer.id
+    # Transfers should be included in the list
+    assert_includes ids, transfer.id
     assert_includes ids, @transaction.id
   end
 

@@ -13,8 +13,7 @@ module Views
         search: nil,
         sort_column: "date",
         sort_direction: "desc",
-        bank_account_id: nil,
-        transfer_filter: "exclude"
+        bank_account_id: nil
       )
         @user = user
         @start_date = start_date
@@ -26,7 +25,6 @@ module Views
         @sort_column = sort_column
         @sort_direction = sort_direction
         @bank_account_id = bank_account_id
-        @transfer_filter = transfer_filter
         @categories = user.categories.top_level.with_subcategories.order(:name)
         @bank_accounts = user.bank_accounts.ordered
       end
@@ -69,9 +67,8 @@ module Views
           render_date_to_field
           render_category_field
         end
-        div(class: "grid grid-cols-2 md:grid-cols-4 gap-4 mt-4") do
+        div(class: "grid grid-cols-3 gap-4 mt-4") do
           render_bank_account_field
-          render_transfer_filter_field
           render_min_amount_field
           render_max_amount_field
         end
@@ -176,20 +173,6 @@ module Views
         end
       end
 
-      def render_transfer_filter_field
-        div do
-          label(class: "text-sm font-medium mb-1 block") { "Transfers" }
-          select(
-            name: "transfer_filter",
-            class: "flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          ) do
-            option(value: "exclude", selected: @transfer_filter == "exclude") { "Exclude Transfers" }
-            option(value: "all", selected: @transfer_filter == "all") { "Include All" }
-            option(value: "only", selected: @transfer_filter == "only") { "Transfers Only" }
-          end
-        end
-      end
-
       def render_min_amount_field
         div do
           label(class: "text-sm font-medium mb-1 block") { "Min Amount" }
@@ -248,7 +231,7 @@ module Views
       end
 
       def any_filters_active?
-        @category_id.present? || @min_amount.present? || @max_amount.present? || @search.present? || non_default_date_range? || @bank_account_id.present? || @transfer_filter != "exclude"
+        @category_id.present? || @min_amount.present? || @max_amount.present? || @search.present? || non_default_date_range? || @bank_account_id.present?
       end
 
       def non_default_date_range?
@@ -265,7 +248,6 @@ module Views
         count += 1 if @max_amount.present?
         count += 1 if @search.present?
         count += 1 if @bank_account_id.present?
-        count += 1 if @transfer_filter != "exclude"
         count
       end
 
@@ -342,7 +324,6 @@ module Views
           min_amount: @min_amount,
           max_amount: @max_amount,
           search: @search,
-          transfer_filter: @transfer_filter,
           start_date: @start_date&.to_s,
           end_date: @end_date&.to_s
         }.compact_blank
@@ -401,8 +382,7 @@ module Views
           min_amount: @min_amount,
           max_amount: @max_amount,
           search: @search,
-          bank_account_id: @bank_account_id,
-          transfer_filter: @transfer_filter
+          bank_account_id: @bank_account_id
         }.compact_blank
 
         if option[:start_date]
@@ -442,8 +422,7 @@ module Views
           min_amount: @min_amount,
           max_amount: @max_amount,
           search: @search,
-          bank_account_id: @bank_account_id,
-          transfer_filter: @transfer_filter
+          bank_account_id: @bank_account_id
         }.compact_blank
 
         url_params[:start_date] = @start_date.to_s if @start_date.present?

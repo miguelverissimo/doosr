@@ -80,4 +80,58 @@ class Banking::TransferPatternMatcherServiceTest < ActiveSupport::TestCase
     other_transfer.reload
     assert other_transfer.is_transfer
   end
+
+  test "apply_to_existing adds Transfers category to matching transactions" do
+    service = Banking::TransferPatternMatcherService.new(@user)
+    service.apply_to_existing(@pattern)
+
+    transfers_category = @user.categories.find_by(name: "Transfers")
+    assert_not_nil transfers_category
+    assert_equal "#109648", transfers_category.color
+
+    @matching_txn.reload
+    assert_includes @matching_txn.categories, transfers_category
+
+    @non_matching_txn.reload
+    assert_not_includes @non_matching_txn.categories, transfers_category
+  end
+
+  test "rematch adds Transfers category to matching transactions" do
+    service = Banking::TransferPatternMatcherService.new(@user)
+    service.rematch(@pattern)
+
+    transfers_category = @user.categories.find_by(name: "Transfers")
+    assert_not_nil transfers_category
+
+    @matching_txn.reload
+    assert_includes @matching_txn.categories, transfers_category
+  end
+
+  test "unmark_matching removes Transfers category from matching transactions" do
+    transfers_category = @user.categories.create!(name: "Transfers", color: "#109648")
+    @already_transfer_txn.transaction_categorizations.create!(
+      category: transfers_category,
+      user: @user
+    )
+
+    service = Banking::TransferPatternMatcherService.new(@user)
+    service.unmark_matching(@pattern)
+
+    @already_transfer_txn.reload
+    assert_not_includes @already_transfer_txn.categories, transfers_category
+  end
+
+  test "apply_to_existing does not duplicate Transfers category" do
+    transfers_category = @user.categories.create!(name: "Transfers", color: "#109648")
+    @matching_txn.transaction_categorizations.create!(
+      category: transfers_category,
+      user: @user
+    )
+
+    service = Banking::TransferPatternMatcherService.new(@user)
+    service.apply_to_existing(@pattern)
+
+    @matching_txn.reload
+    assert_equal 1, @matching_txn.transaction_categorizations.where(category: transfers_category).count
+  end
 end

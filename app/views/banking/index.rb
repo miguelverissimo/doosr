@@ -3,7 +3,7 @@
 module Views
   module Banking
     class Index < ::Views::Base
-      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil, transfer_filter: "exclude")
+      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil)
         @user = user
         @start_date = start_date
         @end_date = end_date
@@ -26,7 +26,6 @@ module Views
         @max_amount = max_amount
         @search = search
         @bank_account_id = bank_account_id
-        @transfer_filter = transfer_filter
       end
 
       def view_template
@@ -174,8 +173,7 @@ module Views
               search: @search,
               sort_column: @sort_column,
               sort_direction: @sort_direction,
-              bank_account_id: @bank_account_id,
-              transfer_filter: @transfer_filter
+              bank_account_id: @bank_account_id
             )
 
             render_loading_spinner
