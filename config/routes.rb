@@ -316,6 +316,10 @@ Rails.application.routes.draw do
 
       # Journals
       resources :journals, only: [ :index, :show, :create, :destroy ]
+
+      # Agenda
+      get "agenda", to: "agenda#show"
+      resources :agenda_posts, only: [ :create ]
     end
   end
 
@@ -473,6 +477,9 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  # Agenda
+  get "agenda", to: "agenda#show"
 
   # Checklists
   resources :checklists, only: [ :index, :show, :create, :update, :destroy ] do

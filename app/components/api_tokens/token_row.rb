@@ -76,13 +76,24 @@ module Components
       end
 
       def render_usage_meta
-        div(class: "mt-2 flex items-center gap-3 text-xs text-muted-foreground") do
+        div(class: "mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground") do
+          render_scope_badges
           if @api_token.last_used_at
             span { "Last used #{view_context.time_ago_in_words(@api_token.last_used_at)} ago" }
           else
             span { "Never used" }
           end
           span { "Created #{view_context.time_ago_in_words(@api_token.created_at)} ago" }
+        end
+      end
+
+      def render_scope_badges
+        if @api_token.scoped?
+          @api_token.scopes.each do |scope|
+            Badge(variant: :outline, size: :sm) { scope.titleize }
+          end
+        else
+          Badge(variant: :secondary, size: :sm) { "Full access" }
         end
       end
 

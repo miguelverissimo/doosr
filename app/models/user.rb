@@ -37,6 +37,9 @@ class User < ApplicationRecord
   has_many :day_payment_reminders, dependent: :destroy
   has_many :transaction_categorizations, dependent: :destroy
 
+  # Agenda
+  has_many :agenda_posts, dependent: :destroy
+
   # Accounting
   has_many :addresses, class_name: "Address", dependent: :destroy
   has_many :accounting_items, class_name: "Accounting::AccountingItem", dependent: :destroy
@@ -52,7 +55,7 @@ class User < ApplicationRecord
   has_many :receipt_receipt_items, class_name: "Accounting::ReceiptReceiptItem", dependent: :destroy
 
   # Available roles for authorization
-  AVAILABLE_ROLES = %w[day well lists notes journals checklists fixed_calendar accounting banking admin api].freeze
+  AVAILABLE_ROLES = %w[day well lists notes journals checklists fixed_calendar accounting banking admin api agenda].freeze
   DEFAULT_ROLES = %w[day lists notes checklists].freeze
 
   # Validations

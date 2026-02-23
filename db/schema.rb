@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_31_070000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_04_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,10 +79,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_070000) do
     t.index ["user_id"], name: "index_addresses_on_user_id"
   end
 
+  create_table "agenda_posts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.string "type", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "type", "created_at"], name: "index_agenda_posts_on_user_id_and_type_and_created_at"
+    t.index ["user_id"], name: "index_agenda_posts_on_user_id"
+  end
+
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
     t.string "name", null: false
+    t.string "scopes", default: [], null: false, array: true
     t.string "token_digest", null: false
     t.text "token_encrypted"
     t.string "token_prefix", limit: 12, null: false
@@ -822,6 +833,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_070000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addresses", "users"
+  add_foreign_key "agenda_posts", "users"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "bank_accounts", "users"
   add_foreign_key "bank_infos", "users"

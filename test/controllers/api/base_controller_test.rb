@@ -67,4 +67,67 @@ class Api::BaseControllerTest < ActionDispatch::IntegrationTest
     api_token.reload
     assert_not_nil api_token.last_used_at
   end
+
+  test "returns 403 when token does not have required scope" do
+    user = User.create!(
+      email: "scoped@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      access_confirmed: true,
+      roles: User::DEFAULT_ROLES + %w[api banking]
+    )
+    plain = ApiToken.generate_token
+    user.api_tokens.create!(
+      name: "Banking Only",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: [ "banking" ]
+    )
+
+    # Try to access days endpoint with banking-only token
+    get api_v1_days_path(format: :json), headers: { "Authorization" => "Bearer #{plain}" }
+    assert_response :forbidden
+    json = JSON.parse(response.body)
+    assert_equal "Access denied: token not authorized for day", json["error"]
+  end
+
+  test "allows access when token has required scope" do
+    user = User.create!(
+      email: "daytoken@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      access_confirmed: true,
+      roles: User::DEFAULT_ROLES + [ "api" ]
+    )
+    plain = ApiToken.generate_token
+    user.api_tokens.create!(
+      name: "Day Only",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: [ "day" ]
+    )
+
+    get api_v1_days_path(format: :json), headers: { "Authorization" => "Bearer #{plain}" }
+    assert_response :success
+  end
+
+  test "allows access when token has no scopes (full access)" do
+    user = User.create!(
+      email: "fullaccess@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      access_confirmed: true,
+      roles: User::DEFAULT_ROLES + [ "api" ]
+    )
+    plain = ApiToken.generate_token
+    user.api_tokens.create!(
+      name: "Full Access",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: []
+    )
+
+    get api_v1_days_path(format: :json), headers: { "Authorization" => "Bearer #{plain}" }
+    assert_response :success
+  end
 end

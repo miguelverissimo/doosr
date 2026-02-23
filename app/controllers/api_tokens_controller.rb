@@ -10,8 +10,10 @@ class ApiTokensController < ApplicationController
 
   def create
     plain_token = ApiToken.generate_token
+    scopes = Array(params[:scopes]).compact_blank
     @api_token = current_user.api_tokens.build(
       name: params[:name],
+      scopes: scopes,
       token_digest: ApiToken.digest_token(plain_token),
       token_prefix: plain_token[0..11],
       token_encrypted: ApiToken.encrypt_token(plain_token)
@@ -29,7 +31,7 @@ class ApiTokensController < ApplicationController
             turbo_stream.update("no_tokens_message", ""),
             turbo_stream.append(
               "body",
-              render_to_string(::Components::ApiTokens::TokenCreatedDialog.new(plain_token: plain_token, token_name: @api_token.name), layout: false)
+              render_to_string(::Components::ApiTokens::TokenCreatedDialog.new(plain_token: plain_token, token_name: @api_token.name, scopes: scopes), layout: false)
             )
           ]
         end

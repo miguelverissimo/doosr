@@ -3,19 +3,21 @@
 module Views
   module Banking
     class Index < ::Views::Base
-      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil)
+      def initialize(user:, start_date:, end_date:, total_income:, total_expenses:, net_balance:, total_transfers:, income_change:, expenses_change:, balance_change:, category_breakdown:, time_series_data:, time_series_granularity:, transfers_time_series_data:, transactions:, page: 1, sort_column: "date", sort_direction: "desc", category_id: nil, breakdown_parent_id: nil, min_amount: nil, max_amount: nil, search: nil, bank_account_id: nil)
         @user = user
         @start_date = start_date
         @end_date = end_date
         @total_income = total_income
         @total_expenses = total_expenses
         @net_balance = net_balance
+        @total_transfers = total_transfers
         @income_change = income_change
         @expenses_change = expenses_change
         @balance_change = balance_change
         @category_breakdown = category_breakdown
         @time_series_data = time_series_data
         @time_series_granularity = time_series_granularity
+        @transfers_time_series_data = transfers_time_series_data
         @transactions = transactions
         @page = page
         @sort_column = sort_column
@@ -46,7 +48,7 @@ module Views
       private
 
       def render_summary_cards
-        div(class: "grid gap-4 md:grid-cols-3") do
+        div(class: "grid gap-4 md:grid-cols-2 lg:grid-cols-4") do
           render_card(
             title: "Total Income",
             value: format_currency(@total_income),
@@ -67,6 +69,11 @@ module Views
             color: @net_balance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400",
             change: @balance_change,
             positive_is_good: true
+          )
+          render_card(
+            title: "Total Transfers",
+            value: format_currency(@total_transfers),
+            color: "text-purple-600 dark:text-purple-400"
           )
         end
       end
@@ -110,16 +117,24 @@ module Views
       end
 
       def render_charts_section
-        div(class: "grid gap-6 lg:grid-cols-2") do
-          render ::Views::Banking::CategoryBreakdownChart.new(
-            category_breakdown: @category_breakdown,
-            start_date: @start_date,
-            end_date: @end_date,
-            category_id: @category_id,
-            breakdown_parent_id: @breakdown_parent_id
-          )
-          render ::Views::Banking::SpendingOverTimeChart.new(
-            time_series_data: @time_series_data,
+        div(class: "space-y-6") do
+          div(class: "grid gap-6 lg:grid-cols-2") do
+            render ::Views::Banking::CategoryBreakdownChart.new(
+              category_breakdown: @category_breakdown,
+              start_date: @start_date,
+              end_date: @end_date,
+              category_id: @category_id,
+              breakdown_parent_id: @breakdown_parent_id
+            )
+            render ::Views::Banking::SpendingOverTimeChart.new(
+              time_series_data: @time_series_data,
+              start_date: @start_date,
+              end_date: @end_date,
+              granularity: @time_series_granularity
+            )
+          end
+          render ::Views::Banking::TransfersOverTimeChart.new(
+            time_series_data: @transfers_time_series_data,
             start_date: @start_date,
             end_date: @end_date,
             granularity: @time_series_granularity

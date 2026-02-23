@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# Fix for pg gem segfault with GSSAPI on macOS
+ENV["PGGSSENCMODE"] ||= "disable"
+
 require_relative "../config/environment"
 require "solid_queue/cli"
 

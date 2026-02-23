@@ -105,4 +105,102 @@ class ApiTokenTest < ActiveSupport::TestCase
       @user.destroy
     end
   end
+
+  # Scope tests
+  test "scopes defaults to empty array" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11]
+    )
+    assert_equal [], api_token.scopes
+  end
+
+  test "scoped? returns false when scopes is empty" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11]
+    )
+    assert_not api_token.scoped?
+  end
+
+  test "scoped? returns true when scopes is not empty" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: [ "day" ]
+    )
+    assert api_token.scoped?
+  end
+
+  test "has_scope? returns true for any scope when scopes is empty" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11]
+    )
+    assert api_token.has_scope?("day")
+    assert api_token.has_scope?("banking")
+    assert api_token.has_scope?("anything")
+  end
+
+  test "has_scope? returns true only for included scopes when scopes is not empty" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: %w[day lists]
+    )
+    assert api_token.has_scope?("day")
+    assert api_token.has_scope?("lists")
+    assert_not api_token.has_scope?("banking")
+    assert_not api_token.has_scope?("accounting")
+  end
+
+  test "has_scope? accepts symbols" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.create!(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: [ "day" ]
+    )
+    assert api_token.has_scope?(:day)
+    assert_not api_token.has_scope?(:banking)
+  end
+
+  test "validates scopes must be from AVAILABLE_SCOPES" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.build(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: [ "invalid_scope" ]
+    )
+    assert_not api_token.valid?
+    assert_includes api_token.errors[:scopes].first, "invalid_scope"
+  end
+
+  test "allows valid scopes" do
+    plain = ApiToken.generate_token
+    api_token = @user.api_tokens.build(
+      name: "Test",
+      token_digest: ApiToken.digest_token(plain),
+      token_prefix: plain[0..11],
+      scopes: %w[day lists banking]
+    )
+    assert api_token.valid?
+  end
+
+  test "AVAILABLE_SCOPES contains expected values" do
+    expected = %w[day lists notes checklists banking accounting journals agenda]
+    assert_equal expected, ApiToken::AVAILABLE_SCOPES
+  end
 end

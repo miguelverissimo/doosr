@@ -34,6 +34,7 @@ class ::Components::AppSidebar < ::Components::Base
         is_fixed_calendar_page = @pathname.start_with?("/fixed_calendar")
         is_api_page = @pathname.start_with?("/api_tokens")
         is_admin_page = @pathname.start_with?("/admin")
+        is_agenda_page = @pathname.start_with?("/agenda")
 
         is_app_page_not_day_view = \
           is_well_page || \
@@ -45,7 +46,8 @@ class ::Components::AppSidebar < ::Components::Base
           is_checklists_page || \
           is_fixed_calendar_page || \
           is_api_page || \
-          is_admin_page
+          is_admin_page || \
+          is_agenda_page
 
         if is_day_view
           # Show calendar for day view
@@ -133,6 +135,18 @@ class ::Components::AppSidebar < ::Components::Base
               ) do
                 render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
                 span(class: "group-data-[collapsible=icon]:hidden") { "Fixed Calendar" }
+              end
+            end
+          end
+          if view_context.can?(:access, :agenda)
+            SidebarMenuItem do
+              SidebarMenuButton(
+                as: :a,
+                href: view_context.agenda_path,
+                data: { action: "click->nav-loader#show" }
+              ) do
+                render ::Components::Icon::Calendar.new(size: "16", class: "shrink-0")
+                span(class: "group-data-[collapsible=icon]:hidden") { "Agenda" }
               end
             end
           end

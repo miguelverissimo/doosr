@@ -33,7 +33,7 @@ module Views
           render RubyUI::Form.new(
             action: api_tokens_path,
             method: "post",
-            class: "flex gap-2 items-end",
+            class: "space-y-4",
             data: {
               controller: "modal-form",
               modal_form_loading_message_value: "Creating token...",
@@ -46,22 +46,49 @@ module Views
               name: "authenticity_token",
               value: view_context.form_authenticity_token
             )
-            render RubyUI::FormField.new do
-              render RubyUI::FormFieldLabel.new(for: "token_name") { "Token Name" }
-              render RubyUI::Input.new(
-                type: :text,
-                name: "name",
-                id: "token_name",
-                placeholder: "e.g. My Script, CI/CD, Shortcuts",
-                required: true,
-                class: "min-w-[250px]"
-              )
-              render RubyUI::FormFieldError.new
+            div(class: "flex gap-2 items-end") do
+              render RubyUI::FormField.new do
+                render RubyUI::FormFieldLabel.new(for: "token_name") { "Token Name" }
+                render RubyUI::Input.new(
+                  type: :text,
+                  name: "name",
+                  id: "token_name",
+                  placeholder: "e.g. My Script, CI/CD, Shortcuts",
+                  required: true,
+                  class: "min-w-[250px]"
+                )
+                render RubyUI::FormFieldError.new
+              end
+              Button(type: "submit", variant: :primary, class: "shrink-0") { "Create Token" }
             end
-            Button(type: "submit", variant: :primary, class: "shrink-0") { "Create Token" }
+            render_scope_selection if user_scopes.length > 1
           end
           div(id: "token_form_errors", class: "mt-2")
         end
+      end
+
+      def render_scope_selection
+        div do
+          p(class: "text-sm font-medium mb-2") { "Scopes (optional)" }
+          p(class: "text-xs text-muted-foreground mb-3") do
+            plain "Leave all unchecked for full access, or select specific scopes to restrict this token."
+          end
+          div(class: "flex flex-wrap gap-4") do
+            user_scopes.each do |scope|
+              label(class: "flex items-center gap-2") do
+                render RubyUI::Checkbox.new(
+                  name: "scopes[]",
+                  value: scope
+                )
+                span(class: "text-sm") { scope.titleize }
+              end
+            end
+          end
+        end
+      end
+
+      def user_scopes
+        @user_scopes ||= view_context.current_user.roles & ApiToken::AVAILABLE_SCOPES
       end
 
       def render_tokens_list

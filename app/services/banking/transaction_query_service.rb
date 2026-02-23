@@ -14,12 +14,14 @@ module Banking
       :total_income,
       :total_expenses,
       :net_balance,
+      :total_transfers,
       :income_change,
       :expenses_change,
       :balance_change,
       :category_breakdown,
       :time_series_data,
       :time_series_granularity,
+      :transfers_time_series_data,
       keyword_init: true
     )
 
@@ -43,14 +45,17 @@ module Banking
       base_transactions = build_base_query
 
       non_transfer_transactions = base_transactions.non_transfers
+      transfer_transactions = base_transactions.transfers
       total_income = non_transfer_transactions.where("value > 0").sum(:value)
       total_expenses = non_transfer_transactions.where("value < 0").sum(:value).abs
       net_balance = total_income - total_expenses
+      total_transfers = transfer_transactions.sum("ABS(value)") / 2 # Divide by 2 since transfers appear twice (in and out)
 
       previous_period_stats = compute_previous_period_stats(total_income, total_expenses, net_balance)
 
-      category_breakdown = compute_category_breakdown(base_transactions)
-      time_series_data, time_series_granularity = compute_time_series_data(base_transactions)
+      category_breakdown = compute_category_breakdown(non_transfer_transactions)
+      time_series_data, time_series_granularity = compute_time_series_data(non_transfer_transactions)
+      transfers_time_series_data = compute_transfers_time_series_data(transfer_transactions, time_series_granularity)
 
       total_count = base_transactions.count
       transactions = apply_sorting(base_transactions).page(@page).per(@per_page)
@@ -61,12 +66,14 @@ module Banking
         total_income: total_income,
         total_expenses: total_expenses,
         net_balance: net_balance,
+        total_transfers: total_transfers,
         income_change: previous_period_stats[:income_change],
         expenses_change: previous_period_stats[:expenses_change],
         balance_change: previous_period_stats[:balance_change],
         category_breakdown: category_breakdown,
         time_series_data: time_series_data,
-        time_series_granularity: time_series_granularity
+        time_series_granularity: time_series_granularity,
+        transfers_time_series_data: transfers_time_series_data
       )
     end
 
@@ -385,6 +392,74 @@ module Banking
           label: current_month_start.strftime("%b %Y"),
           income: (income_data[current_month_start] || 0).to_f.round(2),
           expenses: (expenses_data[current_month_start] || 0).abs.to_f.round(2)
+        }
+        current_month_start += 1.month
+      end
+      months
+    end
+
+    def compute_transfers_time_series_data(transfers, granularity)
+      return [] if transfers.empty?
+
+      effective_start = @start_date || transfers.minimum(:date) || Date.current
+      effective_end = @end_date || transfers.maximum(:date) || Date.current
+
+      case granularity
+      when :daily
+        group_transfers_by_day(transfers, effective_start, effective_end)
+      when :weekly
+        group_transfers_by_week(transfers, effective_start, effective_end)
+      when :monthly
+        group_transfers_by_month(transfers, effective_start, effective_end)
+      else
+        []
+      end
+    end
+
+    def group_transfers_by_day(transfers, start_date, end_date)
+      # Only count outgoing transfers (negative values) to avoid double counting
+      transfers_by_date = transfers.where("value < 0").group(:date).sum("ABS(value)")
+
+      (start_date..end_date).map do |date|
+        {
+          label: date.strftime("%b %d"),
+          transfers: (transfers_by_date[date] || 0).to_f.round(2)
+        }
+      end
+    end
+
+    def group_transfers_by_week(transfers, start_date, end_date)
+      transfers_data = transfers
+        .where("value < 0")
+        .group("DATE_TRUNC('week', date)")
+        .sum("ABS(value)")
+        .transform_keys { |k| k.to_date }
+
+      weeks = []
+      current_week_start = start_date.beginning_of_week
+      while current_week_start <= end_date
+        weeks << {
+          label: current_week_start.strftime("%b %d"),
+          transfers: (transfers_data[current_week_start] || 0).to_f.round(2)
+        }
+        current_week_start += 1.week
+      end
+      weeks
+    end
+
+    def group_transfers_by_month(transfers, start_date, end_date)
+      transfers_data = transfers
+        .where("value < 0")
+        .group("DATE_TRUNC('month', date)")
+        .sum("ABS(value)")
+        .transform_keys { |k| k.to_date }
+
+      months = []
+      current_month_start = start_date.beginning_of_month
+      while current_month_start <= end_date
+        months << {
+          label: current_month_start.strftime("%b %Y"),
+          transfers: (transfers_data[current_month_start] || 0).to_f.round(2)
         }
         current_month_start += 1.month
       end

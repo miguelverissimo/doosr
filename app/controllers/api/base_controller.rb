@@ -30,9 +30,15 @@ module Api
     end
 
     def authorize_feature!(feature)
-      return if @current_user.has_role?(feature.to_s)
+      unless @current_user.has_role?(feature.to_s)
+        render_error("Access denied: #{feature} feature not enabled", status: :forbidden)
+        return
+      end
 
-      render_error("Access denied: #{feature} feature not enabled", status: :forbidden)
+      unless @api_token.has_scope?(feature)
+        render_error("Access denied: token not authorized for #{feature}", status: :forbidden)
+        return
+      end
     end
 
     private
